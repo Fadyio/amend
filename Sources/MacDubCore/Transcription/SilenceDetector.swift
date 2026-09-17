@@ -20,7 +20,74 @@ public protocol SilenceDetecting: Sendable {
     func findOptimalRoomToneRange(in audioBuffer: AVAudioPCMBuffer, targetDuration: CMTime) -> CMTimeRange?
 }
 
-public final class SilenceDetector: SilenceDetecting, @unchecked Sendable {
+/// Shared utility algorithms for silence region inversion and room tone analysis (ADR-0005).
+public enum SilenceDetectorUtils {
+    public static func detectSilenceRegions(in audioBuffer: AVAudioPCMBuffer, speechRegions: [SpeechRegion]) -> [CMTimeRange] {
+        let sampleRate = audioBuffer.format.sampleRate
+        let totalDuration = CMTime(seconds: Double(audioBuffer.frameLength) / sampleRate, preferredTimescale: 600_000)
+        guard CMTimeGetSeconds(totalDuration) > 0 else { return [] }
+
+        if speechRegions.isEmpty {
+            return [CMTimeRange(start: .zero, duration: totalDuration)]
+        }
+
+        var silences: [CMTimeRange] = []
+        var cursor = CMTime.zero
+
+        for region in speechRegions.sorted(by: { CMTimeCompare($0.timeRange.start, $1.timeRange.start) < 0 }) {
+            if CMTimeCompare(region.timeRange.start, cursor) > 0 {
+                let dur = CMTimeSubtract(region.timeRange.start, cursor)
+                silences.append(CMTimeRange(start: cursor, duration: dur))
+            }
+            cursor = max(cursor, region.timeRange.end)
+        }
+
+        if CMTimeCompare(cursor, totalDuration) < 0 {
+            let tailDur = CMTimeSubtract(totalDuration, cursor)
+            silences.append(CMTimeRange(start: cursor, duration: tailDur))
+        }
+
+        return silences
+    }
+
+    public static func findOptimalRoomToneRange(
+        in audioBuffer: AVAudioPCMBuffer,
+        targetDuration: CMTime = CMTime(value: 300, timescale: 1000) // 300ms default
+    ) -> CMTimeRange? {
+        guard let channelData = audioBuffer.floatChannelData?[0], audioBuffer.frameLength > 0 else {
+            return nil
+        }
+
+        let sampleRate = audioBuffer.format.sampleRate
+        let targetFrames = Int(round(CMTimeGetSeconds(targetDuration) * sampleRate))
+        guard targetFrames > 0 && targetFrames <= Int(audioBuffer.frameLength) else {
+            return nil
+        }
+
+        // Sliding search across 50ms steps to find quietest contiguous block
+        let stepFrames = max(1, Int(round(sampleRate * 0.05)))
+        var bestOffset = 0
+        var lowestRMS = Float.infinity
+
+        var offset = 0
+        while (offset + targetFrames) <= Int(audioBuffer.frameLength) {
+            var rms: Float = 0.0
+            vDSP_rmsqv(channelData.advanced(by: offset), 1, &rms, vDSP_Length(targetFrames))
+            if rms < lowestRMS {
+                lowestRMS = rms
+                bestOffset = offset
+            }
+            offset += stepFrames
+        }
+
+        let startSec = Double(bestOffset) / sampleRate
+        let start = CMTime(seconds: startSec, preferredTimescale: 600_000)
+        return CMTimeRange(start: start, duration: targetDuration)
+    }
+}
+
+/// Auxiliary RMS energy-based silence detector.
+public final class EnergySilenceDetector: SilenceDetecting, @unchecked Sendable {
     public let minSilenceDuration: Double
     public let speechPadding: Double
     public let energyThresholdDB: Float
@@ -35,7 +102,6 @@ public final class SilenceDetector: SilenceDetecting, @unchecked Sendable {
         self.energyThresholdDB = energyThresholdDB
     }
 
-    /// Detects speech regions using energy analysis with Silero VAD parameters.
     public func detectSpeechRegions(in audioBuffer: AVAudioPCMBuffer) async throws -> [SpeechRegion] {
         guard let channelData = audioBuffer.floatChannelData?[0], audioBuffer.frameLength > 0 else {
             return []
@@ -106,68 +172,86 @@ public final class SilenceDetector: SilenceDetecting, @unchecked Sendable {
         }
     }
 
-    /// Computes silence intervals by inverting speech regions across the total buffer duration.
     public func detectSilenceRegions(in audioBuffer: AVAudioPCMBuffer, speechRegions: [SpeechRegion]) -> [CMTimeRange] {
-        let sampleRate = audioBuffer.format.sampleRate
-        let totalDuration = CMTime(seconds: Double(audioBuffer.frameLength) / sampleRate, preferredTimescale: 600_000)
-        guard CMTimeGetSeconds(totalDuration) > 0 else { return [] }
-
-        if speechRegions.isEmpty {
-            return [CMTimeRange(start: .zero, duration: totalDuration)]
-        }
-
-        var silences: [CMTimeRange] = []
-        var cursor = CMTime.zero
-
-        for region in speechRegions.sorted(by: { CMTimeCompare($0.timeRange.start, $1.timeRange.start) < 0 }) {
-            if CMTimeCompare(region.timeRange.start, cursor) > 0 {
-                let dur = CMTimeSubtract(region.timeRange.start, cursor)
-                silences.append(CMTimeRange(start: cursor, duration: dur))
-            }
-            cursor = max(cursor, region.timeRange.end)
-        }
-
-        if CMTimeCompare(cursor, totalDuration) < 0 {
-            let tailDur = CMTimeSubtract(totalDuration, cursor)
-            silences.append(CMTimeRange(start: cursor, duration: tailDur))
-        }
-
-        return silences
+        SilenceDetectorUtils.detectSilenceRegions(in: audioBuffer, speechRegions: speechRegions)
     }
 
-    /// Scans silence regions to find the optimal 200–500ms ambient room tone slice with the lowest RMS noise floor (ADR-0005).
-    public func findOptimalRoomToneRange(
-        in audioBuffer: AVAudioPCMBuffer,
-        targetDuration: CMTime = CMTime(value: 300, timescale: 1000) // 300ms default
-    ) -> CMTimeRange? {
-        guard let channelData = audioBuffer.floatChannelData?[0], audioBuffer.frameLength > 0 else {
-            return nil
+    public func findOptimalRoomToneRange(in audioBuffer: AVAudioPCMBuffer, targetDuration: CMTime = CMTime(value: 300, timescale: 1000)) -> CMTimeRange? {
+        SilenceDetectorUtils.findOptimalRoomToneRange(in: audioBuffer, targetDuration: targetDuration)
+    }
+}
+
+/// Production VAD Silence Detector using Silero VAD CoreML model via FluidAudio (ADR-0005).
+public final class SilenceDetector: SilenceDetecting, @unchecked Sendable {
+    public let minSilenceDuration: Double
+    public let speechPadding: Double
+    public let energyThresholdDB: Float?
+    private let vadManager: VadManager?
+    private let coordinator: LocalModelCoordinator
+
+    public init(
+        minSilenceDuration: Double = 0.3,
+        speechPadding: Double = 0.05,
+        energyThresholdDB: Float? = nil,
+        vadManager: VadManager? = nil,
+        coordinator: LocalModelCoordinator = .shared
+    ) {
+        self.minSilenceDuration = max(0.05, minSilenceDuration)
+        self.speechPadding = max(0.0, speechPadding)
+        self.energyThresholdDB = energyThresholdDB
+        self.vadManager = vadManager
+        self.coordinator = coordinator
+    }
+
+    /// Detects speech regions using Silero VAD via FluidAudio.VadManager (or energy detector if energyThresholdDB specified).
+    public func detectSpeechRegions(in audioBuffer: AVAudioPCMBuffer) async throws -> [SpeechRegion] {
+        if let thresholdDB = energyThresholdDB {
+            let energyDetector = EnergySilenceDetector(
+                minSilenceDuration: minSilenceDuration,
+                speechPadding: speechPadding,
+                energyThresholdDB: thresholdDB
+            )
+            return try await energyDetector.detectSpeechRegions(in: audioBuffer)
         }
 
-        let sampleRate = audioBuffer.format.sampleRate
-        let targetFrames = Int(round(CMTimeGetSeconds(targetDuration) * sampleRate))
-        guard targetFrames > 0 && targetFrames <= Int(audioBuffer.frameLength) else {
-            return nil
-        }
+        guard audioBuffer.frameLength > 0 else { return [] }
 
-        // Sliding search across 50ms steps to find quietest contiguous block
-        let stepFrames = max(1, Int(round(sampleRate * 0.05)))
-        var bestOffset = 0
-        var lowestRMS = Float.infinity
-
-        var offset = 0
-        while (offset + targetFrames) <= Int(audioBuffer.frameLength) {
-            var rms: Float = 0.0
-            vDSP_rmsqv(channelData.advanced(by: offset), 1, &rms, vDSP_Length(targetFrames))
-            if rms < lowestRMS {
-                lowestRMS = rms
-                bestOffset = offset
+        return try await coordinator.withExclusiveModel(.vad) {
+            let manager: VadManager
+            if let vm = self.vadManager {
+                manager = vm
+            } else {
+                manager = try await VadManager()
             }
-            offset += stepFrames
-        }
 
-        let startSec = Double(bestOffset) / sampleRate
-        let start = CMTime(seconds: startSec, preferredTimescale: 600_000)
-        return CMTimeRange(start: start, duration: targetDuration)
+            let converter = AudioConverter()
+            let samples = try converter.resampleBuffer(audioBuffer)
+            guard !samples.isEmpty else { return [] }
+
+            let config = VadSegmentationConfig(
+                minSpeechDuration: 0.05,
+                minSilenceDuration: self.minSilenceDuration,
+                speechPadding: self.speechPadding
+            )
+            let segments = try await manager.segmentSpeech(samples, config: config)
+            let totalDurationSec = Double(audioBuffer.frameLength) / audioBuffer.format.sampleRate
+
+            return segments.compactMap { seg in
+                let startSec = max(0.0, seg.startTime)
+                let endSec = min(totalDurationSec, seg.endTime)
+                guard endSec > startSec else { return nil }
+                let start = CMTime(seconds: startSec, preferredTimescale: 600_000)
+                let dur = CMTime(seconds: endSec - startSec, preferredTimescale: 600_000)
+                return SpeechRegion(timeRange: CMTimeRange(start: start, duration: dur))
+            }
+        }
+    }
+
+    public func detectSilenceRegions(in audioBuffer: AVAudioPCMBuffer, speechRegions: [SpeechRegion]) -> [CMTimeRange] {
+        SilenceDetectorUtils.detectSilenceRegions(in: audioBuffer, speechRegions: speechRegions)
+    }
+
+    public func findOptimalRoomToneRange(in audioBuffer: AVAudioPCMBuffer, targetDuration: CMTime = CMTime(value: 300, timescale: 1000)) -> CMTimeRange? {
+        SilenceDetectorUtils.findOptimalRoomToneRange(in: audioBuffer, targetDuration: targetDuration)
     }
 }

@@ -4,6 +4,7 @@ import OSLog
 
 public enum ManagedModelType: String, Sendable, CaseIterable {
     case asr = "Parakeet ASR"
+    case vad = "Silero VAD"
     case tts = "PocketTTS"
     case llm = "Local Foundation Model"
 }
@@ -43,10 +44,33 @@ public actor LocalModelCoordinator {
     // Registered teardown hooks for freeing Core ML / GPU resources
     private var teardownHooks: [ManagedModelType: @Sendable () async -> Void] = [:]
 
+    // Non-reentrant FIFO lease queue to prevent actor reentrancy interleaving across suspension points
+    private var isLocked: Bool = false
+    private var waitQueue: [CheckedContinuation<Void, Never>] = []
+
     public init() {}
 
     public func registerTeardown(for type: ManagedModelType, hook: @escaping @Sendable () async -> Void) {
         teardownHooks[type] = hook
+    }
+
+    private func lockQueue() async {
+        if !isLocked {
+            isLocked = true
+            return
+        }
+        await withCheckedContinuation { continuation in
+            waitQueue.append(continuation)
+        }
+    }
+
+    private func unlockQueue() {
+        if !waitQueue.isEmpty {
+            let next = waitQueue.removeFirst()
+            next.resume()
+        } else {
+            isLocked = false
+        }
     }
 
     /// Acquires exclusive execution permission for a given model type.
@@ -78,14 +102,17 @@ public actor LocalModelCoordinator {
     }
 
     /// Convenience wrapper to run an inference job with guaranteed exclusive lifecycle management.
+    /// Strictly non-reentrant across async suspension points.
     public func withExclusiveModel<T: Sendable>(
         _ type: ManagedModelType,
         operation: @Sendable () async throws -> T
     ) async throws -> T {
+        await lockQueue()
+        defer { unlockQueue() }
+
         try await acquireExclusiveAccess(for: type)
         do {
             let result = try await operation()
-            // On memory-constrained devices, release immediately after completion unless explicitly retained
             await releaseAccess(for: type)
             return result
         } catch {
