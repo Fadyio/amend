@@ -161,7 +161,7 @@ This ledger documents the verification status across all 17 phases and 14 qualit
 | Quality Gate | Description | Implementation File | Verified By / Test | Result |
 | :--- | :--- | :--- | :--- | :--- |
 | **Gate A** | `swift build` succeeds for MacDubCore and macdub executable | `Package.swift`, `Sources/MacDubCore/`, `Sources/MacDubApp/`, `Sources/macdub/` | Full SPM target compilation (`swift build`) | **IMPLEMENTED + VERIFIED** |
-| **Gate B** | All deterministic unit/integration tests pass | `Tests/MacDubCoreTests/` (25 test suites) | `swift test --no-parallel` (234/234 passed) | **IMPLEMENTED + VERIFIED** |
+| **Gate B** | All deterministic unit/integration tests pass | `Tests/MacDubCoreTests/` (25 test suites) | `swift test --no-parallel` (239/239 passed) | **IMPLEMENTED + VERIFIED** |
 | **Gate C** | Assembled app-level E2E journey passes | `Sources/MacDubApp/ViewModels/AppViewModel.swift` | `AssembledAppE2ETests.test_complete_sixteen_step_assembled_user_journey` | **IMPLEMENTED + VERIFIED** |
 | **Gate D** | Real selected-track routing is verified | `Sources/MacDubCore/Composition/AudioTrackExtractor.swift`, `Sources/MacDubCore/Transcription/CueGenerator.swift` | `AudioRoutingTests` (zero-crossing routing verification on Track B) | **IMPLEMENTED + VERIFIED** |
 | **Gate E** | Real Silero VAD is verified | `Sources/MacDubCore/Transcription/SilenceDetector.swift` | `TranscriptionVADTests` (compiled Core ML model on Neural Engine/CPU rejecting tones) | **IMPLEMENTED + VERIFIED** |
