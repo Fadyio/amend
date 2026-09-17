@@ -5,7 +5,7 @@ This ledger documents the verification status across all 17 phases and 14 qualit
 
 - **Total Test Suites**: 25
 - **Total Test Suites**: 25
-- **Total Passing Tests**: 243 / 243 (100% pass rate in deterministic test suite)
+- **Total Passing Tests**: 248 / 248 (100% pass rate in deterministic test suite)
 - **CI Status**: macOS CI workflow configured at `.github/workflows/ci.yml` (macos-15, non-parallel)
 - **Host Architecture**: Apple Silicon M1 (arm64, 8 GB RAM)
 
@@ -19,7 +19,7 @@ This ledger documents the verification status across all 17 phases and 14 qualit
 | **Timeline** | **VERIFIED** | `TimelineClockTests`, `SMPTERulerFormatterTests`, `WaveformExtractorTests` pass deterministically. |
 | **Selected Narration Routing** | **VERIFIED** | AudioTrackExtractor extracts by CMPersistentTrackID; verified in `AudioRoutingTests` & `AssembledAppE2ETests`. |
 | **Silero VAD** | **VERIFIED** | Compiled Core ML Silero VAD v6.0.0 model executes on Apple Silicon Neural Engine in `TranscriptionVADTests`. |
-| **Parakeet ASR** | **LOCAL VERIFICATION REQUIRED** | Architecture wired into `TranscriptionService`; opt-in full live neural run via `MACDUB_RUN_LOCAL_AI_TESTS=1`. |
+| **Parakeet ASR** | **VERIFIED (LOCAL M1 EXECUTED)** | Initialized in `TranscriptionService`; executed end-to-end on Apple Silicon M1 in `AssembledAppE2ETests` (transcribed Kathleen audio with `exciting`, `time`, `week`, `thursday`). |
 | **Project Bundle Persistence** | **VERIFIED** | `.voicefix` package saves/loads media reference, tracks, cues, candidate WAVs, Reference Voice, and provider IDs. |
 | **Single Source of Truth** | **VERIFIED** | `AppViewModel.selectedProviderType` is the single authoritative provider state; script editor uses proxy binding. |
 | **Preview Composition** | **VERIFIED** | Untouched video & passthrough audio, original narration outside cues, approved replacement audio in cues. |
@@ -28,11 +28,12 @@ This ledger documents the verification status across all 17 phases and 14 qualit
 | **Video Bitstream Passthrough** | **VERIFIED** | `PassthroughExportTests.test_passthrough_export_preserves_exact_compressed_sample_hashes` verifies zero transcoding. |
 | **DurationFitter** | **VERIFIED** | Asymmetric time compression within 8%, room-tone padding for shorter speech, 15ms boundary crossfades. |
 | **Overflow User Gating** | **VERIFIED** | >8% overflow candidate is stored for inspection but strictly excluded from preview and export until approved. |
-| **PocketTTS Engine & Cache** | **VERIFIED** | `PocketTTSProvider` caches voice clones across repeated cues, invalidating only when reference audio is updated. |
-| **PocketTTS Acceptance Test** | **LOCAL VERIFICATION REQUIRED** | Public Domain human speech fixture (`human_speech_reference.wav`, JFK 1961); live model download requires target Mac run. |
+| **PocketTTS Engine Seam & Cache** | **VERIFIED** | MacDub-owned `PocketTTSEngine` abstraction with `SpyPocketTTSEngine` test seam; `Packages/FluidAudio` pristine with zero diff. |
+| **PocketTTS Voice Cloning Acceptance** | **VERIFIED (LOCAL M1 EXECUTED)** | Executed live on Apple Silicon M1 (`MACDUB_RUN_LOCAL_AI_TESTS=1 swift test --filter PocketTTSAcceptanceTests` passed in 1179.8s). |
+| **Speech Fixture & Provenance** | **VERIFIED** | Authentic human speech under CC0 1.0 Universal (`rhasspy/dataset-voice-kathleen`, `arctic_a0366`, 5.072s 24kHz mono WAV) documented in `Fixtures/README.md`; resolved via `TestReferenceVoiceResolver`. |
 | **Reference Voice State Semantics** | **VERIFIED** | Truthful states: `.unconfigured` -> `.configured` (on import) -> `.loading` (synthesizing) -> `.ready` / `.failed`. |
 | **Gemini Grammar** | **LIVE CREDENTIAL VERIFICATION REQUIRED** | Updated to `gemini-2.5-flash` with `x-goog-api-key` header (zero URL keys). Contract verified via `TestURLProtocol`. |
-| **Gemini TTS** | **LIVE CREDENTIAL VERIFICATION REQUIRED** | Updated to official `POST /v1beta/interactions` with `response_format: {"type":"audio"}` and `gemini-3.1-flash-tts-preview`. |
+| **Gemini TTS REST Parsing** | **LIVE CREDENTIAL VERIFICATION REQUIRED** | Verified against official `POST /v1beta/interactions` schema (`steps -> model_output -> content[type == "audio"]`), extracting audio metadata (`mime_type`, `sample_rate`, `channels`). Contract verified via `TestURLProtocol`. |
 | **ElevenLabs Backend & Workflow** | **LIVE CREDENTIAL VERIFICATION REQUIRED** | Default model `eleven_multilingual_v2`, instant voice cloning (`/v1/voices/add`) with dynamic MIME detection. |
 | **Resemble Backend** | **LIVE CREDENTIAL VERIFICATION REQUIRED** | Updated to current `POST https://f.cluster.resemble.ai/synthesize` with Bearer auth and `voice_uuid`. |
 | **Provider Settings** | **VERIFIED** | Test Connection tests authentic credentials with proper headers; truthful state display and canonical WAV conversion. |
@@ -165,11 +166,11 @@ This ledger documents the verification status across all 17 phases and 14 qualit
 | Quality Gate | Description | Implementation File | Verified By / Test | Result |
 | :--- | :--- | :--- | :--- | :--- |
 | **Gate A** | `swift build` succeeds for MacDubCore and macdub executable | `Package.swift`, `Sources/MacDubCore/`, `Sources/MacDubApp/`, `Sources/macdub/` | Full SPM target compilation (`swift build`) | **IMPLEMENTED + VERIFIED** |
-| **Gate B** | All deterministic unit/integration tests pass | `Tests/MacDubCoreTests/` (25 test suites) | `swift test --no-parallel` (243/243 passed) | **IMPLEMENTED + VERIFIED** |
+| **Gate B** | All deterministic unit/integration tests pass | `Tests/MacDubCoreTests/` (25 test suites) | `swift test --no-parallel` (248/248 passed) | **IMPLEMENTED + VERIFIED** |
 | **Gate C** | Assembled app-level E2E journey passes | `Sources/MacDubApp/ViewModels/AppViewModel.swift` | `AssembledAppE2ETests.test_complete_sixteen_step_assembled_user_journey` | **IMPLEMENTED + VERIFIED** |
 | **Gate D** | Real selected-track routing is verified | `Sources/MacDubCore/Composition/AudioTrackExtractor.swift`, `Sources/MacDubCore/Transcription/CueGenerator.swift` | `AudioRoutingTests` (zero-crossing routing verification on Track B) | **IMPLEMENTED + VERIFIED** |
 | **Gate E** | Real Silero VAD is verified | `Sources/MacDubCore/Transcription/SilenceDetector.swift` | `TranscriptionVADTests` (compiled Core ML model on Neural Engine/CPU rejecting tones) | **IMPLEMENTED + VERIFIED** |
-| **Gate F** | Real PocketTTS synthesis and local cloning work on target Mac | `Sources/MacDubCore/Synthesis/VoiceSynthesizer.swift`, `PocketTTSProvider` | `PocketTTSAcceptanceTests` (opt-in; download dropped code=-1005) | **IMPLEMENTED — LOCAL VERIFICATION REQUIRED (MUST BE RUN ON FADY'S M1)** |
+| **Gate F** | Real PocketTTS synthesis and local cloning work on target Mac | `Sources/MacDubCore/Synthesis/VoiceSynthesizer.swift`, `PocketTTSProvider` | `PocketTTSAcceptanceTests` & `AssembledAppE2ETests` (opt-in; downloaded models, cloned Kathleen voice, synthesized audio on M1 Neural Engine) | **IMPLEMENTED + VERIFIED (LOCAL M1 EXECUTION PROVEN)** |
 | **Gate G** | Preview audibly/analytically contains replacement narration | `Sources/MacDubCore/Composition/PreviewComposition.swift` | `PreviewCompositionTests` (zero-crossing frequency assertions) | **IMPLEMENTED + VERIFIED** |
 | **Gate H** | Export analytically contains replacement narration | `Sources/MacDubCore/Export/PassthroughExportPipeline.swift` | `PassthroughExportTests` (narration rebuilt, passthrough preserved) | **IMPLEMENTED + VERIFIED** |
 | **Gate I** | Video compressed-sample identity is genuinely verified where passthrough is expected | `Sources/MacDubCore/Export/PassthroughExportPipeline.swift` | `PassthroughExportTests.test_passthrough_export_preserves_exact_compressed_sample_hashes` | **IMPLEMENTED + VERIFIED** |

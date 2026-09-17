@@ -321,21 +321,6 @@ struct AssembledAppE2ETests {
         #expect(cueB.timeRange.end == cueToSplit.timeRange.end)
     }
 
-    private func referenceVoiceURL() -> URL? {
-        if let envPath = ProcessInfo.processInfo.environment["MACDUB_TEST_REFERENCE_VOICE"],
-           FileManager.default.fileExists(atPath: envPath) {
-            return URL(fileURLWithPath: envPath)
-        }
-        let thisFile = URL(fileURLWithPath: #filePath)
-        let fixtureURL = thisFile
-            .deletingLastPathComponent() // Suites
-            .appendingPathComponent("Fixtures/human_speech_reference.wav")
-        if FileManager.default.fileExists(atPath: fixtureURL.path) {
-            return fixtureURL
-        }
-        return nil
-    }
-
     @Test("Live-Model End-to-End Acceptance Journey: Parakeet ASR + Silero VAD + PocketTTS Cloning (Opt-in)")
     @MainActor
     func test_live_model_end_to_end_journey() async throws {
@@ -344,8 +329,8 @@ struct AssembledAppE2ETests {
             return
         }
 
-        guard let humanSpeechURL = referenceVoiceURL() else {
-            #expect(Bool(false), "Authentic human speech fixture human_speech_reference.wav must exist")
+        guard let humanSpeechURL = TestReferenceVoiceResolver.resolveReferenceVoiceURL(filePath: #filePath) else {
+            #expect(Bool(false), "Authentic human speech fixture human_speech_reference.wav could not be resolved from repository or MACDUB_TEST_REFERENCE_VOICE")
             return
         }
 
@@ -388,7 +373,10 @@ struct AssembledAppE2ETests {
             #expect(Bool(false), "Cues array must have at least one cue")
             return
         }
-        #expect(!firstCue.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, "ASR must transcribe non-empty text")
+        let fullTranscribedText = appViewModel.cues.map(\.text).joined(separator: " ").lowercased()
+        #expect(!fullTranscribedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, "ASR must transcribe non-empty text")
+        let recognizedExpectedWords = ["exciting", "time", "week", "thursday", "eighteenth"].filter { fullTranscribedText.contains($0) }
+        #expect(!recognizedExpectedWords.isEmpty, "ASR transcription must recognize meaningful words from Kathleen fixture (transcribed: '\(fullTranscribedText)', matched: \(recognizedExpectedWords))")
 
         // Configure authentic Reference Voice
         try appViewModel.setReferenceVoice(name: "Human Speaker", audioURL: humanSpeechURL)

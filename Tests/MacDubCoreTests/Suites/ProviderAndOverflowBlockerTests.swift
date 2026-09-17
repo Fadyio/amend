@@ -105,7 +105,7 @@ struct ProviderAndOverflowBlockerTests {
 
     // MARK: - BLOCKER 3: Gemini TTS Contract (v1beta/interactions & response_format audio)
 
-    @Test("Gemini TTS uses official interactions endpoint and header-based authentication")
+    @Test("Gemini TTS uses official interactions endpoint, header-based authentication, and documented REST response")
     func test_gemini_tts_contract() async throws {
         let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyTestValidFormatKey1234"])
         let provider = GeminiTTSProvider(vault: vault)
@@ -129,10 +129,20 @@ struct ProviderAndOverflowBlockerTests {
             capturedRequest = req
             let mockJSON = """
             {
-                "output_audio": {
-                    "data": "\(base64Audio)",
-                    "mime_type": "audio/wav"
-                }
+                "id": "interaction_test_12345",
+                "status": "completed",
+                "steps": [
+                    {
+                        "type": "model_output",
+                        "content": [
+                            {
+                                "type": "audio",
+                                "data": "\(base64Audio)",
+                                "mime_type": "audio/wav"
+                            }
+                        ]
+                    }
+                ]
             }
             """.data(using: .utf8)!
             let resp = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
@@ -163,6 +173,210 @@ struct ProviderAndOverflowBlockerTests {
             #expect(speechConfig?.first?["voice"] as? String == "Puck")
         } else {
             #expect(Bool(false), "Request body must match official interactions JSON schema")
+        }
+    }
+
+    @Test("Gemini TTS decodes raw L16 audio using explicit returned sample_rate and channels metadata")
+    func test_gemini_tts_raw_l16_with_explicit_sample_rate_and_channels() async throws {
+        let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyTestValidFormatKey1234"])
+        let provider = GeminiTTSProvider(vault: vault)
+
+        TestURLProtocol.reset()
+        defer { TestURLProtocol.reset() }
+
+        // Generate 16kHz mono raw Int16 PCM samples
+        let sampleRate = 16000
+        let frameCount = 1600 // 0.1s
+        var pcmBytes = Data()
+        for i in 0..<frameCount {
+            let sample = Int16(sin(Double(i) * 2.0 * .pi * 440.0 / Double(sampleRate)) * 10000.0)
+            var leSample = sample.littleEndian
+            pcmBytes.append(Data(bytes: &leSample, count: 2))
+        }
+        let base64PCM = pcmBytes.base64EncodedString()
+
+        TestURLProtocol.registerHandler(for: "generativelanguage.googleapis.com") { req in
+            let mockJSON = """
+            {
+                "id": "interaction_test_l16",
+                "status": "completed",
+                "steps": [
+                    {
+                        "type": "model_output",
+                        "content": [
+                            {
+                                "type": "audio",
+                                "data": "\(base64PCM)",
+                                "mime_type": "audio/l16",
+                                "sample_rate": 16000,
+                                "channels": 1
+                            }
+                        ]
+                    }
+                ]
+            }
+            """.data(using: .utf8)!
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, mockJSON)
+        }
+
+        let buffer = try await provider.synthesize(text: "Test L16 audio", voiceID: "Puck")
+        #expect(buffer.frameLength > 0)
+        #expect(buffer.format.sampleRate == 16000.0, "Must honor returned sample_rate metadata (16kHz)")
+        #expect(buffer.format.channelCount == 1)
+    }
+
+    @Test("Gemini TTS fails explicitly when model_output contains no audio content block")
+    func test_gemini_tts_missing_audio_block_fails_explicitly() async throws {
+        let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyTestValidFormatKey1234"])
+        let provider = GeminiTTSProvider(vault: vault)
+
+        TestURLProtocol.reset()
+        defer { TestURLProtocol.reset() }
+
+        TestURLProtocol.registerHandler(for: "generativelanguage.googleapis.com") { req in
+            let mockJSON = """
+            {
+                "id": "interaction_no_audio",
+                "status": "completed",
+                "steps": [
+                    {
+                        "type": "model_output",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "Model produced text instead of audio"
+                            }
+                        ]
+                    }
+                ]
+            }
+            """.data(using: .utf8)!
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, mockJSON)
+        }
+
+        do {
+            _ = try await provider.synthesize(text: "Hello", voiceID: "Puck")
+            #expect(Bool(false), "Must fail when no audio content block exists")
+        } catch let SynthesisError.synthesisFailed(msg) {
+            #expect(msg.contains("contained no audio content block"), "Actionable error: \(msg)")
+        }
+    }
+
+    @Test("Gemini TTS fails explicitly when response contains no model_output step")
+    func test_gemini_tts_missing_model_output_fails_explicitly() async throws {
+        let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyTestValidFormatKey1234"])
+        let provider = GeminiTTSProvider(vault: vault)
+
+        TestURLProtocol.reset()
+        defer { TestURLProtocol.reset() }
+
+        TestURLProtocol.registerHandler(for: "generativelanguage.googleapis.com") { req in
+            let mockJSON = """
+            {
+                "id": "interaction_no_output",
+                "status": "completed",
+                "steps": [
+                    {
+                        "type": "user_input",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "User input"
+                            }
+                        ]
+                    }
+                ]
+            }
+            """.data(using: .utf8)!
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, mockJSON)
+        }
+
+        do {
+            _ = try await provider.synthesize(text: "Hello", voiceID: "Puck")
+            #expect(Bool(false), "Must fail when no model_output step exists")
+        } catch let SynthesisError.synthesisFailed(msg) {
+            #expect(msg.contains("contained no 'model_output' step"), "Actionable error: \(msg)")
+        }
+    }
+
+    @Test("Gemini TTS fails explicitly when audio base64 is invalid")
+    func test_gemini_tts_invalid_base64_fails_explicitly() async throws {
+        let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyTestValidFormatKey1234"])
+        let provider = GeminiTTSProvider(vault: vault)
+
+        TestURLProtocol.reset()
+        defer { TestURLProtocol.reset() }
+
+        TestURLProtocol.registerHandler(for: "generativelanguage.googleapis.com") { req in
+            let mockJSON = """
+            {
+                "id": "interaction_bad_b64",
+                "status": "completed",
+                "steps": [
+                    {
+                        "type": "model_output",
+                        "content": [
+                            {
+                                "type": "audio",
+                                "data": "???invalid-base64???",
+                                "mime_type": "audio/wav"
+                            }
+                        ]
+                    }
+                ]
+            }
+            """.data(using: .utf8)!
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, mockJSON)
+        }
+
+        do {
+            _ = try await provider.synthesize(text: "Hello", voiceID: "Puck")
+            #expect(Bool(false), "Must fail when base64 is malformed")
+        } catch let SynthesisError.synthesisFailed(msg) {
+            #expect(msg.contains("invalid base64"), "Actionable error: \(msg)")
+        }
+    }
+
+    @Test("Gemini TTS fails explicitly when MIME type is unsupported")
+    func test_gemini_tts_unsupported_mime_fails_explicitly() async throws {
+        let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyTestValidFormatKey1234"])
+        let provider = GeminiTTSProvider(vault: vault)
+
+        TestURLProtocol.reset()
+        defer { TestURLProtocol.reset() }
+
+        TestURLProtocol.registerHandler(for: "generativelanguage.googleapis.com") { req in
+            let mockJSON = """
+            {
+                "id": "interaction_bad_mime",
+                "status": "completed",
+                "steps": [
+                    {
+                        "type": "model_output",
+                        "content": [
+                            {
+                                "type": "audio",
+                                "data": "dGVzdGF1ZGlv",
+                                "mime_type": "audio/flac"
+                            }
+                        ]
+                    }
+                ]
+            }
+            """.data(using: .utf8)!
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, mockJSON)
+        }
+
+        do {
+            _ = try await provider.synthesize(text: "Hello", voiceID: "Puck")
+            #expect(Bool(false), "Must fail when MIME type is unsupported")
+        } catch let SynthesisError.synthesisFailed(msg) {
+            #expect(msg.contains("Unsupported Gemini audio MIME type"), "Actionable error: \(msg)")
         }
     }
 
@@ -745,15 +959,16 @@ struct ProviderAndOverflowBlockerTests {
         )
         appVM.cues = [cue1, cue2]
 
-        var cloneInvocationCount = 0
         var synthInvocationCount = 0
 
-        // Configure test hooks on appVM's persistent PocketTTSProvider
-        appVM.providerRegistry.pocketTTS.cloneVoiceHandler = { url in
-            cloneInvocationCount += 1
-            return PocketTtsVoiceData(audioPrompt: [0.1, 0.2], promptLength: 2)
+        // Configure test spy engine on appVM's persistent PocketTTSProvider
+        let spyEngine = SpyPocketTTSEngine()
+        appVM.providerRegistry.pocketTTS.setEngine(spyEngine)
+
+        spyEngine.cloneHandler = { url in
+            return PocketTTSVoiceHandle(identifier: url.lastPathComponent)
         }
-        appVM.providerRegistry.pocketTTS.synthesizeHandler = { text, voiceData in
+        spyEngine.synthesizeHandleHandler = { text, voiceHandle in
             synthInvocationCount += 1
             let buf = try self.createToneBuffer(durationSeconds: 0.3, sampleRate: 24000.0, freq: 440.0)
             let outWav = tempDir.appendingPathComponent("out_\(synthInvocationCount).wav")
@@ -761,16 +976,16 @@ struct ProviderAndOverflowBlockerTests {
             return try Data(contentsOf: outWav)
         }
 
-        // Synthesize first cue: should invoke cloneVoiceHandler once
+        // Synthesize first cue: should invoke cloneVoice once
         try await appVM.synthesizeCue(id: cue1.id, providerType: .pocketTTS)
-        #expect(cloneInvocationCount == 1, "First synthesis must clone voice")
+        #expect(spyEngine.cloneCalls.count == 1, "First synthesis must clone voice")
         #expect(synthInvocationCount == 1)
         #expect(appVM.providerRegistry.pocketTTS.cloneCount == 1)
         #expect(appVM.referenceVoice?.pocketTTSStatus == .ready)
 
-        // Synthesize second cue: must REUSE cached voice clone without calling cloneVoiceHandler again!
+        // Synthesize second cue: must REUSE cached voice clone without calling cloneVoice again!
         try await appVM.synthesizeCue(id: cue2.id, providerType: .pocketTTS)
-        #expect(cloneInvocationCount == 1, "Second synthesis must REUSE cached clone, not clone again")
+        #expect(spyEngine.cloneCalls.count == 1, "Second synthesis must REUSE cached clone, not clone again")
         #expect(synthInvocationCount == 2)
         #expect(appVM.providerRegistry.pocketTTS.cloneCount == 1, "cloneCount must remain 1")
         #expect(appVM.referenceVoice?.pocketTTSStatus == .ready)
@@ -782,7 +997,7 @@ struct ProviderAndOverflowBlockerTests {
         #expect(appVM.referenceVoice?.pocketTTSStatus == .configured)
 
         try await appVM.synthesizeCue(id: cue1.id, providerType: .pocketTTS)
-        #expect(cloneInvocationCount == 2, "Synthesis after new voice import must re-clone")
+        #expect(spyEngine.cloneCalls.count == 2, "Synthesis after new voice import must re-clone")
         #expect(appVM.providerRegistry.pocketTTS.cloneCount == 2)
     }
 
@@ -948,12 +1163,15 @@ struct ProviderAndOverflowBlockerTests {
         let cueID = UUID()
         appVM.cues = [Cue(id: cueID, timeRange: CMTimeRange(start: .zero, duration: CMTime(seconds: 1.0, preferredTimescale: 600)), text: "Hi")]
 
-        appVM.providerRegistry.pocketTTS.cloneVoiceHandler = { _ in
+        let spyEngine = SpyPocketTTSEngine()
+        appVM.providerRegistry.pocketTTS.setEngine(spyEngine)
+
+        spyEngine.cloneHandler = { _ in
             let status = await MainActor.run { appVM.referenceVoice?.pocketTTSStatus }
             #expect(status == .loading, "Status must be .loading during synthesis")
-            return PocketTtsVoiceData(audioPrompt: [], promptLength: 0)
+            return PocketTTSVoiceHandle(identifier: "test-voice")
         }
-        appVM.providerRegistry.pocketTTS.synthesizeHandler = { _, _ in
+        spyEngine.synthesizeHandleHandler = { _, _ in
             let tone = try self.createToneBuffer(durationSeconds: 0.2, sampleRate: 24000.0, freq: 440.0)
             let outW = tempDir.appendingPathComponent("syn.wav")
             try self.writeBufferToWAV(tone, to: outW)
@@ -964,7 +1182,7 @@ struct ProviderAndOverflowBlockerTests {
         #expect(appVM.referenceVoice?.pocketTTSStatus == .ready, "Status must be .ready after successful synthesis")
 
         // Test failure transitions to .failed
-        appVM.providerRegistry.pocketTTS.synthesizeHandler = { _, _ in
+        spyEngine.synthesizeHandleHandler = { _, _ in
             throw NSError(domain: "Test", code: 999, userInfo: [NSLocalizedDescriptionKey: "Core ML failure"])
         }
         do {

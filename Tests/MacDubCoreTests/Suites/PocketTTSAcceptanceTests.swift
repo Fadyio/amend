@@ -12,22 +12,6 @@ struct PocketTTSAcceptanceTests {
         ProcessInfo.processInfo.environment["MACDUB_RUN_LOCAL_AI_TESTS"] == "1"
     }
 
-    private func referenceVoiceURL() -> URL? {
-        if let envPath = ProcessInfo.processInfo.environment["MACDUB_TEST_REFERENCE_VOICE"],
-           FileManager.default.fileExists(atPath: envPath) {
-            return URL(fileURLWithPath: envPath)
-        }
-        let thisFile = URL(fileURLWithPath: #filePath)
-        let fixtureURL = thisFile
-            .deletingLastPathComponent() // Suites
-            .deletingLastPathComponent() // MacDubCoreTests
-            .appendingPathComponent("Fixtures/human_speech_reference.wav")
-        if FileManager.default.fileExists(atPath: fixtureURL.path) {
-            return fixtureURL
-        }
-        return nil
-    }
-
     @Test("Real PocketTTS Core ML model download, voice cloning, and audio synthesis (Opt-in)")
     func test_real_pocket_tts_cloning_and_synthesis() async throws {
         guard isLocalAIRunner() else {
@@ -35,8 +19,8 @@ struct PocketTTSAcceptanceTests {
             return
         }
 
-        guard let refURL = referenceVoiceURL() else {
-            #expect(Bool(false), "Authentic human speech fixture human_speech_reference.wav must exist")
+        guard let refURL = TestReferenceVoiceResolver.resolveReferenceVoiceURL(filePath: #filePath) else {
+            #expect(Bool(false), "Authentic human speech fixture human_speech_reference.wav could not be resolved from repository or MACDUB_TEST_REFERENCE_VOICE")
             return
         }
 

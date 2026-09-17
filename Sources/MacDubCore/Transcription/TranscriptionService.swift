@@ -42,9 +42,14 @@ public enum TranscriptionError: Error, LocalizedError {
 }
 
 public final class TranscriptionService: TranscriptionServing, @unchecked Sendable {
+    private let asrManager: AsrManager?
     private let coordinator: LocalModelCoordinator
 
-    public init(coordinator: LocalModelCoordinator = .shared) {
+    public init(
+        asrManager: AsrManager? = nil,
+        coordinator: LocalModelCoordinator = .shared
+    ) {
+        self.asrManager = asrManager
         self.coordinator = coordinator
     }
 
@@ -54,9 +59,27 @@ public final class TranscriptionService: TranscriptionServing, @unchecked Sendab
         }
 
         return try await coordinator.withExclusiveModel(.asr) {
-            let asrManager = AsrManager()
-            let result = try await asrManager.transcribe(audioBuffer, source: .system)
-            await asrManager.cleanup()
+            let manager: AsrManager
+            let shouldCleanup: Bool
+            if let existing = self.asrManager {
+                manager = existing
+                shouldCleanup = false
+                if !(await existing.isAvailable) {
+                    let models = try await AsrModels.downloadAndLoad()
+                    try await existing.initialize(models: models)
+                }
+            } else {
+                let models = try await AsrModels.downloadAndLoad()
+                let newManager = AsrManager()
+                try await newManager.initialize(models: models)
+                manager = newManager
+                shouldCleanup = true
+            }
+
+            let result = try await manager.transcribe(audioBuffer, source: .system)
+            if shouldCleanup {
+                await manager.cleanup()
+            }
 
             guard let tokenTimings = result.tokenTimings, !tokenTimings.isEmpty else {
                 let duration = CMTime(seconds: result.duration, preferredTimescale: 600_000)

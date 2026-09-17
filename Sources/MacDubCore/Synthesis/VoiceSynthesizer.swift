@@ -260,32 +260,114 @@ public final class TestURLProtocol: URLProtocol, @unchecked Sendable {
     override public func stopLoading() {}
 }
 
+// MARK: - Local PocketTTS Abstraction & Engine Seam
+
+/// An opaque, Sendable handle representing a cloned voice token in PocketTTS.
+/// Allows MacDub to manage clone cache lifetime without exposing internal FluidAudio model types.
+public struct PocketTTSVoiceHandle: Sendable {
+    public let identifier: String
+    private let box: @Sendable () -> Any
+
+    public init(identifier: String = UUID().uuidString, payload: (any Sendable)? = nil) {
+        self.identifier = identifier
+        let captured = payload
+        self.box = { captured as Any }
+    }
+
+    public func unwrap<T>() -> T? {
+        return box() as? T
+    }
+}
+
+public protocol PocketTTSEngine: AnyObject, Sendable {
+    var isAvailable: Bool { get async }
+    func initialize() async throws
+    func cloneVoice(from url: URL) async throws -> PocketTTSVoiceHandle
+    func synthesize(text: String, voiceHandle: PocketTTSVoiceHandle) async throws -> Data
+    func synthesize(text: String, voiceID: String?) async throws -> Data
+    func cleanup() async
+}
+
+/// Production PocketTTSEngine adapting FluidAudio's PocketTtsManager.
+public final class FluidAudioPocketTTSEngine: PocketTTSEngine, @unchecked Sendable {
+    private let manager: PocketTtsManager
+
+    public init(manager: PocketTtsManager = PocketTtsManager()) {
+        self.manager = manager
+    }
+
+    public var isAvailable: Bool {
+        get async { await manager.isAvailable }
+    }
+
+    public func initialize() async throws {
+        try await manager.initialize()
+    }
+
+    public func cloneVoice(from url: URL) async throws -> PocketTTSVoiceHandle {
+        let voiceData = try await manager.cloneVoice(from: url)
+        return PocketTTSVoiceHandle(identifier: url.path, payload: voiceData)
+    }
+
+    public func synthesize(text: String, voiceHandle: PocketTTSVoiceHandle) async throws -> Data {
+        guard let voiceData: PocketTtsVoiceData = voiceHandle.unwrap() else {
+            throw SynthesisError.synthesisFailed("Invalid or incompatible voice handle for FluidAudio PocketTTS engine")
+        }
+        return try await manager.synthesize(text: text, voiceData: voiceData)
+    }
+
+    public func synthesize(text: String, voiceID: String?) async throws -> Data {
+        return try await manager.synthesize(text: text, voice: voiceID)
+    }
+
+    public func cleanup() async {
+        await manager.cleanup()
+    }
+}
+
 // MARK: - Local PocketTTS Provider
 
 public final class PocketTTSProvider: VoiceSynthesisProvider, @unchecked Sendable {
     public let providerType: SynthesisProviderType = .pocketTTS
     private let coordinator: LocalModelCoordinator
-    private let ttsManager: PocketTtsManager
-    private var cachedClonedVoices: [URL: PocketTtsVoiceData] = [:]
+    private var engine: any PocketTTSEngine
+    private var cachedClonedVoices: [URL: PocketTTSVoiceHandle] = [:]
     public private(set) var cloneCount: Int = 0
     private let lock = NSLock()
 
-    // Test hooks for deterministic verification without network/model downloads
-    public var cloneVoiceHandler: (@Sendable (URL) async throws -> PocketTtsVoiceData)?
-    public var synthesizeHandler: (@Sendable (String, PocketTtsVoiceData?) async throws -> Data)?
-
     public init(
         coordinator: LocalModelCoordinator = .shared,
-        ttsManager: PocketTtsManager? = nil
+        engine: (any PocketTTSEngine)? = nil
     ) {
         self.coordinator = coordinator
-        let mgr = ttsManager ?? PocketTtsManager()
-        self.ttsManager = mgr
+        let eng = engine ?? FluidAudioPocketTTSEngine()
+        self.engine = eng
 
-        Task { [weak mgr] in
-            await coordinator.registerTeardown(for: .tts) {
-                guard let mgr = mgr else { return }
-                await mgr.cleanup()
+        Task { [weak eng] in
+            await coordinator.registerTeardown(for: .tts) { [weak eng] in
+                guard let eng = eng else { return }
+                await eng.cleanup()
+            }
+        }
+    }
+
+    public convenience init(
+        coordinator: LocalModelCoordinator = .shared,
+        ttsManager: PocketTtsManager
+    ) {
+        self.init(coordinator: coordinator, engine: FluidAudioPocketTTSEngine(manager: ttsManager))
+    }
+
+    public func setEngine(_ newEngine: any PocketTTSEngine) {
+        lock.withLock {
+            self.engine = newEngine
+            self.cachedClonedVoices.removeAll()
+            self.cloneCount = 0
+        }
+        Task { [weak newEngine, weak coordinator] in
+            await coordinator?.registerTeardown(for: .tts) { [weak newEngine] in
+                guard let eng = newEngine else { return }
+                await eng.cleanup()
             }
         }
     }
@@ -300,7 +382,7 @@ public final class PocketTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
         }
     }
 
-    public func getClonedVoiceData(for audioURL: URL) async throws -> PocketTtsVoiceData {
+    public func getClonedVoiceHandle(for audioURL: URL) async throws -> PocketTTSVoiceHandle {
         let cached = lock.withLock { cachedClonedVoices[audioURL] }
         if let cached = cached {
             return cached
@@ -310,21 +392,16 @@ public final class PocketTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
             throw SynthesisError.invalidReferenceAudio
         }
 
-        let voiceData: PocketTtsVoiceData
-        if let handler = cloneVoiceHandler {
-            voiceData = try await handler(audioURL)
-        } else {
-            let isAvail = await self.ttsManager.isAvailable
-            if !isAvail {
-                try await self.ttsManager.initialize()
-            }
-            voiceData = try await self.ttsManager.cloneVoice(from: audioURL)
+        let isAvail = await self.engine.isAvailable
+        if !isAvail {
+            try await self.engine.initialize()
         }
+        let voiceHandle = try await self.engine.cloneVoice(from: audioURL)
         lock.withLock {
-            cachedClonedVoices[audioURL] = voiceData
+            cachedClonedVoices[audioURL] = voiceHandle
             cloneCount += 1
         }
-        return voiceData
+        return voiceHandle
     }
 
     public func synthesize(
@@ -334,11 +411,9 @@ public final class PocketTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
     ) async throws -> AVAudioPCMBuffer {
         return try await coordinator.withExclusiveModel(.tts) {
             do {
-                if self.cloneVoiceHandler == nil && self.synthesizeHandler == nil {
-                    let isAvail = await self.ttsManager.isAvailable
-                    if !isAvail {
-                        try await self.ttsManager.initialize()
-                    }
+                let isAvail = await self.engine.isAvailable
+                if !isAvail {
+                    try await self.engine.initialize()
                 }
 
                 let wavData: Data
@@ -348,31 +423,19 @@ public final class PocketTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
                     }
                     let cached = self.lock.withLock { self.cachedClonedVoices[refURL] }
 
-                    let voiceData: PocketTtsVoiceData
+                    let voiceHandle: PocketTTSVoiceHandle
                     if let cached = cached {
-                        voiceData = cached
+                        voiceHandle = cached
                     } else {
-                        if let handler = self.cloneVoiceHandler {
-                            voiceData = try await handler(refURL)
-                        } else {
-                            voiceData = try await self.ttsManager.cloneVoice(from: refURL)
-                        }
+                        voiceHandle = try await self.engine.cloneVoice(from: refURL)
                         self.lock.withLock {
-                            self.cachedClonedVoices[refURL] = voiceData
+                            self.cachedClonedVoices[refURL] = voiceHandle
                             self.cloneCount += 1
                         }
                     }
-                    if let synthHandler = self.synthesizeHandler {
-                        wavData = try await synthHandler(text, voiceData)
-                    } else {
-                        wavData = try await self.ttsManager.synthesize(text: text, voiceData: voiceData)
-                    }
+                    wavData = try await self.engine.synthesize(text: text, voiceHandle: voiceHandle)
                 } else {
-                    if let synthHandler = self.synthesizeHandler {
-                        wavData = try await synthHandler(text, nil)
-                    } else {
-                        wavData = try await self.ttsManager.synthesize(text: text, voice: voiceID)
-                    }
+                    wavData = try await self.engine.synthesize(text: text, voiceID: voiceID)
                 }
 
                 return try AudioBufferUtils.pcmBuffer(fromAudioData: wavData, fileExtension: "wav")
@@ -654,57 +717,144 @@ public final class GeminiTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
             throw SynthesisError.synthesisFailed("Gemini TTS error (HTTP \(http.statusCode)): \(errorMsg)")
         }
 
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw SynthesisError.synthesisFailed("Failed to parse JSON from Gemini TTS response")
+        let interactionResponse: GeminiInteractionResponse
+        do {
+            interactionResponse = try JSONDecoder().decode(GeminiInteractionResponse.self, from: data)
+        } catch {
+            throw SynthesisError.synthesisFailed("Failed to parse Gemini Interactions API response: \(error.localizedDescription)")
         }
 
-        var audioBase64: String? = nil
-        var mimeType = "audio/wav"
+        guard let steps = interactionResponse.steps, !steps.isEmpty else {
+            throw SynthesisError.synthesisFailed("Gemini response contained no steps")
+        }
 
-        if let outAudio = json["output_audio"] as? [String: Any] {
-            audioBase64 = outAudio["data"] as? String
-            mimeType = (outAudio["mime_type"] as? String) ?? (outAudio["mimeType"] as? String) ?? "audio/wav"
-        } else if let interaction = json["interaction"] as? [String: Any],
-                  let outAudio = interaction["output_audio"] as? [String: Any] {
-            audioBase64 = outAudio["data"] as? String
-            mimeType = (outAudio["mime_type"] as? String) ?? (outAudio["mimeType"] as? String) ?? "audio/wav"
-        } else if let steps = json["steps"] as? [[String: Any]] {
-            for step in steps {
-                if let modelOutput = step["model_output"] as? [String: Any],
-                   let audio = modelOutput["audio"] as? [String: Any] {
-                    audioBase64 = audio["data"] as? String
-                    mimeType = (audio["mime_type"] as? String) ?? (audio["mimeType"] as? String) ?? "audio/wav"
+        let modelOutputSteps = steps.filter { $0.type.lowercased() == "model_output" }
+        guard !modelOutputSteps.isEmpty else {
+            throw SynthesisError.synthesisFailed("Gemini response contained no 'model_output' step")
+        }
+
+        var audioBlock: GeminiInteractionResponse.ContentBlock?
+        for step in modelOutputSteps {
+            if let contentBlocks = step.content {
+                for block in contentBlocks where block.type.lowercased() == "audio" {
+                    audioBlock = block
                     break
                 }
             }
-        } else if let candidates = json["candidates"] as? [[String: Any]] {
-            for candidate in candidates {
-                if let content = candidate["content"] as? [String: Any],
-                   let parts = content["parts"] as? [[String: Any]] {
-                    for part in parts {
-                        if let inlineData = (part["inlineData"] as? [String: Any]) ?? (part["inline_data"] as? [String: Any]) {
-                            audioBase64 = inlineData["data"] as? String
-                            mimeType = (inlineData["mimeType"] as? String) ?? (inlineData["mime_type"] as? String) ?? "audio/wav"
-                            break
-                        }
-                    }
-                }
-                if audioBase64 != nil { break }
+            if audioBlock != nil { break }
+        }
+
+        guard let foundAudioBlock = audioBlock else {
+            throw SynthesisError.synthesisFailed("Gemini response 'model_output' step contained no audio content block")
+        }
+
+        guard let base64Str = foundAudioBlock.data, !base64Str.isEmpty else {
+            throw SynthesisError.synthesisFailed("Gemini audio content block missing data payload")
+        }
+
+        guard let rawAudioData = Data(base64Encoded: base64Str, options: [.ignoreUnknownCharacters]), !rawAudioData.isEmpty else {
+            throw SynthesisError.synthesisFailed("Gemini audio content block contained invalid base64 data")
+        }
+
+        let mime = (foundAudioBlock.mimeType ?? "audio/wav").lowercased()
+        let fileExt: String
+        let formattedAudioData: Data
+
+        if mime.contains("wav") || rawAudioData.starts(with: "RIFF".utf8) {
+            fileExt = "wav"
+            formattedAudioData = rawAudioData
+        } else if mime.contains("mpeg") || mime.contains("mp3") {
+            fileExt = "mp3"
+            formattedAudioData = rawAudioData
+        } else if mime.contains("l16") || mime.contains("pcm") || mime.contains("raw") {
+            fileExt = "wav"
+            let sampleRate = foundAudioBlock.sampleRate ?? 24000
+            let channels = foundAudioBlock.channels ?? 1
+            formattedAudioData = AudioBufferUtils.wrapPCM16InWAV(pcmData: rawAudioData, sampleRate: sampleRate, channels: channels)
+        } else if mime.contains("aac") || mime.contains("mp4") || mime.contains("m4a") {
+            fileExt = "m4a"
+            formattedAudioData = rawAudioData
+        } else {
+            throw SynthesisError.synthesisFailed("Unsupported Gemini audio MIME type: \(foundAudioBlock.mimeType ?? "unknown")")
+        }
+
+        do {
+            return try AudioBufferUtils.pcmBuffer(fromAudioData: formattedAudioData, fileExtension: fileExt)
+        } catch {
+            throw SynthesisError.synthesisFailed("Malformed or unreadable audio data from Gemini TTS: \(error.localizedDescription)")
+        }
+    }
+}
+
+// MARK: - Gemini Interactions API Response Models
+
+public struct GeminiInteractionResponse: Decodable, Sendable {
+    public let id: String?
+    public let status: String?
+    public let steps: [Step]?
+
+    public struct Step: Decodable, Sendable {
+        public let type: String
+        public let content: [ContentBlock]?
+
+        enum CodingKeys: String, CodingKey {
+            case type
+            case content
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            self.type = try container.decode(String.self, forKey: .type)
+            if let list = try? container.decode([ContentBlock].self, forKey: .content) {
+                self.content = list
+            } else if let single = try? container.decode(ContentBlock.self, forKey: .content) {
+                self.content = [single]
+            } else {
+                self.content = nil
             }
         }
 
-        guard let base64Str = audioBase64, let audioData = Data(base64Encoded: base64Str) else {
-            throw SynthesisError.synthesisFailed("Failed to parse audio data from Gemini TTS response")
+        public init(type: String, content: [ContentBlock]?) {
+            self.type = type
+            self.content = content
+        }
+    }
+
+    public struct ContentBlock: Decodable, Sendable {
+        public let type: String
+        public let data: String?
+        public let mimeType: String?
+        public let sampleRate: Int?
+        public let channels: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case type
+            case data
+            case mimeType = "mime_type"
+            case mimeTypeAlt = "mimeType"
+            case sampleRate = "sample_rate"
+            case sampleRateAlt = "sampleRate"
+            case channels
         }
 
-        let wavData: Data
-        if mimeType.contains("wav") || audioData.starts(with: "RIFF".utf8) {
-            wavData = audioData
-        } else {
-            wavData = AudioBufferUtils.wrapPCM16InWAV(pcmData: audioData, sampleRate: 24000, channels: 1)
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            self.type = try container.decode(String.self, forKey: .type)
+            self.data = try container.decodeIfPresent(String.self, forKey: .data)
+            self.mimeType = try container.decodeIfPresent(String.self, forKey: .mimeType) ??
+                            container.decodeIfPresent(String.self, forKey: .mimeTypeAlt)
+            self.sampleRate = try container.decodeIfPresent(Int.self, forKey: .sampleRate) ??
+                              container.decodeIfPresent(Int.self, forKey: .sampleRateAlt)
+            self.channels = try container.decodeIfPresent(Int.self, forKey: .channels)
         }
 
-        return try AudioBufferUtils.pcmBuffer(fromAudioData: wavData, fileExtension: "wav")
+        public init(type: String, data: String?, mimeType: String?, sampleRate: Int? = nil, channels: Int? = nil) {
+            self.type = type
+            self.data = data
+            self.mimeType = mimeType
+            self.sampleRate = sampleRate
+            self.channels = channels
+        }
     }
 }
 

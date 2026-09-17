@@ -160,16 +160,20 @@ struct SynthesisDurationGrammarTests {
         let base64Audio = wavData.base64EncodedString()
         let mockJSON = """
         {
-            "candidates": [{
-                "content": {
-                    "parts": [{
-                        "inlineData": {
-                            "mimeType": "audio/x-wav",
-                            "data": "\(base64Audio)"
+            "id": "interaction_test_prebuilt",
+            "status": "completed",
+            "steps": [
+                {
+                    "type": "model_output",
+                    "content": [
+                        {
+                            "type": "audio",
+                            "data": "\(base64Audio)",
+                            "mime_type": "audio/wav"
                         }
-                    }]
+                    ]
                 }
-            }]
+            ]
         }
         """.data(using: .utf8)!
 
