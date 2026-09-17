@@ -1,0 +1,81 @@
+{
+  "object" : {
+    "artifacts" : [
+      {
+        "kind" : {
+          "xcframework" : {
+
+          }
+        },
+        "packageRef" : {
+          "identity" : "fluidaudio",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/FluidInference/FluidAudio.git",
+          "name" : "FluidAudio"
+        },
+        "path" : "/Users/fady/Dev/macdub/.build/checkouts/FluidAudio/Frameworks/ESpeakNG.xcframework",
+        "source" : {
+          "type" : "local"
+        },
+        "targetName" : "ESpeakNG"
+      }
+    ],
+    "dependencies" : [
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "dswaveformimage",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/dmrschmidt/DSWaveformImage.git",
+          "name" : "DSWaveformImage"
+        },
+        "state" : {
+          "checkoutState" : {
+            "revision" : "00afb7930863b9cc3bd011389d601735e548093c",
+            "version" : "14.5.0"
+          },
+          "name" : "sourceControlCheckout"
+        },
+        "subpath" : "DSWaveformImage"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "fluidaudio",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/FluidInference/FluidAudio.git",
+          "name" : "FluidAudio"
+        },
+        "state" : {
+          "checkoutState" : {
+            "revision" : "915a392a3b214205fcf4860cc3608bde35891d03",
+            "version" : "0.9.1"
+          },
+          "name" : "sourceControlCheckout"
+        },
+        "subpath" : "FluidAudio"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "swift-timecode",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/orchetect/swift-timecode.git",
+          "name" : "swift-timecode"
+        },
+        "state" : {
+          "checkoutState" : {
+            "revision" : "63a152cea4817e094a7be22e82414f60a77baae0",
+            "version" : "3.1.4"
+          },
+          "name" : "sourceControlCheckout"
+        },
+        "subpath" : "swift-timecode"
+      }
+    ],
+    "prebuilts" : [
+
+    ]
+  },
+  "version" : 7
+}

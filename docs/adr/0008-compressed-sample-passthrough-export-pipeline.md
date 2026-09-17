@@ -1,0 +1,3 @@
+# Compressed-Sample Passthrough Export Pipeline
+
+Relying solely on `AVAssetExportPresetPassthrough` provides no API guarantees against silent re-encoding and cannot guarantee bitstream sample identity across all container types. We decided to implement an explicit remuxing pipeline using `AVAssetReaderTrackOutput(outputSettings: nil)` and `AVAssetWriterInput(outputSettings: nil)` to read and write compressed video samples without decoding. Only modified Narration audio is rendered and encoded, while video samples and Passthrough Tracks retain their exact original compression, frame timing, and payload hashes.

@@ -1,0 +1,33 @@
+{
+  "originHash" : "15abbd20a3c13386231fec12b4e473ab5015de59730f8ed8888b57301e58f7b8",
+  "pins" : [
+    {
+      "identity" : "dswaveformimage",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/dmrschmidt/DSWaveformImage.git",
+      "state" : {
+        "revision" : "00afb7930863b9cc3bd011389d601735e548093c",
+        "version" : "14.5.0"
+      }
+    },
+    {
+      "identity" : "fluidaudio",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/FluidInference/FluidAudio.git",
+      "state" : {
+        "revision" : "915a392a3b214205fcf4860cc3608bde35891d03",
+        "version" : "0.9.1"
+      }
+    },
+    {
+      "identity" : "swift-timecode",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/orchetect/swift-timecode.git",
+      "state" : {
+        "revision" : "63a152cea4817e094a7be22e82414f60a77baae0",
+        "version" : "3.1.4"
+      }
+    }
+  ],
+  "version" : 3
+}

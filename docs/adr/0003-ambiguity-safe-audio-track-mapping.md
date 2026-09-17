@@ -1,0 +1,3 @@
+# Ambiguity-Safe Audio Track Mapping
+
+Screen and demo recordings vary widely, containing either a single mixed audio track or separate microphone and desktop audio tracks. We decided to inspect all audio tracks on import: if exactly one audio track exists, it is automatically assigned as Narration with a single-track warning; if multiple tracks exist, a lightweight Track Picker modal prompts the user to confirm the Narration track and Passthrough tracks. This avoids assuming Track 1 is always the microphone, prevents unintentional erasure of desktop system audio, and preserves unedited tracks untouched throughout playback and export.

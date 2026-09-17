@@ -1,0 +1,3 @@
+# Ambient Room-Tone Cue Padding
+
+Replacing spoken narration with shorter synthesized audio and padding the remaining duration with raw digital silence creates an unnatural acoustic drop on headphones. We decided to sample a 200–500 ms ambient silence slice from the source Narration track (identified via Silero VAD) to serve as project-level room tone. When synthesized speech is shorter than the target Cue duration, the audio starts at natural speed at the Cue boundary, the remaining duration is filled with looped, crossfaded room tone, and 10–20 ms boundary crossfades are applied to guarantee seamless acoustic continuity and exact `CMTimeRange` adherence.

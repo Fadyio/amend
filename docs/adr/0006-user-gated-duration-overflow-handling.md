@@ -1,0 +1,3 @@
+# User-Gated Duration Overflow Handling
+
+Automatic LLM rewrite and re-synthesis loops can waste API credits, consume high CPU/memory on 8GB Apple Silicon hardware, and alter text the user intended to preserve. We decided on an asymmetric duration fitting policy: shorter audio preserves natural speech with room-tone padding, audio exceeding cue duration by ≤8% is automatically time-compressed via `AVAudioUnitTimePitch` without pitch shift, and audio exceeding duration by >8% enters a strict user-gated state presenting exact overflow time and three explicit actions (`Rewrite to Fit`, `Force Fit`, `Split Cue`). Uncontrolled automatic retry loops are strictly forbidden.

@@ -1,0 +1,3 @@
+# Deterministic AVFoundation Verification Fixtures
+
+Relying on manual UI testing or compilation alone allows multi-agent implementations to self-certify incomplete audio/video synchronization or broken export pipelines. We decided to mandate programmatic generation of deterministic synthetic AVFoundation test fixtures (single-track, multi-track, and duration-fitting test assets with known frame rates, timestamps, and audio tones). Headless test suites objectively verify `CMTime` sync invariants across edits and splits, passthrough video sample payload preservation, Keychain credential security, and exact container-duration matching without human judgment.
