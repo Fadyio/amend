@@ -26,6 +26,26 @@ struct MacDubMain: App {
                 }
                 .keyboardShortcut("o", modifiers: .command)
 
+                Button("Open Project...") {
+                    let panel = NSOpenPanel()
+                    if let uti = UTType(filenameExtension: "voicefix") {
+                        panel.allowedContentTypes = [uti]
+                    }
+                    panel.allowsMultipleSelection = false
+                    panel.canChooseDirectories = true
+                    panel.canChooseFiles = true
+                    panel.title = "Open MacDub Project Bundle"
+                    if panel.runModal() == .OK, let url = panel.url {
+                        do {
+                            try appViewModel.loadProject(from: url)
+                        } catch {
+                            appViewModel.errorMessage = "Failed to open project: \(error.localizedDescription)"
+                            appViewModel.statusMessage = "Project load failed"
+                        }
+                    }
+                }
+                .keyboardShortcut("o", modifiers: [.command, .shift])
+
                 Button("Save Project...") {
                     let panel = NSSavePanel()
                     if let uti = UTType(filenameExtension: "voicefix") {

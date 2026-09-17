@@ -514,4 +514,191 @@ struct ProviderAndOverflowBlockerTests {
         #expect(!jsonStr.contains("secret"))
         #expect(!jsonStr.contains("Bearer"))
     }
+
+    // MARK: - BLOCKER 9: Loudness Normalization & Boundary Matching
+
+    @Test("DurationFitter matches loudness of synthesized buffer against original reference audio")
+    func test_duration_fitter_loudness_matching() throws {
+        let fitter = DurationFitter()
+        let normalizer = LoudnessNormalizer()
+        let targetDuration = CMTime(seconds: 1.0, preferredTimescale: 600_000)
+
+        // Quiet synthesized buffer (amplitude 0.05)
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: 44100.0, channels: 1) else {
+            throw NSError(domain: "Test", code: 1)
+        }
+        let frameCount = AVAudioFrameCount(44100)
+        let quietBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount)!
+        quietBuffer.frameLength = frameCount
+        let quietChannel = quietBuffer.floatChannelData![0]
+        for i in 0..<Int(frameCount) {
+            quietChannel[i] = Float(sin(2.0 * .pi * 440.0 * Double(i) / 44100.0)) * 0.05
+        }
+
+        // Louder reference buffer (amplitude 0.5)
+        let refBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount)!
+        refBuffer.frameLength = frameCount
+        let refChannel = refBuffer.floatChannelData![0]
+        for i in 0..<Int(frameCount) {
+            refChannel[i] = Float(sin(2.0 * .pi * 440.0 * Double(i) / 44100.0)) * 0.5
+        }
+
+        let quietLUFS = try normalizer.measureLUFS(buffer: quietBuffer)
+        let refLUFS = try normalizer.measureLUFS(buffer: refBuffer)
+        #expect(refLUFS > quietLUFS + 15.0, "Reference buffer should be significantly louder than quiet buffer")
+
+        let result = try fitter.fit(
+            synthesizedAudio: quietBuffer,
+            targetDuration: targetDuration,
+            roomToneBuffer: nil,
+            referenceAudioBuffer: refBuffer,
+            forceCompress: false
+        )
+
+        guard case .fitted(let outputBuffer) = result else {
+            #expect(Bool(false), "Result should be fitted")
+            return
+        }
+
+        let outputLUFS = try normalizer.measureLUFS(buffer: outputBuffer)
+        #expect(outputLUFS > quietLUFS + 10.0, "Fitted audio loudness should be boosted to match reference")
+        #expect(abs(outputLUFS - refLUFS) < 2.5, "Fitted audio loudness should closely match reference LUFS (got \(outputLUFS), expected ~\(refLUFS))")
+    }
+
+    // MARK: - Custom Provider Reference Audio & Voice ID Forwarding
+
+    final class MockTrackingSynthesizer: VoiceSynthesisProvider, @unchecked Sendable {
+        let providerType: SynthesisProviderType
+        var receivedText: String?
+        var receivedVoiceID: String?
+        var receivedRefURL: URL?
+
+        init(providerType: SynthesisProviderType) {
+            self.providerType = providerType
+        }
+
+        func synthesize(
+            text: String,
+            voiceID: String? = nil,
+            referenceAudioURL: URL? = nil
+        ) async throws -> AVAudioPCMBuffer {
+            self.receivedText = text
+            self.receivedVoiceID = voiceID
+            self.receivedRefURL = referenceAudioURL
+
+            guard let format = AVAudioFormat(standardFormatWithSampleRate: 44100.0, channels: 1) else {
+                throw NSError(domain: "Test", code: 1)
+            }
+            let frameCount = AVAudioFrameCount(44100)
+            let buf = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount)!
+            buf.frameLength = frameCount
+            return buf
+        }
+    }
+
+    @Test("AppViewModel forwards reference audio URL and provider voice IDs to synthesis providers")
+    @MainActor
+    func test_custom_provider_receives_voice_id_and_reference_audio() async throws {
+        let tempDir = try createTempDir()
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let appVM = AppViewModel()
+        let cueID = UUID()
+        let testCue = Cue(
+            id: cueID,
+            timeRange: CMTimeRange(start: .zero, duration: CMTime(seconds: 1.0, preferredTimescale: 600)),
+            text: "Testing provider wiring"
+        )
+        appVM.cues = [testCue]
+
+        // Create reference voice file
+        let refURL = tempDir.appendingPathComponent("speaker.wav")
+        let format = AVAudioFormat(standardFormatWithSampleRate: 44100.0, channels: 1)!
+        let refBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 44100)!
+        refBuffer.frameLength = 44100
+        let refFile = try AVAudioFile(forWriting: refURL, settings: format.settings, commonFormat: .pcmFormatFloat32, interleaved: false)
+        try refFile.write(from: refBuffer)
+
+        try appVM.setReferenceVoice(name: "Test Voice", audioURL: refURL)
+        appVM.setElevenLabsVoiceID("eleven_id_999")
+        appVM.setResembleVoiceUUID("resemble_uuid_888")
+
+        // 1. Test PocketTTS forwards referenceAudioURL
+        let pocketMock = MockTrackingSynthesizer(providerType: .pocketTTS)
+        try await appVM.synthesizeCue(id: cueID, providerType: .pocketTTS, customProvider: pocketMock)
+        #expect(pocketMock.receivedRefURL != nil, "PocketTTS must receive referenceAudioURL")
+        #expect(pocketMock.receivedRefURL?.lastPathComponent.contains("reference_voice") == true)
+
+        // 2. Test ElevenLabs forwards elevenLabsVoiceID
+        let elevenMock = MockTrackingSynthesizer(providerType: .elevenLabs)
+        try await appVM.synthesizeCue(id: cueID, providerType: .elevenLabs, customProvider: elevenMock)
+        #expect(elevenMock.receivedVoiceID == "eleven_id_999", "ElevenLabs must receive elevenLabsVoiceID")
+
+        // 3. Test Resemble forwards resembleVoiceUUID
+        let resembleMock = MockTrackingSynthesizer(providerType: .resemble)
+        try await appVM.synthesizeCue(id: cueID, providerType: .resemble, customProvider: resembleMock)
+        #expect(resembleMock.receivedVoiceID == "resemble_uuid_888", "Resemble must receive resembleVoiceUUID")
+    }
+
+    // MARK: - Setting Voice IDs When Reference Voice is Nil
+
+    @Test("Setting ElevenLabs Voice ID initializes ReferenceVoice when nil")
+    @MainActor
+    func test_set_elevenlabs_voice_id_when_reference_voice_nil() {
+        let appVM = AppViewModel()
+        #expect(appVM.referenceVoice == nil)
+
+        appVM.setElevenLabsVoiceID("eleven_new_id")
+        #expect(appVM.referenceVoice != nil)
+        #expect(appVM.referenceVoice?.elevenLabsVoiceID == "eleven_new_id")
+    }
+
+    // MARK: - Updating Cue Text Clears Overflow
+
+    @Test("Updating cue text clears pending overflow candidate and delta")
+    func test_updating_cue_text_clears_overflow_delta_and_candidate() {
+        let cue = Cue(
+            timeRange: CMTimeRange(start: .zero, duration: CMTime(seconds: 2.0, preferredTimescale: 600)),
+            text: "Original text that overflowed",
+            candidateAudioWAVRelativePath: "audio/cues/candidate_123.wav",
+            editState: .overflowGated,
+            overflowDelta: CMTime(seconds: 0.5, preferredTimescale: 600)
+        )
+        #expect(cue.candidateAudioWAVRelativePath != nil)
+        #expect(cue.overflowDelta != nil)
+
+        let updated = cue.withUpdatedText("Shorter text to fit")
+        #expect(updated.text == "Shorter text to fit")
+        #expect(updated.candidateAudioWAVRelativePath == nil, "Candidate audio must be cleared upon text update")
+        #expect(updated.overflowDelta == nil, "Overflow delta must be cleared upon text update")
+        #expect(updated.editState == .edited)
+    }
+
+    // MARK: - AudioTrackExtractor timeRange sub-slice extraction
+
+    @Test("AudioTrackExtractor extracts sub-slice matching timeRange accurately")
+    func test_audio_track_extractor_time_range() async throws {
+        let tempDir = try createTempDir()
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let sourceURL = tempDir.appendingPathComponent("slice_test.mov")
+        let asset = try await Fixture1SingleTrack.generate(at: sourceURL)
+        let trackID = asset.audioTrackIDs[0]
+
+        let extractor = AudioTrackExtractor()
+        let sliceRange = CMTimeRange(
+            start: CMTime(seconds: 2.0, preferredTimescale: 600),
+            duration: CMTime(seconds: 1.5, preferredTimescale: 600)
+        )
+        let pcm = try await extractor.extractPCMBuffer(
+            from: AVURLAsset(url: sourceURL),
+            trackID: trackID,
+            timeRange: sliceRange,
+            targetSampleRate: 16000.0,
+            targetChannels: 1
+        )
+
+        let durationSeconds = Double(pcm.frameLength) / 16000.0
+        #expect(abs(durationSeconds - 1.5) < 0.05, "Extracted PCM duration should be ~1.5s, got \(durationSeconds)")
+    }
 }

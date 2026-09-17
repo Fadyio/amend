@@ -276,6 +276,20 @@ public final class AppViewModel: ObservableObject {
         self.statusMessage = "Configured Resemble voice UUID"
     }
 
+    public func setElevenLabsVoiceID(_ id: String) {
+        if referenceVoice != nil {
+            referenceVoice?.elevenLabsVoiceID = id
+        } else {
+            referenceVoice = ReferenceVoice(
+                name: "ElevenLabs Voice",
+                audioRelativePath: "",
+                pocketTTSStatus: .unconfigured,
+                elevenLabsVoiceID: id
+            )
+        }
+        self.statusMessage = "Configured ElevenLabs voice ID"
+    }
+
     // MARK: - Cue Editing & Splitting (ADR-0001, ADR-0006)
 
     public func splitCue(id: UUID, at time: CMTime) {
@@ -319,40 +333,37 @@ public final class AppViewModel: ObservableObject {
 
         switch providerType {
         case .pocketTTS:
-            if customProvider == nil {
-                guard let refVoice = referenceVoice else {
-                    throw SynthesisError.invalidReferenceAudio
-                }
+            if let refVoice = referenceVoice {
                 let path = refVoice.audioRelativePath
                 let url = path.hasPrefix("/") ? URL(fileURLWithPath: path) : baseDir.appendingPathComponent(path)
-                guard FileManager.default.fileExists(atPath: url.path) else {
-                    throw SynthesisError.invalidReferenceAudio
+                if FileManager.default.fileExists(atPath: url.path) {
+                    refAudioURL = url
                 }
-                refAudioURL = url
+            }
+            if customProvider == nil && refAudioURL == nil {
+                throw SynthesisError.invalidReferenceAudio
             }
 
         case .elevenLabs:
-            if customProvider != nil {
-                voiceID = referenceVoice?.elevenLabsVoiceID
-            } else if let vid = referenceVoice?.elevenLabsVoiceID, !vid.isEmpty {
+            if let vid = referenceVoice?.elevenLabsVoiceID, !vid.isEmpty {
                 voiceID = vid
             } else if let refVoice = referenceVoice {
                 let path = refVoice.audioRelativePath
                 let url = path.hasPrefix("/") ? URL(fileURLWithPath: path) : baseDir.appendingPathComponent(path)
-                guard FileManager.default.fileExists(atPath: url.path) else {
-                    throw SynthesisError.synthesisFailed("ElevenLabs requires a cloned voice ID or reference voice.")
+                if FileManager.default.fileExists(atPath: url.path) {
+                    refAudioURL = url
                 }
-                refAudioURL = url
-            } else {
+            }
+            if customProvider == nil && voiceID == nil && refAudioURL == nil {
                 throw SynthesisError.synthesisFailed("ElevenLabs requires a cloned voice ID or reference voice.")
             }
 
         case .resemble:
-            if customProvider == nil {
-                guard let vid = referenceVoice?.resembleVoiceUUID, !vid.isEmpty else {
-                    throw SynthesisError.synthesisFailed("Resemble requires a voice_uuid configured in Reference Voice or Provider Settings.")
-                }
+            if let vid = referenceVoice?.resembleVoiceUUID, !vid.isEmpty {
                 voiceID = vid
+            }
+            if customProvider == nil && voiceID == nil {
+                throw SynthesisError.synthesisFailed("Resemble requires a voice_uuid configured in Reference Voice or Provider Settings.")
             }
 
         case .geminiTTS:
@@ -361,10 +372,26 @@ public final class AppViewModel: ObservableObject {
         }
 
         let pcm = try await provider.synthesize(text: cue.text, voiceID: voiceID, referenceAudioURL: refAudioURL)
+
+        // Extract original narration reference slice for loudness matching (Blocker 9)
+        var refNarrationBuffer: AVAudioPCMBuffer? = nil
+        if let mediaURL = sourceMediaURL {
+            let asset = AVURLAsset(url: mediaURL)
+            let extractor = AudioTrackExtractor()
+            refNarrationBuffer = try? await extractor.extractPCMBuffer(
+                from: asset,
+                trackID: CMPersistentTrackID(designatedNarrationID),
+                timeRange: cue.timeRange,
+                targetSampleRate: pcm.format.sampleRate,
+                targetChannels: pcm.format.channelCount
+            )
+        }
+
         let fitResult = try durationFitter.fit(
             synthesizedAudio: pcm,
             targetDuration: cue.duration,
             roomToneBuffer: roomToneBuffer,
+            referenceAudioBuffer: refNarrationBuffer,
             forceCompress: false
         )
 
@@ -407,25 +434,40 @@ public final class AppViewModel: ObservableObject {
         let baseDir = projectBundleURL ?? sessionWorkingDir
 
         let pcm: AVAudioPCMBuffer
+        var candidateFileURLToDelete: URL? = nil
         if let candRel = cue.candidateAudioWAVRelativePath {
             let fullCandURL = candRel.hasPrefix("/") ? URL(fileURLWithPath: candRel) : baseDir.appendingPathComponent(candRel)
             if FileManager.default.fileExists(atPath: fullCandURL.path),
                let candData = try? Data(contentsOf: fullCandURL),
                let buf = try? AudioBufferUtils.pcmBuffer(fromAudioData: candData, fileExtension: "wav") {
                 pcm = buf
+                candidateFileURLToDelete = fullCandURL
             } else {
-                let provider = PocketTTSProvider()
-                pcm = try await provider.synthesize(text: cue.text)
+                throw SynthesisError.synthesisFailed("Candidate audio file missing for force fitting cue \(cue.id)")
             }
         } else {
-            let provider = PocketTTSProvider()
-            pcm = try await provider.synthesize(text: cue.text)
+            throw SynthesisError.synthesisFailed("No candidate audio available to force fit for cue \(cue.id)")
+        }
+
+        // Extract original narration reference slice for loudness matching (Blocker 9)
+        var refNarrationBuffer: AVAudioPCMBuffer? = nil
+        if let mediaURL = sourceMediaURL {
+            let asset = AVURLAsset(url: mediaURL)
+            let extractor = AudioTrackExtractor()
+            refNarrationBuffer = try? await extractor.extractPCMBuffer(
+                from: asset,
+                trackID: CMPersistentTrackID(designatedNarrationID),
+                timeRange: cue.timeRange,
+                targetSampleRate: pcm.format.sampleRate,
+                targetChannels: pcm.format.channelCount
+            )
         }
 
         let fitResult = try durationFitter.fit(
             synthesizedAudio: pcm,
             targetDuration: cue.duration,
             roomToneBuffer: roomToneBuffer,
+            referenceAudioBuffer: refNarrationBuffer,
             forceCompress: true
         )
 
@@ -437,6 +479,11 @@ public final class AppViewModel: ObservableObject {
         let targetWAV = baseDir.appendingPathComponent(relativePath)
         try FileManager.default.createDirectory(at: targetWAV.deletingLastPathComponent(), withIntermediateDirectories: true)
         try writeBuffer(buffer, to: targetWAV)
+
+        // Clean up candidate audio file from disk
+        if let candURL = candidateFileURLToDelete {
+            try? FileManager.default.removeItem(at: candURL)
+        }
 
         cues[index] = cue.withUpdatedAudio(
             audioWAVRelativePath: relativePath,

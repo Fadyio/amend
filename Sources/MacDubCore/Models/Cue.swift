@@ -80,9 +80,9 @@ extension Cue {
             text: newText,
             originalText: self.originalText,
             audioWAVRelativePath: self.audioWAVRelativePath,
-            candidateAudioWAVRelativePath: self.candidateAudioWAVRelativePath,
+            candidateAudioWAVRelativePath: nil,
             editState: .edited,
-            overflowDelta: self.overflowDelta
+            overflowDelta: nil
         )
     }
 

@@ -107,7 +107,7 @@ public final class ProviderSettingsViewModel: ObservableObject {
         if let appVM = appViewModel {
             let elID = elevenLabsVoiceIDInput.trimmingCharacters(in: .whitespacesAndNewlines)
             if !elID.isEmpty {
-                appVM.referenceVoice?.elevenLabsVoiceID = elID
+                appVM.setElevenLabsVoiceID(elID)
             }
             let resUUID = resembleVoiceUUIDInput.trimmingCharacters(in: .whitespacesAndNewlines)
             if !resUUID.isEmpty {

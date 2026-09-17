@@ -11,6 +11,7 @@ public struct AudioTrackExtractor: Sendable {
     public func extractPCMBuffer(
         from asset: AVAsset,
         trackID: CMPersistentTrackID,
+        timeRange: CMTimeRange? = nil,
         targetSampleRate: Double = 16000.0,
         targetChannels: AVAudioChannelCount = 1
     ) async throws -> AVAudioPCMBuffer {
@@ -20,6 +21,9 @@ public struct AudioTrackExtractor: Sendable {
         }
 
         let reader = try AVAssetReader(asset: asset)
+        if let range = timeRange, range.start.isValid, range.duration.isValid {
+            reader.timeRange = range
+        }
         let outputSettings: [String: Any] = [
             AVFormatIDKey: kAudioFormatLinearPCM,
             AVSampleRateKey: targetSampleRate,

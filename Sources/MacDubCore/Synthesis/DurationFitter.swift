@@ -27,6 +27,46 @@ public protocol DurationFitting: Sendable {
         roomToneBuffer: AVAudioPCMBuffer?,
         forceCompress: Bool
     ) throws -> DurationFittingResult
+
+    func fit(
+        synthesizedAudio: AVAudioPCMBuffer,
+        targetDuration: CMTime,
+        roomToneBuffer: AVAudioPCMBuffer?,
+        referenceAudioBuffer: AVAudioPCMBuffer?,
+        forceCompress: Bool
+    ) throws -> DurationFittingResult
+}
+
+extension DurationFitting {
+    public func fit(
+        synthesizedAudio: AVAudioPCMBuffer,
+        targetDuration: CMTime,
+        roomToneBuffer: AVAudioPCMBuffer?,
+        referenceAudioBuffer: AVAudioPCMBuffer?,
+        forceCompress: Bool
+    ) throws -> DurationFittingResult {
+        try fit(
+            synthesizedAudio: synthesizedAudio,
+            targetDuration: targetDuration,
+            roomToneBuffer: roomToneBuffer,
+            forceCompress: forceCompress
+        )
+    }
+
+    public func fit(
+        synthesizedAudio: AVAudioPCMBuffer,
+        targetDuration: CMTime,
+        roomToneBuffer: AVAudioPCMBuffer? = nil,
+        forceCompress: Bool = false
+    ) throws -> DurationFittingResult {
+        try fit(
+            synthesizedAudio: synthesizedAudio,
+            targetDuration: targetDuration,
+            roomToneBuffer: roomToneBuffer,
+            referenceAudioBuffer: nil,
+            forceCompress: forceCompress
+        )
+    }
 }
 
 public final class DurationFitter: DurationFitting, @unchecked Sendable {
@@ -46,14 +86,23 @@ public final class DurationFitter: DurationFitting, @unchecked Sendable {
         synthesizedAudio: AVAudioPCMBuffer,
         targetDuration: CMTime,
         roomToneBuffer: AVAudioPCMBuffer? = nil,
+        referenceAudioBuffer: AVAudioPCMBuffer? = nil,
         forceCompress: Bool = false
     ) throws -> DurationFittingResult {
         guard synthesizedAudio.frameLength > 0, targetDuration > .zero else {
             throw NSError(domain: "DurationFitter", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid audio buffer or zero target duration"])
         }
 
-        let sampleRate = synthesizedAudio.format.sampleRate
-        let actualSeconds = Double(synthesizedAudio.frameLength) / sampleRate
+        // Apply Loudness Matching against original surrounding narration reference if available (Blocker 9)
+        var audioToProcess = synthesizedAudio
+        if let ref = referenceAudioBuffer, ref.frameLength > 0 {
+            if let (matched, _) = try? normalizer.matchLoudness(sourceBuffer: audioToProcess, referenceBuffer: ref) {
+                audioToProcess = matched
+            }
+        }
+
+        let sampleRate = audioToProcess.format.sampleRate
+        let actualSeconds = Double(audioToProcess.frameLength) / sampleRate
         let targetSeconds = CMTimeGetSeconds(targetDuration)
         let ratio = actualSeconds / targetSeconds
         let targetFrameCount = AVAudioFrameCount(round(targetSeconds * sampleRate))
@@ -62,27 +111,42 @@ public final class DurationFitter: DurationFitting, @unchecked Sendable {
         if ratio <= 1.0 {
             // Case 1: Shorter speech -> Retain natural pace and pad with looped ambient room tone (ADR-0005)
             fittedBuffer = try padWithRoomTone(
-                speechBuffer: synthesizedAudio,
+                speechBuffer: audioToProcess,
                 targetFrameCount: targetFrameCount,
                 roomToneBuffer: roomToneBuffer
             )
         } else if ratio <= Self.maxAutoCompressionRatio || forceCompress {
             // Case 2: Within 8% overflow (or user explicitly requested Force Fit) -> Offline time-compression with AVAudioUnitTimePitch
             fittedBuffer = try timeCompress(
-                buffer: synthesizedAudio,
+                buffer: audioToProcess,
                 rate: Float(ratio),
                 targetFrameCount: targetFrameCount
             )
         } else {
             // Case 3: > 8% overflow -> User-gated manual action required (ADR-0006)
             let delta = CMTime(seconds: actualSeconds - targetSeconds, preferredTimescale: 600_000)
-            return .overflow(delta: delta, ratio: ratio, uncompressedBuffer: synthesizedAudio)
+            return .overflow(delta: delta, ratio: ratio, uncompressedBuffer: audioToProcess)
         }
 
         // Apply 15ms boundary fade-in at head and fade-out at tail to eliminate boundary clicks (ADR-0005, Blocker 9)
         try? crossfader.applyBoundaryFades(to: fittedBuffer, windowDuration: 0.015, curve: .equalPower)
 
         return .fitted(fittedBuffer)
+    }
+
+    public func fit(
+        synthesizedAudio: AVAudioPCMBuffer,
+        targetDuration: CMTime,
+        roomToneBuffer: AVAudioPCMBuffer? = nil,
+        forceCompress: Bool = false
+    ) throws -> DurationFittingResult {
+        try fit(
+            synthesizedAudio: synthesizedAudio,
+            targetDuration: targetDuration,
+            roomToneBuffer: roomToneBuffer,
+            referenceAudioBuffer: nil,
+            forceCompress: forceCompress
+        )
     }
 
     // MARK: - Room Tone Padding
