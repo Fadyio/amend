@@ -332,7 +332,7 @@ public final class AppViewModel: ObservableObject {
             }
 
         case .elevenLabs:
-            if let custom = customProvider {
+            if customProvider != nil {
                 voiceID = referenceVoice?.elevenLabsVoiceID
             } else if let vid = referenceVoice?.elevenLabsVoiceID, !vid.isEmpty {
                 voiceID = vid
