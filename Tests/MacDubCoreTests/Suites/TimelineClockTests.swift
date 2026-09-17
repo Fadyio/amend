@@ -198,4 +198,37 @@ struct TimelineClockTests {
         clock.setDuration(.invalid)
         #expect(CMTimeCompare(clock.duration, newDur) == 0)
     }
+
+    @Test("Frame stepping adapts to source frame rates (24, 30, 60 fps)")
+    func test_frame_stepping_at_source_rates_24_30_60() async {
+        let duration = CMTime(seconds: 10.0, preferredTimescale: 600_000)
+
+        // 1. 24 fps: 1 frame = 1/24s = 0.041666...s (25,000 / 600,000)
+        let clock24 = TimelineClock(initialTime: .zero, duration: duration)
+        clock24.frameRate = 24.0
+        clock24.stepForward(by: 1)
+        // allow async seek
+        try? await Task.sleep(nanoseconds: 20_000_000)
+        let sec24 = CMTimeGetSeconds(clock24.currentTime)
+        #expect(abs(sec24 - (1.0 / 24.0)) < 1e-4, "Stepping at 24fps must advance by 1/24s")
+        clock24.stepBackward(by: 1)
+        try? await Task.sleep(nanoseconds: 20_000_000)
+        #expect(abs(CMTimeGetSeconds(clock24.currentTime)) < 1e-4, "Stepping backward must return to 0s")
+
+        // 2. 30 fps: 1 frame = 1/30s = 0.033333...s (20,000 / 600,000)
+        let clock30 = TimelineClock(initialTime: .zero, duration: duration)
+        clock30.frameRate = 30.0
+        clock30.stepForward(by: 1)
+        try? await Task.sleep(nanoseconds: 20_000_000)
+        let sec30 = CMTimeGetSeconds(clock30.currentTime)
+        #expect(abs(sec30 - (1.0 / 30.0)) < 1e-4, "Stepping at 30fps must advance by 1/30s")
+
+        // 3. 60 fps: 1 frame = 1/60s = 0.016666...s (10,000 / 600,000)
+        let clock60 = TimelineClock(initialTime: .zero, duration: duration)
+        clock60.frameRate = 60.0
+        clock60.stepForward(by: 1)
+        try? await Task.sleep(nanoseconds: 20_000_000)
+        let sec60 = CMTimeGetSeconds(clock60.currentTime)
+        #expect(abs(sec60 - (1.0 / 60.0)) < 1e-4, "Stepping at 60fps must advance by 1/60s")
+    }
 }

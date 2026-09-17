@@ -58,6 +58,7 @@ public final class TimelineClock: NSObject, ObservableObject, TimelineClockProto
 
     @Published public var isLoopingEnabled: Bool = false
     @Published public var loopRange: CMTimeRange?
+    @Published public var frameRate: Double = 30.0
 
     public var isPlaying: Bool {
         if case .playing = transportState { return true }
@@ -240,8 +241,9 @@ public final class TimelineClock: NSObject, ObservableObject, TimelineClockProto
         player?.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero)
     }
 
-    public func stepForward(by frameCount: Int = 1, fps: Double = 30.0) {
-        let stepSeconds = Double(frameCount) / max(1.0, fps)
+    public func stepForward(by frameCount: Int = 1, fps: Double? = nil) {
+        let effectiveFps = fps ?? self.frameRate
+        let stepSeconds = Double(frameCount) / max(1.0, effectiveFps)
         let stepDuration = CMTime(seconds: stepSeconds, preferredTimescale: Self.canonicalTimescale)
         let newTime = CMTimeAdd(currentTime, stepDuration)
         Task { @MainActor in
@@ -249,13 +251,22 @@ public final class TimelineClock: NSObject, ObservableObject, TimelineClockProto
         }
     }
 
-    public func stepBackward(by frameCount: Int = 1, fps: Double = 30.0) {
-        let stepSeconds = Double(frameCount) / max(1.0, fps)
+    public func stepForward(by frameCount: Int, fps: Double) {
+        stepForward(by: frameCount, fps: Optional(fps))
+    }
+
+    public func stepBackward(by frameCount: Int = 1, fps: Double? = nil) {
+        let effectiveFps = fps ?? self.frameRate
+        let stepSeconds = Double(frameCount) / max(1.0, effectiveFps)
         let stepDuration = CMTime(seconds: stepSeconds, preferredTimescale: Self.canonicalTimescale)
         let newTime = CMTimeSubtract(currentTime, stepDuration)
         Task { @MainActor in
             await seek(to: newTime, tolerance: .zero)
         }
+    }
+
+    public func stepBackward(by frameCount: Int, fps: Double) {
+        stepBackward(by: frameCount, fps: Optional(fps))
     }
 
     private func clampToDuration(_ time: CMTime) -> CMTime {

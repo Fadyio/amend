@@ -31,9 +31,13 @@ struct MacDubMain: App {
                     if let uti = UTType(filenameExtension: "voicefix") {
                         panel.allowedContentTypes = [uti]
                     }
-                    panel.nameFieldStringValue = "Recording.voicefix"
                     if panel.runModal() == .OK, let url = panel.url {
-                        try? appViewModel.saveProject(to: url)
+                        do {
+                            try appViewModel.saveProject(to: url)
+                        } catch {
+                            appViewModel.errorMessage = "Failed to save project: \(error.localizedDescription)"
+                            appViewModel.statusMessage = "Project save failed"
+                        }
                     }
                 }
                 .keyboardShortcut("s", modifiers: .command)

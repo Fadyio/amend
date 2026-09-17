@@ -1,6 +1,11 @@
 import Foundation
 import CoreMedia
 
+public enum GeminiModelConstants {
+    public static let defaultGrammarModel = "gemini-2.5-flash"
+    public static let defaultTTSModel = "gemini-3.1-flash-tts-preview"
+}
+
 public enum GrammarAction: Equatable, Sendable {
     case fixGrammar
     case makeNatural
@@ -53,7 +58,7 @@ public protocol GrammarProvider: Sendable {
     ) async throws -> GrammarRewriteResult
 }
 
-public enum GrammarError: Error, LocalizedError {
+public enum GrammarError: Error, LocalizedError, Equatable {
     case missingAPIKey
     case emptyInput
     case providerUnavailable(String)
@@ -74,13 +79,16 @@ public enum GrammarError: Error, LocalizedError {
 }
 
 public final class GeminiGrammarProvider: GrammarProvider, @unchecked Sendable {
+    public let model: String
     private let vault: CredentialVaultProtocol
     private let session: URLSession
 
     public init(
+        model: String = GeminiModelConstants.defaultGrammarModel,
         vault: CredentialVaultProtocol = KeychainVault(),
         session: URLSession? = nil
     ) {
+        self.model = model
         self.vault = vault
         self.session = session ?? NetworkSessionFactory.makeSession()
     }
@@ -102,7 +110,7 @@ public final class GeminiGrammarProvider: GrammarProvider, @unchecked Sendable {
             throw GrammarError.missingAPIKey
         }
 
-        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\(apiKey)") else {
+        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent") else {
             throw GrammarError.providerUnavailable("Invalid Generative Language API endpoint URL")
         }
 
@@ -110,6 +118,8 @@ public final class GeminiGrammarProvider: GrammarProvider, @unchecked Sendable {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
+
         let actionHeader: String
         switch action {
         case .fixGrammar: actionHeader = "fixGrammar"
@@ -122,6 +132,7 @@ public final class GeminiGrammarProvider: GrammarProvider, @unchecked Sendable {
         let requestBody: [String: Any] = [
             "contents": [
                 [
+                    "role": "user",
                     "parts": [
                         ["text": prompt]
                     ]

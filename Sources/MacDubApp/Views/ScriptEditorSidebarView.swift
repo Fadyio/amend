@@ -47,6 +47,7 @@ public struct ScriptEditorSidebarView: View {
     public let onSplitCue: (UUID, CMTime) -> Void
     public let onSynthesizeCue: (UUID, SynthesisProviderType) async throws -> Void
     public let onForceFitCue: (UUID) async throws -> Void
+    public let onDiscardCandidate: ((UUID) -> Void)?
 
     public init(
         editorViewModel: ScriptEditorViewModel,
@@ -56,7 +57,8 @@ public struct ScriptEditorSidebarView: View {
         onSeek: @escaping (CMTime) -> Void,
         onSplitCue: @escaping (UUID, CMTime) -> Void,
         onSynthesizeCue: @escaping (UUID, SynthesisProviderType) async throws -> Void,
-        onForceFitCue: @escaping (UUID) async throws -> Void
+        onForceFitCue: @escaping (UUID) async throws -> Void,
+        onDiscardCandidate: ((UUID) -> Void)? = nil
     ) {
         self.editorViewModel = editorViewModel
         self._cues = cues
@@ -66,6 +68,7 @@ public struct ScriptEditorSidebarView: View {
         self.onSplitCue = onSplitCue
         self.onSynthesizeCue = onSynthesizeCue
         self.onForceFitCue = onForceFitCue
+        self.onDiscardCandidate = onDiscardCandidate
     }
 
     private var selectedIndex: Int? {
@@ -300,12 +303,46 @@ public struct ScriptEditorSidebarView: View {
 
                     Button("Force Fit") {
                         Task {
-                            try? await onForceFitCue(cue.id)
+                            do {
+                                try await onForceFitCue(cue.id)
+                            } catch {
+                                await MainActor.run {
+                                    editorViewModel.errorMessage = error.localizedDescription
+                                }
+                            }
                         }
                     }
                     .controlSize(.mini)
                     .buttonStyle(.borderedProminent)
                     .help("Compress audio using asymmetric time stretching within safe limits")
+
+                    Button("Discard") {
+                        onDiscardCandidate?(cue.id)
+                    }
+                    .controlSize(.mini)
+                    .buttonStyle(.bordered)
+                    .help("Discard candidate audio and restore unedited narration")
+                }
+                .padding(8)
+                .background(Color.red.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .padding(.horizontal, 14)
+            }
+
+            if let err = editorViewModel.errorMessage {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                    Text(err)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .lineLimit(2)
+                    Spacer()
+                    Button(action: { editorViewModel.errorMessage = nil }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.borderless)
                 }
                 .padding(8)
                 .background(Color.red.opacity(0.1))

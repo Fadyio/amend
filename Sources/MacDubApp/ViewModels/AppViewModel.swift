@@ -16,6 +16,8 @@ public final class AppViewModel: ObservableObject {
     @Published public var passthroughTrackIDs: Set<Int> = []
     @Published public var detectedAudioTracks: [AudioTrackInfo] = []
     @Published public var isSingleTrackAdvisory: Bool = false
+    @Published public var referenceVoice: ReferenceVoice?
+    @Published public var selectedProviderType: SynthesisProviderType = .pocketTTS
 
     // Waveform & Visuals
     @Published public var multiScaleWaveform: MultiScaleWaveform?
@@ -70,6 +72,7 @@ public final class AppViewModel: ObservableObject {
         let workingDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("macdub_session_\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: workingDir.appendingPathComponent("audio/cues"), withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: workingDir.appendingPathComponent("voice"), withIntermediateDirectories: true)
         self.sessionWorkingDir = workingDir
 
         // Forward cue selection from timeline to AppViewModel
@@ -87,7 +90,15 @@ public final class AppViewModel: ObservableObject {
 
     public func importMedia(from url: URL) {
         Task {
-            try? await importMediaAsync(from: url)
+            do {
+                try await importMediaAsync(from: url)
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = error.localizedDescription
+                    self.statusMessage = "Import failed: \(error.localizedDescription)"
+                    self.isProcessing = false
+                }
+            }
         }
     }
 
@@ -106,12 +117,13 @@ public final class AppViewModel: ObservableObject {
             let asset = AVURLAsset(url: url)
             let dur = try await asset.load(.duration)
 
-            // Inspect nominal frame rate (Phase 14)
+            // Inspect nominal frame rate (Phase 14 & Blocker 10)
             if let videoTrack = try await asset.loadTracks(withMediaType: .video).first {
                 let fps = try await videoTrack.load(.nominalFrameRate)
                 if fps > 0 {
                     let matchingRate = TimecodeFrameRate.closest(to: Double(fps))
                     self.timelineViewModel.rulerFormatter = SMPTERulerFormatter(frameRate: matchingRate)
+                    self.timelineViewModel.clock.frameRate = Double(fps)
                 }
             }
 
@@ -160,7 +172,15 @@ public final class AppViewModel: ObservableObject {
 
     public func confirmTrackPicker() {
         Task {
-            try? await confirmTrackPickerAsync()
+            do {
+                try await confirmTrackPickerAsync()
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = error.localizedDescription
+                    self.statusMessage = "Track configuration failed: \(error.localizedDescription)"
+                    self.isProcessing = false
+                }
+            }
         }
     }
 
@@ -197,6 +217,63 @@ public final class AppViewModel: ObservableObject {
             self.statusMessage = "Transcription failed"
             throw error
         }
+    }
+
+    // MARK: - Reference Voice Management (Blocker 1 & 5)
+
+    public func setReferenceVoice(name: String, audioURL: URL) throws {
+        guard FileManager.default.fileExists(atPath: audioURL.path) else {
+            throw SynthesisError.invalidReferenceAudio
+        }
+        let baseDir = projectBundleURL ?? sessionWorkingDir
+        let voiceDir = baseDir.appendingPathComponent("voice")
+        try FileManager.default.createDirectory(at: voiceDir, withIntermediateDirectories: true)
+
+        let ext = audioURL.pathExtension.isEmpty ? "wav" : audioURL.pathExtension
+        let relativePath = "voice/reference_voice.\(ext)"
+        let targetVoiceURL = baseDir.appendingPathComponent(relativePath)
+
+        if FileManager.default.fileExists(atPath: targetVoiceURL.path) {
+            try? FileManager.default.removeItem(at: targetVoiceURL)
+        }
+        try FileManager.default.copyItem(at: audioURL, to: targetVoiceURL)
+
+        self.referenceVoice = ReferenceVoice(
+            name: name,
+            audioRelativePath: relativePath,
+            pocketTTSStatus: .ready
+        )
+        self.statusMessage = "Configured Reference Voice: \(name)"
+    }
+
+    public func cloneElevenLabsVoice(name: String) async throws -> String {
+        guard let refVoice = referenceVoice else {
+            throw SynthesisError.invalidReferenceAudio
+        }
+        let baseDir = projectBundleURL ?? sessionWorkingDir
+        let fullVoiceURL = refVoice.audioRelativePath.hasPrefix("/")
+            ? URL(fileURLWithPath: refVoice.audioRelativePath)
+            : baseDir.appendingPathComponent(refVoice.audioRelativePath)
+
+        let provider = ElevenLabsProvider()
+        let voiceID = try await provider.cloneVoice(name: name, audioURL: fullVoiceURL)
+        self.referenceVoice?.elevenLabsVoiceID = voiceID
+        self.statusMessage = "ElevenLabs voice cloned successfully"
+        return voiceID
+    }
+
+    public func setResembleVoiceUUID(_ uuid: String) {
+        if referenceVoice != nil {
+            referenceVoice?.resembleVoiceUUID = uuid
+        } else {
+            referenceVoice = ReferenceVoice(
+                name: "Resemble Voice",
+                audioRelativePath: "",
+                pocketTTSStatus: .unconfigured,
+                resembleVoiceUUID: uuid
+            )
+        }
+        self.statusMessage = "Configured Resemble voice UUID"
     }
 
     // MARK: - Cue Editing & Splitting (ADR-0001, ADR-0006)
@@ -236,7 +313,54 @@ public final class AppViewModel: ObservableObject {
             }
         }
 
-        let pcm = try await provider.synthesize(text: cue.text)
+        let baseDir = projectBundleURL ?? sessionWorkingDir
+        var refAudioURL: URL? = nil
+        var voiceID: String? = nil
+
+        switch providerType {
+        case .pocketTTS:
+            if customProvider == nil {
+                guard let refVoice = referenceVoice else {
+                    throw SynthesisError.invalidReferenceAudio
+                }
+                let path = refVoice.audioRelativePath
+                let url = path.hasPrefix("/") ? URL(fileURLWithPath: path) : baseDir.appendingPathComponent(path)
+                guard FileManager.default.fileExists(atPath: url.path) else {
+                    throw SynthesisError.invalidReferenceAudio
+                }
+                refAudioURL = url
+            }
+
+        case .elevenLabs:
+            if let custom = customProvider {
+                voiceID = referenceVoice?.elevenLabsVoiceID
+            } else if let vid = referenceVoice?.elevenLabsVoiceID, !vid.isEmpty {
+                voiceID = vid
+            } else if let refVoice = referenceVoice {
+                let path = refVoice.audioRelativePath
+                let url = path.hasPrefix("/") ? URL(fileURLWithPath: path) : baseDir.appendingPathComponent(path)
+                guard FileManager.default.fileExists(atPath: url.path) else {
+                    throw SynthesisError.synthesisFailed("ElevenLabs requires a cloned voice ID or reference voice.")
+                }
+                refAudioURL = url
+            } else {
+                throw SynthesisError.synthesisFailed("ElevenLabs requires a cloned voice ID or reference voice.")
+            }
+
+        case .resemble:
+            if customProvider == nil {
+                guard let vid = referenceVoice?.resembleVoiceUUID, !vid.isEmpty else {
+                    throw SynthesisError.synthesisFailed("Resemble requires a voice_uuid configured in Reference Voice or Provider Settings.")
+                }
+                voiceID = vid
+            }
+
+        case .geminiTTS:
+            voiceID = "Puck"
+            refAudioURL = nil
+        }
+
+        let pcm = try await provider.synthesize(text: cue.text, voiceID: voiceID, referenceAudioURL: refAudioURL)
         let fitResult = try durationFitter.fit(
             synthesizedAudio: pcm,
             targetDuration: cue.duration,
@@ -244,41 +368,60 @@ public final class AppViewModel: ObservableObject {
             forceCompress: false
         )
 
-        // Save WAV into audio/cues/ directory (Phase 10)
-        let relativePath = "audio/cues/cue_\(cue.id.uuidString).wav"
-        let baseDir = projectBundleURL ?? sessionWorkingDir
-        let targetWAV = baseDir.appendingPathComponent(relativePath)
-        try FileManager.default.createDirectory(at: targetWAV.deletingLastPathComponent(), withIntermediateDirectories: true)
-
-        if let buffer = fitResult.buffer {
-            try writeBuffer(buffer, to: targetWAV)
-        }
-
         switch fitResult {
-        case .fitted:
+        case .fitted(let fittedBuffer):
+            let relativePath = "audio/cues/cue_\(cue.id.uuidString).wav"
+            let targetWAV = baseDir.appendingPathComponent(relativePath)
+            try FileManager.default.createDirectory(at: targetWAV.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try writeBuffer(fittedBuffer, to: targetWAV)
+
             cues[index] = cue.withUpdatedAudio(
                 audioWAVRelativePath: relativePath,
                 editState: .synthesized,
                 overflowDelta: nil
             )
-        case .overflow(let delta, _, _):
-            cues[index] = cue.withUpdatedAudio(
-                audioWAVRelativePath: relativePath,
-                editState: .overflowGated,
+            timelineViewModel.setCues(cues, totalDuration: totalDuration)
+            refreshPreviewPlayback()
+            statusMessage = "Fitted replacement audio for cue \(index + 1)"
+
+        case .overflow(let delta, _, let uncompressedBuffer):
+            // BLOCKER 7: Save uncompressed candidate WAV for inspection, but do NOT put in active audioWAVRelativePath or preview/export!
+            let relativeCandidatePath = "audio/cues/candidate_\(cue.id.uuidString).wav"
+            let targetCandidateWAV = baseDir.appendingPathComponent(relativeCandidatePath)
+            try FileManager.default.createDirectory(at: targetCandidateWAV.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try writeBuffer(uncompressedBuffer, to: targetCandidateWAV)
+
+            cues[index] = cue.withCandidateAudio(
+                candidateAudioWAVRelativePath: relativeCandidatePath,
                 overflowDelta: delta
             )
+            timelineViewModel.setCues(cues, totalDuration: totalDuration)
+            refreshPreviewPlayback() // Candidate audio is strictly ignored by preview
+            statusMessage = String(format: "Cue duration overflow (+%.2fs). Awaiting user resolution.", CMTimeGetSeconds(delta))
         }
-
-        timelineViewModel.setCues(cues, totalDuration: totalDuration)
-        refreshPreviewPlayback()
     }
 
     public func forceFitCue(id: UUID) async throws {
         guard let index = cues.firstIndex(where: { $0.id == id }) else { return }
         let cue = cues[index]
+        let baseDir = projectBundleURL ?? sessionWorkingDir
 
-        let provider = PocketTTSProvider()
-        let pcm = try await provider.synthesize(text: cue.text)
+        let pcm: AVAudioPCMBuffer
+        if let candRel = cue.candidateAudioWAVRelativePath {
+            let fullCandURL = candRel.hasPrefix("/") ? URL(fileURLWithPath: candRel) : baseDir.appendingPathComponent(candRel)
+            if FileManager.default.fileExists(atPath: fullCandURL.path),
+               let candData = try? Data(contentsOf: fullCandURL),
+               let buf = try? AudioBufferUtils.pcmBuffer(fromAudioData: candData, fileExtension: "wav") {
+                pcm = buf
+            } else {
+                let provider = PocketTTSProvider()
+                pcm = try await provider.synthesize(text: cue.text)
+            }
+        } else {
+            let provider = PocketTTSProvider()
+            pcm = try await provider.synthesize(text: cue.text)
+        }
+
         let fitResult = try durationFitter.fit(
             synthesizedAudio: pcm,
             targetDuration: cue.duration,
@@ -286,14 +429,14 @@ public final class AppViewModel: ObservableObject {
             forceCompress: true
         )
 
+        guard let buffer = fitResult.buffer else {
+            throw SynthesisError.synthesisFailed("Failed to compress buffer")
+        }
+
         let relativePath = "audio/cues/cue_\(cue.id.uuidString).wav"
-        let baseDir = projectBundleURL ?? sessionWorkingDir
         let targetWAV = baseDir.appendingPathComponent(relativePath)
         try FileManager.default.createDirectory(at: targetWAV.deletingLastPathComponent(), withIntermediateDirectories: true)
-
-        if let buffer = fitResult.buffer {
-            try writeBuffer(buffer, to: targetWAV)
-        }
+        try writeBuffer(buffer, to: targetWAV)
 
         cues[index] = cue.withUpdatedAudio(
             audioWAVRelativePath: relativePath,
@@ -303,6 +446,23 @@ public final class AppViewModel: ObservableObject {
 
         timelineViewModel.setCues(cues, totalDuration: totalDuration)
         refreshPreviewPlayback()
+        statusMessage = "Force-fitted replacement audio for cue \(index + 1)"
+    }
+
+    public func discardCandidateCue(id: UUID) {
+        guard let index = cues.firstIndex(where: { $0.id == id }) else { return }
+        let cue = cues[index]
+        let baseDir = projectBundleURL ?? sessionWorkingDir
+
+        if let candRel = cue.candidateAudioWAVRelativePath {
+            let fullCandURL = candRel.hasPrefix("/") ? URL(fileURLWithPath: candRel) : baseDir.appendingPathComponent(candRel)
+            try? FileManager.default.removeItem(at: fullCandURL)
+        }
+
+        cues[index] = cue.withDiscardedCandidate()
+        timelineViewModel.setCues(cues, totalDuration: totalDuration)
+        refreshPreviewPlayback()
+        statusMessage = "Discarded overflow candidate"
     }
 
     // MARK: - Preview Composition Playback (Phase 12)
@@ -326,7 +486,11 @@ public final class AppViewModel: ObservableObject {
 
     private func refreshPreviewPlayback() {
         Task {
-            try? await buildPreviewComposition()
+            do {
+                try await buildPreviewComposition()
+            } catch {
+                self.errorMessage = "Preview refresh error: \(error.localizedDescription)"
+            }
         }
     }
 
@@ -384,11 +548,33 @@ public final class AppViewModel: ObservableObject {
             }
         }
 
-        // Persist updated metadata with cues
+        // Migrate voice files from sessionWorkingDir to bundle voice/
+        let sessionVoiceDir = sessionWorkingDir.appendingPathComponent("voice")
+        let bundleVoiceDir = bundleURL.appendingPathComponent("voice")
+        try fm.createDirectory(at: bundleVoiceDir, withIntermediateDirectories: true)
+
+        if let voiceFiles = try? fm.contentsOfDirectory(atPath: sessionVoiceDir.path) {
+            for file in voiceFiles {
+                let src = sessionVoiceDir.appendingPathComponent(file)
+                let dst = bundleVoiceDir.appendingPathComponent(file)
+                if fm.fileExists(atPath: dst.path) {
+                    try? fm.removeItem(at: dst)
+                }
+                try? fm.copyItem(at: src, to: dst)
+            }
+        }
+
+        // Persist updated metadata with cues, referenceVoice, nominalFrameRate, activeProviderType
         var updatedMetadata = bundle.metadata
         updatedMetadata.cues = cues
         updatedMetadata.designatedNarrationTrackID = designatedNarrationID
         updatedMetadata.passthroughTrackIDs = Array(passthroughTrackIDs)
+        updatedMetadata.referenceVoice = referenceVoice
+        updatedMetadata.activeProviderType = selectedProviderType
+        updatedMetadata.nominalFrameRate = timelineViewModel.clock.frameRate
+        updatedMetadata.elevenLabsVoiceID = referenceVoice?.elevenLabsVoiceID
+        updatedMetadata.resembleVoiceUUID = referenceVoice?.resembleVoiceUUID
+
         let updatedBundle = ProjectBundle(rootURL: bundleURL, metadata: updatedMetadata)
         try ProjectBundleSerializer.save(bundle: updatedBundle)
 
@@ -407,6 +593,15 @@ public final class AppViewModel: ObservableObject {
         self.isSingleTrackAdvisory = bundle.metadata.isSingleTrackAdvisory
         self.totalDuration = bundle.metadata.totalDuration
         self.cues = bundle.metadata.cues
+        self.referenceVoice = bundle.metadata.referenceVoice
+        if let prov = bundle.metadata.activeProviderType {
+            self.selectedProviderType = prov
+        }
+        if let fps = bundle.metadata.nominalFrameRate, fps > 0 {
+            self.timelineViewModel.clock.frameRate = fps
+            let matchingRate = TimecodeFrameRate.closest(to: fps)
+            self.timelineViewModel.rulerFormatter = SMPTERulerFormatter(frameRate: matchingRate)
+        }
         self.timelineViewModel.setCues(bundle.metadata.cues, totalDuration: bundle.metadata.totalDuration)
 
         let newPlayer = AVPlayer(url: resolvedMediaURL)

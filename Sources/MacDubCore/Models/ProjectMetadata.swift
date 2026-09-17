@@ -13,6 +13,12 @@ public struct ProjectMetadata: Codable, Equatable, Sendable {
     public var createdAt: Date
     public var updatedAt: Date
     public var cues: [Cue]
+    public var referenceVoice: ReferenceVoice?
+    public var activeProviderType: SynthesisProviderType?
+    public var nominalFrameRate: Double?
+    public var geminiModel: String?
+    public var resembleVoiceUUID: String?
+    public var elevenLabsVoiceID: String?
 
     // Convenience accessor matching spec miner test criteria
     public var sourceMode: SourceStorageMode {
@@ -46,7 +52,13 @@ public struct ProjectMetadata: Codable, Equatable, Sendable {
         roomToneRelativePath: String? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date(),
-        cues: [Cue] = []
+        cues: [Cue] = [],
+        referenceVoice: ReferenceVoice? = nil,
+        activeProviderType: SynthesisProviderType? = nil,
+        nominalFrameRate: Double? = nil,
+        geminiModel: String? = nil,
+        resembleVoiceUUID: String? = nil,
+        elevenLabsVoiceID: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -59,6 +71,12 @@ public struct ProjectMetadata: Codable, Equatable, Sendable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.cues = cues
+        self.referenceVoice = referenceVoice
+        self.activeProviderType = activeProviderType
+        self.nominalFrameRate = nominalFrameRate
+        self.geminiModel = geminiModel
+        self.resembleVoiceUUID = resembleVoiceUUID
+        self.elevenLabsVoiceID = elevenLabsVoiceID
     }
 
     enum CodingKeys: String, CodingKey {
@@ -74,6 +92,12 @@ public struct ProjectMetadata: Codable, Equatable, Sendable {
         case createdAt
         case updatedAt
         case cues
+        case referenceVoice
+        case activeProviderType
+        case nominalFrameRate
+        case geminiModel
+        case resembleVoiceUUID
+        case elevenLabsVoiceID
     }
 
     public init(from decoder: Decoder) throws {
@@ -100,6 +124,12 @@ public struct ProjectMetadata: Codable, Equatable, Sendable {
         self.createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         self.updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
         self.cues = try container.decodeIfPresent([Cue].self, forKey: .cues) ?? []
+        self.referenceVoice = try container.decodeIfPresent(ReferenceVoice.self, forKey: .referenceVoice)
+        self.activeProviderType = try container.decodeIfPresent(SynthesisProviderType.self, forKey: .activeProviderType)
+        self.nominalFrameRate = try container.decodeIfPresent(Double.self, forKey: .nominalFrameRate)
+        self.geminiModel = try container.decodeIfPresent(String.self, forKey: .geminiModel)
+        self.resembleVoiceUUID = try container.decodeIfPresent(String.self, forKey: .resembleVoiceUUID)
+        self.elevenLabsVoiceID = try container.decodeIfPresent(String.self, forKey: .elevenLabsVoiceID)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -116,5 +146,11 @@ public struct ProjectMetadata: Codable, Equatable, Sendable {
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
         try container.encode(cues, forKey: .cues)
+        try container.encodeIfPresent(referenceVoice, forKey: .referenceVoice)
+        try container.encodeIfPresent(activeProviderType, forKey: .activeProviderType)
+        try container.encodeIfPresent(nominalFrameRate, forKey: .nominalFrameRate)
+        try container.encodeIfPresent(geminiModel, forKey: .geminiModel)
+        try container.encodeIfPresent(resembleVoiceUUID, forKey: .resembleVoiceUUID)
+        try container.encodeIfPresent(elevenLabsVoiceID, forKey: .elevenLabsVoiceID)
     }
 }

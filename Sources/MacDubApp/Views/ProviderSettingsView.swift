@@ -1,10 +1,13 @@
 import SwiftUI
+import AppKit
+import UniformTypeIdentifiers
 import MacDubCore
 
 @MainActor
 public final class ProviderSettingsViewModel: ObservableObject {
     public let vault: CredentialVaultProtocol
     public let session: URLSession
+    public weak var appViewModel: AppViewModel?
 
     @Published public var elevenLabsKey: String = ""
     @Published public var resembleKey: String = ""
@@ -22,13 +25,33 @@ public final class ProviderSettingsViewModel: ObservableObject {
     @Published public var isTestingResemble: Bool = false
     @Published public var isTestingGemini: Bool = false
 
+    // Reference Voice Fields
+    @Published public var referenceVoiceName: String = ""
+    @Published public var referenceVoicePath: String = ""
+    @Published public var elevenLabsVoiceIDInput: String = ""
+    @Published public var resembleVoiceUUIDInput: String = ""
+    @Published public var isCloningElevenLabs: Bool = false
+    @Published public var voiceActionStatus: String?
+
     public init(
         vault: CredentialVaultProtocol = KeychainVault(),
-        session: URLSession = .shared
+        session: URLSession = .shared,
+        appViewModel: AppViewModel? = nil
     ) {
         self.vault = vault
         self.session = session
+        self.appViewModel = appViewModel
         refreshKeyStatuses()
+        loadVoiceState()
+    }
+
+    public func loadVoiceState() {
+        if let refVoice = appViewModel?.referenceVoice {
+            self.referenceVoiceName = refVoice.name
+            self.referenceVoicePath = refVoice.audioRelativePath
+            self.elevenLabsVoiceIDInput = refVoice.elevenLabsVoiceID ?? ""
+            self.resembleVoiceUUIDInput = refVoice.resembleVoiceUUID ?? ""
+        }
     }
 
     public func refreshKeyStatuses() {
@@ -55,7 +78,69 @@ public final class ProviderSettingsViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Testing Connections (Zero Key Leakage in Logs)
+    // MARK: - Reference Voice Actions
+
+    public func importReferenceVoiceFile() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.wav, .audio, .mpeg4Audio]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.title = "Select Reference Voice Recording (.wav, .m4a)"
+
+        if panel.runModal() == .OK, let url = panel.url {
+            let voiceName = referenceVoiceName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? url.deletingPathExtension().lastPathComponent
+                : referenceVoiceName
+            do {
+                try appViewModel?.setReferenceVoice(name: voiceName, audioURL: url)
+                self.referenceVoiceName = voiceName
+                self.referenceVoicePath = url.lastPathComponent
+                self.voiceActionStatus = "Reference voice imported successfully."
+            } catch {
+                self.voiceActionStatus = "Import failed: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    public func saveVoiceIDs() {
+        if let appVM = appViewModel {
+            let elID = elevenLabsVoiceIDInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !elID.isEmpty {
+                appVM.referenceVoice?.elevenLabsVoiceID = elID
+            }
+            let resUUID = resembleVoiceUUIDInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !resUUID.isEmpty {
+                appVM.setResembleVoiceUUID(resUUID)
+            }
+            self.voiceActionStatus = "Voice configuration updated."
+        }
+    }
+
+    public func cloneToElevenLabs() {
+        guard let appVM = appViewModel else { return }
+        isCloningElevenLabs = true
+        voiceActionStatus = nil
+
+        Task {
+            do {
+                let name = referenceVoiceName.isEmpty ? "MacDub Clone" : referenceVoiceName
+                let id = try await appVM.cloneElevenLabsVoice(name: name)
+                await MainActor.run {
+                    self.elevenLabsVoiceIDInput = id
+                    self.voiceActionStatus = "Cloned to ElevenLabs! Voice ID: \(id)"
+                    self.isCloningElevenLabs = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.voiceActionStatus = "ElevenLabs clone failed: \(error.localizedDescription)"
+                    self.isCloningElevenLabs = false
+                }
+            }
+        }
+    }
+
+    // MARK: - Testing Connections (Header-Based Auth & Zero Key Leakage)
 
     public func testGeminiConnection() {
         guard let key = try? vault.get(keyFor: .gemini), !key.isEmpty else { return }
@@ -63,7 +148,7 @@ public final class ProviderSettingsViewModel: ObservableObject {
         geminiStatus = nil
 
         Task {
-            guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\(key)") else {
+            guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models") else {
                 await MainActor.run {
                     self.geminiStatus = "Invalid URL"
                     self.isTestingGemini = false
@@ -72,10 +157,8 @@ public final class ProviderSettingsViewModel: ObservableObject {
             }
 
             var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            let body: [String: Any] = ["contents": [["parts": [["text": "Ping"]]]]]
-            request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+            request.httpMethod = "GET"
+            request.setValue(key, forHTTPHeaderField: "x-goog-api-key")
 
             do {
                 let (_, response) = try await session.data(for: request)
@@ -108,6 +191,7 @@ public final class ProviderSettingsViewModel: ObservableObject {
             }
 
             var request = URLRequest(url: url)
+            request.httpMethod = "GET"
             request.setValue(key, forHTTPHeaderField: "xi-api-key")
 
             do {
@@ -141,7 +225,8 @@ public final class ProviderSettingsViewModel: ObservableObject {
             }
 
             var request = URLRequest(url: url)
-            request.setValue(key, forHTTPHeaderField: "x-access-token")
+            request.httpMethod = "GET"
+            request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
 
             do {
                 let (_, response) = try await session.data(for: request)
@@ -169,8 +254,8 @@ public struct ProviderSettingsView: View {
         self.viewModel = viewModel
     }
 
-    public init() {
-        self.viewModel = ProviderSettingsViewModel()
+    public init(appViewModel: AppViewModel? = nil) {
+        self.viewModel = ProviderSettingsViewModel(appViewModel: appViewModel)
     }
 
     public var body: some View {
@@ -178,9 +263,9 @@ public struct ProviderSettingsView: View {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Provider & Keychain Settings")
+                    Text("Voice & Provider Settings")
                         .font(.headline)
-                    Text("Manage API keys in macOS Keychain and inspect local models.")
+                    Text("Configure Reference Voice, cloud voice IDs, and Keychain API keys.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -196,6 +281,9 @@ public struct ProviderSettingsView: View {
 
             ScrollView {
                 VStack(spacing: 20) {
+                    // Reference Voice Section (Blocker 1 & 5)
+                    referenceVoiceSection
+
                     // PocketTTS Local Model Card
                     pocketTTSSection
 
@@ -211,9 +299,113 @@ public struct ProviderSettingsView: View {
                 .padding(16)
             }
         }
-        .frame(width: 520, height: 560)
+        .frame(width: 560, height: 640)
         .onAppear {
             viewModel.refreshKeyStatuses()
+            viewModel.loadVoiceState()
+        }
+    }
+
+    // MARK: - Reference Voice Section
+    private var referenceVoiceSection: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: "person.wave.2.fill")
+                        .foregroundStyle(.blue)
+                    Text("Reference Voice Configuration")
+                        .font(.subheadline.bold())
+                    Spacer()
+                    if viewModel.appViewModel?.referenceVoice != nil {
+                        Text("Active Voice")
+                            .font(.caption2.bold())
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.green.opacity(0.15))
+                            .foregroundStyle(.green)
+                            .clipShape(Capsule())
+                    } else {
+                        Text("No Voice Configured")
+                            .font(.caption2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.secondary.opacity(0.15))
+                            .foregroundStyle(.secondary)
+                            .clipShape(Capsule())
+                    }
+                }
+
+                Text("Import a clean 10-30 second audio recording of your voice. Used for PocketTTS Core ML cloning and cloud voice cloning.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                HStack {
+                    TextField("Voice Name (e.g. Fady Voice)", text: $viewModel.referenceVoiceName)
+                        .textFieldStyle(.roundedBorder)
+
+                    Button("Import Audio...") {
+                        viewModel.importReferenceVoiceFile()
+                    }
+                }
+
+                if !viewModel.referenceVoicePath.isEmpty {
+                    HStack {
+                        Image(systemName: "doc.badge.gearshape")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("Source file: \(viewModel.referenceVoicePath)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Cloud Provider Voice IDs")
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
+
+                    HStack {
+                        Text("ElevenLabs Voice ID:")
+                            .font(.caption)
+                            .frame(width: 140, alignment: .leading)
+                        TextField("Voice ID", text: $viewModel.elevenLabsVoiceIDInput)
+                            .textFieldStyle(.roundedBorder)
+
+                        Button(action: {
+                            viewModel.cloneToElevenLabs()
+                        }) {
+                            if viewModel.isCloningElevenLabs {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Text("Create Clone")
+                            }
+                        }
+                        .disabled(!viewModel.elevenLabsConfigured || viewModel.referenceVoicePath.isEmpty || viewModel.isCloningElevenLabs)
+                    }
+
+                    HStack {
+                        Text("Resemble Voice UUID:")
+                            .font(.caption)
+                            .frame(width: 140, alignment: .leading)
+                        TextField("voice_uuid", text: $viewModel.resembleVoiceUUIDInput)
+                            .textFieldStyle(.roundedBorder)
+
+                        Button("Save UUID") {
+                            viewModel.saveVoiceIDs()
+                        }
+                        .disabled(viewModel.resembleVoiceUUIDInput.isEmpty)
+                    }
+                }
+
+                if let status = viewModel.voiceActionStatus {
+                    Text(status)
+                        .font(.caption)
+                        .foregroundStyle(status.contains("failed") ? .red : .blue)
+                }
+            }
+            .padding(4)
         }
     }
 
@@ -235,14 +427,14 @@ public struct ProviderSettingsView: View {
                         .clipShape(Capsule())
                 }
 
-                Text("Runs entirely on Apple Silicon Core ML and Neural Engine. Model weights are cached in application support.")
+                Text("Runs entirely on Apple Silicon Core ML and Neural Engine. Synthesizes using your configured Reference Voice.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
                 HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                    Text("Core ML Engine Ready (Mimi Decoder + FlowLM)")
+                    Image(systemName: viewModel.appViewModel?.referenceVoice != nil ? "checkmark.circle.fill" : "exclamationmark.triangle")
+                        .foregroundStyle(viewModel.appViewModel?.referenceVoice != nil ? .green : .orange)
+                    Text(viewModel.appViewModel?.referenceVoice != nil ? "Cloning Ready with Active Reference Voice" : "Requires Reference Voice configured above")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -264,7 +456,7 @@ public struct ProviderSettingsView: View {
                     statusBadge(configured: viewModel.geminiConfigured)
                 }
 
-                Text("Used for Fix Grammar, Make Natural, and Rewrite to Fit operations, as well as Gemini prebuilt voices.")
+                Text("Used for Fix Grammar, Make Natural, and Rewrite to Fit operations (gemini-2.5-flash), as well as Gemini prebuilt voices (gemini-3.1-flash-tts-preview).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -376,7 +568,7 @@ public struct ProviderSettingsView: View {
                     statusBadge(configured: viewModel.resembleConfigured)
                 }
 
-                Text("Used for Resemble AI speech dubbing and custom voice models.")
+                Text("Used for Resemble AI speech dubbing (POST /synthesize with Bearer auth and voice_uuid).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

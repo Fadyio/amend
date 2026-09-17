@@ -62,6 +62,9 @@ public struct MainAppView: View {
                     },
                     onForceFitCue: { id in
                         try await appViewModel.forceFitCue(id: id)
+                    },
+                    onDiscardCandidate: { id in
+                        appViewModel.discardCandidateCue(id: id)
                     }
                 )
                 .frame(minWidth: 320, idealWidth: 380, maxWidth: 500)
@@ -88,7 +91,17 @@ public struct MainAppView: View {
             }
         }
         .sheet(isPresented: $appViewModel.showProviderSettings) {
-            ProviderSettingsView()
+            ProviderSettingsView(appViewModel: appViewModel)
+        }
+        .alert("Error", isPresented: Binding<Bool>(
+            get: { appViewModel.errorMessage != nil },
+            set: { if !$0 { appViewModel.errorMessage = nil } }
+        )) {
+            Button("OK") {
+                appViewModel.errorMessage = nil
+            }
+        } message: {
+            Text(appViewModel.errorMessage ?? "")
         }
     }
 
@@ -236,7 +249,12 @@ public struct MainAppView: View {
         panel.canChooseFiles = true
         panel.title = "Open MacDub Project Bundle"
         if panel.runModal() == .OK, let url = panel.url {
-            try? appViewModel.loadProject(from: url)
+            do {
+                try appViewModel.loadProject(from: url)
+            } catch {
+                appViewModel.errorMessage = "Failed to open project: \(error.localizedDescription)"
+                appViewModel.statusMessage = "Project load failed"
+            }
         }
     }
 
@@ -248,7 +266,12 @@ public struct MainAppView: View {
         panel.nameFieldStringValue = "Recording.voicefix"
         panel.title = "Save MacDub Project Bundle"
         if panel.runModal() == .OK, let url = panel.url {
-            try? appViewModel.saveProject(to: url)
+            do {
+                try appViewModel.saveProject(to: url)
+            } catch {
+                appViewModel.errorMessage = "Failed to save project: \(error.localizedDescription)"
+                appViewModel.statusMessage = "Project save failed"
+            }
         }
     }
 }

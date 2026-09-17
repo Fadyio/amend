@@ -48,10 +48,10 @@ public struct PreviewCompositionGenerator: Sendable {
             return composition
         }
 
-        // Identify edited cues that possess an audio file
+        // Identify edited cues that possess approved active audio
         var editedCuesWithAudio: [(cue: Cue, fileURL: URL)] = []
         for cue in cues {
-            guard cue.editState != .original, let relPath = cue.audioWAVRelativePath else { continue }
+            guard cue.editState != .original && cue.editState != .overflowGated, let relPath = cue.audioWAVRelativePath else { continue }
             let fullURL: URL
             if relPath.hasPrefix("/") {
                 fullURL = URL(fileURLWithPath: relPath)

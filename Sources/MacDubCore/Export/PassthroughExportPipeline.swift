@@ -92,7 +92,10 @@ public final class PassthroughExportPipeline: ExportPipelining, @unchecked Senda
         }
         let allAudioTracks = try await asset.loadTracks(withMediaType: .audio)
 
-        let fileType: AVFileType = destURL.pathExtension.lowercased() == "mp4" ? .mp4 : .mov
+        guard destURL.pathExtension.lowercased() == "mov" else {
+            throw ExportError.exportFailed("Unsupported container format '.\(destURL.pathExtension)'. Only QuickTime Movie (.mov) containers are supported.")
+        }
+        let fileType: AVFileType = .mov
         let reader = try AVAssetReader(asset: asset)
         let writer = try AVAssetWriter(outputURL: destURL, fileType: fileType)
 
@@ -112,10 +115,10 @@ public final class PassthroughExportPipeline: ExportPipelining, @unchecked Senda
         }
         writer.add(videoInput)
 
-        // Check if any cues have replacement synthesized audio
+        // Check if any cues have approved replacement synthesized audio
         var hasEditedAudio = false
         for cue in config.cues {
-            if cue.editState != .original, let rel = cue.audioWAVRelativePath {
+            if cue.editState != .original && cue.editState != .overflowGated, let rel = cue.audioWAVRelativePath {
                 let fullPath = rel.hasPrefix("/") ? rel : (config.bundleRootURL?.appendingPathComponent(rel).path ?? rel)
                 if FileManager.default.fileExists(atPath: fullPath) {
                     hasEditedAudio = true

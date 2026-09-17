@@ -6,19 +6,16 @@ import MacDubCore
 
 public enum ExportContainerFormat: String, CaseIterable, Identifiable {
     case mov = "mov"
-    case mp4 = "mp4"
 
     public var id: String { rawValue }
     public var displayName: String {
         switch self {
         case .mov: return "QuickTime Movie (.mov)"
-        case .mp4: return "MPEG-4 (.mp4)"
         }
     }
     public var utType: UTType {
         switch self {
         case .mov: return .quickTimeMovie
-        case .mp4: return .mpeg4Movie
         }
     }
 }
@@ -70,7 +67,14 @@ public final class ExportSheetViewModel: ObservableObject {
 
     public func startExport() {
         Task {
-            try? await startExportAsync()
+            do {
+                _ = try await startExportAsync()
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = error.localizedDescription
+                    self.isExporting = false
+                }
+            }
         }
     }
 

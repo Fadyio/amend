@@ -5,7 +5,7 @@ import Foundation
 @testable import MacDubCore
 @testable import MacDubApp
 
-@Suite("Gate A, C, J, K: Assembled Application End-to-End User Journey Tests")
+@Suite("Gate A, C, J, K: Deterministic Assembled User Journey Tests (Composition, Persistence & Export)")
 struct AssembledAppE2ETests {
 
     private func createTempDir() throws -> URL {
@@ -49,7 +49,7 @@ struct AssembledAppE2ETests {
         }
     }
 
-    @Test("Complete 16-step user journey from multi-track media import to passthrough export and zero-leak bundle persistence")
+    @Test("Deterministic assembled 16-step user journey: media import, track routing, injected audio, fitting, bundle save/reload, preview, bitstream export")
     @MainActor
     func test_complete_sixteen_step_assembled_user_journey() async throws {
         let tempDir = try createTempDir()
@@ -319,5 +319,52 @@ struct AssembledAppE2ETests {
         #expect(cueA.timeRange.end == cueB.timeRange.start)
         #expect(cueA.timeRange.start == cueToSplit.timeRange.start)
         #expect(cueB.timeRange.end == cueToSplit.timeRange.end)
+    }
+
+    @Test("Live-Model End-to-End Acceptance Journey: Parakeet ASR + Silero VAD + PocketTTS Cloning (Opt-in)")
+    @MainActor
+    func test_live_model_end_to_end_journey() async throws {
+        guard ProcessInfo.processInfo.environment["MACDUB_RUN_LOCAL_AI_TESTS"] == "1" else {
+            print("[NOTICE] Live model end-to-end journey skipped. Run with MACDUB_RUN_LOCAL_AI_TESTS=1 on Apple Silicon Mac to execute full neural pipeline.")
+            return
+        }
+
+        let tempDir = try createTempDir()
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        // Generate synthetic multi-track media fixture
+        let sourceURL = tempDir.appendingPathComponent("live_source.mov")
+        let asset = try await Fixture2MultiTrack.generate(at: sourceURL)
+
+        // Initialize real AppViewModel with production CueGenerator (real Silero VAD + Parakeet)
+        let appViewModel = AppViewModel()
+        try await appViewModel.importMediaAsync(from: sourceURL)
+        appViewModel.designatedNarrationID = Int(asset.audioTrackIDs[0])
+
+        // Configure real Reference Voice
+        let refAudioURL = tempDir.appendingPathComponent("speaker_ref.wav")
+        let pcm = try SyntheticFixtureGenerator.createPCMBuffer(duration: CMTime(seconds: 3.0, preferredTimescale: 600), frequency: 220.0)
+        try SyntheticFixtureGenerator.writeWAVFile(buffer: pcm, to: refAudioURL)
+        try appViewModel.setReferenceVoice(name: "Test Reference", audioURL: refAudioURL)
+
+        // Synthesize first cue using real PocketTTS
+        if let firstCue = appViewModel.cues.first {
+            try await appViewModel.synthesizeCue(id: firstCue.id, providerType: .pocketTTS)
+            #expect(appViewModel.cues[0].editState == .synthesized || appViewModel.cues[0].editState == .overflowGated)
+        }
+
+        // Export with passthrough pipeline
+        let exportURL = tempDir.appendingPathComponent("live_exported.mov")
+        let pipeline = PassthroughExportPipeline()
+        let config = PassthroughExportConfig(
+            sourceURL: sourceURL,
+            destinationURL: exportURL,
+            designatedNarrationTrackID: asset.audioTrackIDs[0],
+            passthroughTrackIDs: [asset.audioTrackIDs[1]],
+            cues: appViewModel.cues,
+            bundleRootURL: appViewModel.sessionWorkingDir
+        )
+        let exportResult = try await pipeline.export(config: config)
+        #expect(FileManager.default.fileExists(atPath: exportResult.outputURL.path))
     }
 }
