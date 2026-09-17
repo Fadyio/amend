@@ -14,6 +14,11 @@ public struct PocketTtsVoiceData: Sendable {
     public let audioPrompt: [Float]
     /// Number of voice conditioning tokens (typically 125).
     public let promptLength: Int
+
+    public init(audioPrompt: [Float] = [], promptLength: Int = 0) {
+        self.audioPrompt = audioPrompt
+        self.promptLength = promptLength
+    }
 }
 
 /// Loads PocketTTS constants from raw `.bin` Float32 files on disk.

@@ -9,12 +9,19 @@ public enum AudioSegmentSpec: Sendable, Equatable {
     case silence(duration: CMTime)
     case sineTone(frequency: Double, amplitude: Float = 0.5, duration: CMTime)
     case noise(amplitude: Float = 0.1, duration: CMTime)
+    case audioFile(url: URL, duration: CMTime? = nil)
 
     public var duration: CMTime {
         switch self {
         case .silence(let duration): return duration
         case .sineTone(_, _, let duration): return duration
         case .noise(_, let duration): return duration
+        case .audioFile(let url, let specifiedDuration):
+            if let dur = specifiedDuration { return dur }
+            if let file = try? AVAudioFile(forReading: url) {
+                return CMTime(seconds: Double(file.length) / file.fileFormat.sampleRate, preferredTimescale: 600)
+            }
+            return .zero
         }
     }
 }
@@ -383,6 +390,59 @@ public enum SyntheticFixtureGenerator {
                     for _ in 0..<channels {
                         allSamples.append(int16Val)
                     }
+                }
+
+            case .audioFile(let url, _):
+                var loaded = false
+                if let file = try? AVAudioFile(forReading: url),
+                   let trackFormat = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: AVAudioChannelCount(channels)),
+                   let fileBuffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)) {
+                    if (try? file.read(into: fileBuffer)) != nil {
+                        let pcmBuffer: AVAudioPCMBuffer
+                        if fileBuffer.format == trackFormat {
+                            pcmBuffer = fileBuffer
+                        } else if let converter = AVAudioConverter(from: fileBuffer.format, to: trackFormat) {
+                            let ratio = sampleRate / fileBuffer.format.sampleRate
+                            let targetCapacity = AVAudioFrameCount(Double(fileBuffer.frameLength) * ratio + 1000)
+                            if let converted = AVAudioPCMBuffer(pcmFormat: trackFormat, frameCapacity: targetCapacity) {
+                                var error: NSError?
+                                var hasData = false
+                                converter.convert(to: converted, error: &error) { _, outStatus in
+                                    if hasData {
+                                        outStatus.pointee = .noDataNow
+                                        return nil
+                                    }
+                                    hasData = true
+                                    outStatus.pointee = .haveData
+                                    return fileBuffer
+                                }
+                                pcmBuffer = error == nil ? converted : fileBuffer
+                            } else {
+                                pcmBuffer = fileBuffer
+                            }
+                        } else {
+                            pcmBuffer = fileBuffer
+                        }
+
+                        let framesToTake = min(Int(pcmBuffer.frameLength), segSamples)
+                        if let floatData = pcmBuffer.floatChannelData {
+                            for i in 0..<framesToTake {
+                                for ch in 0..<channels {
+                                    let chIdx = min(ch, Int(pcmBuffer.format.channelCount) - 1)
+                                    let val = floatData[chIdx][i]
+                                    allSamples.append(Int16(clamping: Int(val * 32767.0)))
+                                }
+                            }
+                            loaded = true
+                            if framesToTake < segSamples {
+                                let missing = (segSamples - framesToTake) * channels
+                                allSamples.append(contentsOf: repeatElement(0, count: missing))
+                            }
+                        }
+                    }
+                }
+                if !loaded {
+                    allSamples.append(contentsOf: repeatElement(0, count: segSamples * channels))
                 }
             }
             currentSampleCount += segSamples

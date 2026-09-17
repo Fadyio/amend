@@ -48,6 +48,7 @@ public struct MainAppView: View {
                 // Right Column: Script Editor Sidebar
                 ScriptEditorSidebarView(
                     editorViewModel: appViewModel.scriptEditorViewModel,
+                    selectedProvider: $appViewModel.selectedProviderType,
                     cues: $appViewModel.cues,
                     selectedCueID: $appViewModel.selectedCueID,
                     currentTime: appViewModel.timelineViewModel.clock.currentTime,

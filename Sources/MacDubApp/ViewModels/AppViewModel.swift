@@ -40,6 +40,7 @@ public final class AppViewModel: ObservableObject {
     public private(set) var player: AVPlayer?
 
     // Services
+    public let providerRegistry: SynthesisProviderRegistry
     private let trackInspector: AudioTrackInspector
     private let cueGenerator: CueGenerating
     private let cueSplitter: CueSplitter
@@ -54,6 +55,7 @@ public final class AppViewModel: ObservableObject {
     public init(
         timelineViewModel: TimelineViewModel? = nil,
         scriptEditorViewModel: ScriptEditorViewModel? = nil,
+        providerRegistry: SynthesisProviderRegistry = SynthesisProviderRegistry(),
         trackInspector: AudioTrackInspector = AudioTrackInspector(),
         cueGenerator: CueGenerating = CueGenerator(),
         cueSplitter: CueSplitter = CueSplitter(),
@@ -62,7 +64,9 @@ public final class AppViewModel: ObservableObject {
     ) {
         let tVM = timelineViewModel ?? TimelineViewModel(clock: TimelineClock())
         self.timelineViewModel = tVM
-        self.scriptEditorViewModel = scriptEditorViewModel ?? ScriptEditorViewModel()
+        let seVM = scriptEditorViewModel ?? ScriptEditorViewModel()
+        self.scriptEditorViewModel = seVM
+        self.providerRegistry = providerRegistry
         self.trackInspector = trackInspector
         self.cueGenerator = cueGenerator
         self.cueSplitter = cueSplitter
@@ -74,6 +78,12 @@ public final class AppViewModel: ObservableObject {
         try? FileManager.default.createDirectory(at: workingDir.appendingPathComponent("audio/cues"), withIntermediateDirectories: true)
         try? FileManager.default.createDirectory(at: workingDir.appendingPathComponent("voice"), withIntermediateDirectories: true)
         self.sessionWorkingDir = workingDir
+
+        // Wire ScriptEditorViewModel provider proxy to single source of truth in AppViewModel
+        seVM.bindProvider(
+            get: { [weak self] in self?.selectedProviderType ?? .pocketTTS },
+            set: { [weak self] in self?.selectedProviderType = $0 }
+        )
 
         // Forward cue selection from timeline to AppViewModel
         tVM.$selectedCueID
@@ -229,19 +239,19 @@ public final class AppViewModel: ObservableObject {
         let voiceDir = baseDir.appendingPathComponent("voice")
         try FileManager.default.createDirectory(at: voiceDir, withIntermediateDirectories: true)
 
-        let ext = audioURL.pathExtension.isEmpty ? "wav" : audioURL.pathExtension
-        let relativePath = "voice/reference_voice.\(ext)"
+        let relativePath = "voice/reference_voice.wav"
         let targetVoiceURL = baseDir.appendingPathComponent(relativePath)
 
         if FileManager.default.fileExists(atPath: targetVoiceURL.path) {
             try? FileManager.default.removeItem(at: targetVoiceURL)
         }
-        try FileManager.default.copyItem(at: audioURL, to: targetVoiceURL)
+        try AudioBufferUtils.canonicalizeToWAV(sourceURL: audioURL, destinationURL: targetVoiceURL)
+        providerRegistry.pocketTTS.invalidateVoiceCache()
 
         self.referenceVoice = ReferenceVoice(
             name: name,
             audioRelativePath: relativePath,
-            pocketTTSStatus: .ready
+            pocketTTSStatus: .configured
         )
         self.statusMessage = "Configured Reference Voice: \(name)"
     }
@@ -255,7 +265,7 @@ public final class AppViewModel: ObservableObject {
             ? URL(fileURLWithPath: refVoice.audioRelativePath)
             : baseDir.appendingPathComponent(refVoice.audioRelativePath)
 
-        let provider = ElevenLabsProvider()
+        let provider = providerRegistry.elevenLabs
         let voiceID = try await provider.cloneVoice(name: name, audioURL: fullVoiceURL)
         self.referenceVoice?.elevenLabsVoiceID = voiceID
         self.statusMessage = "ElevenLabs voice cloned successfully"
@@ -315,16 +325,7 @@ public final class AppViewModel: ObservableObject {
         if let custom = customProvider {
             provider = custom
         } else {
-            switch providerType {
-            case .pocketTTS:
-                provider = PocketTTSProvider()
-            case .elevenLabs:
-                provider = ElevenLabsProvider()
-            case .resemble:
-                provider = ResembleProvider()
-            case .geminiTTS:
-                provider = GeminiTTSProvider()
-            }
+            provider = providerRegistry.provider(for: providerType)
         }
 
         let baseDir = projectBundleURL ?? sessionWorkingDir
@@ -371,7 +372,22 @@ public final class AppViewModel: ObservableObject {
             refAudioURL = nil
         }
 
-        let pcm = try await provider.synthesize(text: cue.text, voiceID: voiceID, referenceAudioURL: refAudioURL)
+        if providerType == .pocketTTS && referenceVoice != nil {
+            referenceVoice?.pocketTTSStatus = .loading
+        }
+
+        let pcm: AVAudioPCMBuffer
+        do {
+            pcm = try await provider.synthesize(text: cue.text, voiceID: voiceID, referenceAudioURL: refAudioURL)
+            if providerType == .pocketTTS && referenceVoice != nil {
+                referenceVoice?.pocketTTSStatus = .ready
+            }
+        } catch {
+            if providerType == .pocketTTS && referenceVoice != nil {
+                referenceVoice?.pocketTTSStatus = .failed
+            }
+            throw error
+        }
 
         // Extract original narration reference slice for loudness matching (Blocker 9)
         var refNarrationBuffer: AVAudioPCMBuffer? = nil
@@ -630,7 +646,14 @@ public final class AppViewModel: ObservableObject {
     }
 
     public func loadProject(from url: URL) throws {
-        let bundle = try ProjectBundleSerializer.load(from: url)
+        var bundleURL = url
+        if bundleURL.pathExtension != ProjectBundle.packageExtension && !FileManager.default.fileExists(atPath: bundleURL.appendingPathComponent("project.json").path) {
+            let withExt = bundleURL.appendingPathExtension(ProjectBundle.packageExtension)
+            if FileManager.default.fileExists(atPath: withExt.appendingPathComponent("project.json").path) {
+                bundleURL = withExt
+            }
+        }
+        let bundle = try ProjectBundleSerializer.load(from: bundleURL)
         let resolvedMediaURL = try ProjectBundleSerializer.resolveSourceMediaURL(for: bundle)
 
         self.sourceMediaURL = resolvedMediaURL

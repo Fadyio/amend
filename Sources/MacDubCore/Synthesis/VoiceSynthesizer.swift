@@ -102,6 +102,67 @@ public enum AudioBufferUtils {
         wav.append(pcmData)
         return wav
     }
+
+    /// Canonicalizes any audio file (WAV, MP3, M4A, etc.) to a standard 16-bit mono PCM WAV file at targetSampleRate.
+    public static func canonicalizeToWAV(sourceURL: URL, destinationURL: URL, targetSampleRate: Double = 24000) throws {
+        let sourceFile = try AVAudioFile(forReading: sourceURL)
+        let sourceFormat = sourceFile.processingFormat
+        let frameCount = AVAudioFrameCount(sourceFile.length)
+        guard frameCount > 0, let sourceBuffer = AVAudioPCMBuffer(pcmFormat: sourceFormat, frameCapacity: frameCount) else {
+            throw SynthesisError.synthesisFailed("Failed to read audio file")
+        }
+        try sourceFile.read(into: sourceBuffer)
+
+        let targetProcessingFormat = AVAudioFormat(standardFormatWithSampleRate: targetSampleRate, channels: 1)!
+        let finalBuffer: AVAudioPCMBuffer
+
+        if sourceFormat.sampleRate == targetSampleRate && sourceFormat.channelCount == 1 {
+            finalBuffer = sourceBuffer
+        } else {
+            guard let converter = AVAudioConverter(from: sourceFormat, to: targetProcessingFormat) else {
+                throw SynthesisError.synthesisFailed("Failed to create audio converter from \(sourceFormat) to \(targetProcessingFormat)")
+            }
+            let ratio = targetSampleRate / sourceFormat.sampleRate
+            let targetCapacity = AVAudioFrameCount(Double(sourceBuffer.frameLength) * ratio + 1000)
+            guard let converted = AVAudioPCMBuffer(pcmFormat: targetProcessingFormat, frameCapacity: targetCapacity) else {
+                throw SynthesisError.synthesisFailed("Failed to allocate converted buffer")
+            }
+            var error: NSError?
+            var hasProvidedData = false
+            converter.convert(to: converted, error: &error) { _, outStatus in
+                if hasProvidedData {
+                    outStatus.pointee = .noDataNow
+                    return nil
+                }
+                hasProvidedData = true
+                outStatus.pointee = .haveData
+                return sourceBuffer
+            }
+            if let err = error {
+                throw err
+            }
+            finalBuffer = converted
+        }
+
+        if FileManager.default.fileExists(atPath: destinationURL.path) {
+            try? FileManager.default.removeItem(at: destinationURL)
+        }
+
+        let outputSettings: [String: Any] = [
+            AVFormatIDKey: kAudioFormatLinearPCM,
+            AVSampleRateKey: targetSampleRate,
+            AVNumberOfChannelsKey: 1,
+            AVLinearPCMBitDepthKey: 16,
+            AVLinearPCMIsFloatKey: false,
+            AVLinearPCMIsBigEndianKey: false,
+            AVLinearPCMIsNonInterleaved: false
+        ]
+        let outputFile = try AVAudioFile(
+            forWriting: destinationURL,
+            settings: outputSettings
+        )
+        try outputFile.write(from: finalBuffer)
+    }
 }
 
 // MARK: - Network Session Factory & Test Protocol
@@ -206,7 +267,12 @@ public final class PocketTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
     private let coordinator: LocalModelCoordinator
     private let ttsManager: PocketTtsManager
     private var cachedClonedVoices: [URL: PocketTtsVoiceData] = [:]
+    public private(set) var cloneCount: Int = 0
     private let lock = NSLock()
+
+    // Test hooks for deterministic verification without network/model downloads
+    public var cloneVoiceHandler: (@Sendable (URL) async throws -> PocketTtsVoiceData)?
+    public var synthesizeHandler: (@Sendable (String, PocketTtsVoiceData?) async throws -> Data)?
 
     public init(
         coordinator: LocalModelCoordinator = .shared,
@@ -224,27 +290,40 @@ public final class PocketTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
         }
     }
 
+    public func invalidateVoiceCache(for url: URL? = nil) {
+        lock.withLock {
+            if let specificURL = url {
+                cachedClonedVoices.removeValue(forKey: specificURL)
+            } else {
+                cachedClonedVoices.removeAll()
+            }
+        }
+    }
+
     public func getClonedVoiceData(for audioURL: URL) async throws -> PocketTtsVoiceData {
-        lock.lock()
-        if let cached = cachedClonedVoices[audioURL] {
-            lock.unlock()
+        let cached = lock.withLock { cachedClonedVoices[audioURL] }
+        if let cached = cached {
             return cached
         }
-        lock.unlock()
 
         guard FileManager.default.fileExists(atPath: audioURL.path) else {
             throw SynthesisError.invalidReferenceAudio
         }
 
-        let isAvail = await self.ttsManager.isAvailable
-        if !isAvail {
-            try await self.ttsManager.initialize()
+        let voiceData: PocketTtsVoiceData
+        if let handler = cloneVoiceHandler {
+            voiceData = try await handler(audioURL)
+        } else {
+            let isAvail = await self.ttsManager.isAvailable
+            if !isAvail {
+                try await self.ttsManager.initialize()
+            }
+            voiceData = try await self.ttsManager.cloneVoice(from: audioURL)
         }
-
-        let voiceData = try await self.ttsManager.cloneVoice(from: audioURL)
-        lock.lock()
-        cachedClonedVoices[audioURL] = voiceData
-        lock.unlock()
+        lock.withLock {
+            cachedClonedVoices[audioURL] = voiceData
+            cloneCount += 1
+        }
         return voiceData
     }
 
@@ -255,9 +334,11 @@ public final class PocketTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
     ) async throws -> AVAudioPCMBuffer {
         return try await coordinator.withExclusiveModel(.tts) {
             do {
-                let isAvail = await self.ttsManager.isAvailable
-                if !isAvail {
-                    try await self.ttsManager.initialize()
+                if self.cloneVoiceHandler == nil && self.synthesizeHandler == nil {
+                    let isAvail = await self.ttsManager.isAvailable
+                    if !isAvail {
+                        try await self.ttsManager.initialize()
+                    }
                 }
 
                 let wavData: Data
@@ -265,22 +346,33 @@ public final class PocketTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
                     guard FileManager.default.fileExists(atPath: refURL.path) else {
                         throw SynthesisError.invalidReferenceAudio
                     }
-                    self.lock.lock()
-                    let cached = self.cachedClonedVoices[refURL]
-                    self.lock.unlock()
+                    let cached = self.lock.withLock { self.cachedClonedVoices[refURL] }
 
                     let voiceData: PocketTtsVoiceData
                     if let cached = cached {
                         voiceData = cached
                     } else {
-                        voiceData = try await self.ttsManager.cloneVoice(from: refURL)
-                        self.lock.lock()
-                        self.cachedClonedVoices[refURL] = voiceData
-                        self.lock.unlock()
+                        if let handler = self.cloneVoiceHandler {
+                            voiceData = try await handler(refURL)
+                        } else {
+                            voiceData = try await self.ttsManager.cloneVoice(from: refURL)
+                        }
+                        self.lock.withLock {
+                            self.cachedClonedVoices[refURL] = voiceData
+                            self.cloneCount += 1
+                        }
                     }
-                    wavData = try await self.ttsManager.synthesize(text: text, voiceData: voiceData)
+                    if let synthHandler = self.synthesizeHandler {
+                        wavData = try await synthHandler(text, voiceData)
+                    } else {
+                        wavData = try await self.ttsManager.synthesize(text: text, voiceData: voiceData)
+                    }
                 } else {
-                    wavData = try await self.ttsManager.synthesize(text: text, voice: voiceID)
+                    if let synthHandler = self.synthesizeHandler {
+                        wavData = try await synthHandler(text, nil)
+                    } else {
+                        wavData = try await self.ttsManager.synthesize(text: text, voice: voiceID)
+                    }
                 }
 
                 return try AudioBufferUtils.pcmBuffer(fromAudioData: wavData, fileExtension: "wav")
@@ -295,15 +387,22 @@ public final class PocketTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
 
 // MARK: - Cloud Providers
 
+public enum ElevenLabsModelConstants {
+    public static let defaultModel = "eleven_multilingual_v2"
+}
+
 public final class ElevenLabsProvider: VoiceSynthesisProvider, @unchecked Sendable {
     public let providerType: SynthesisProviderType = .elevenLabs
+    public let model: String
     private let vault: CredentialVaultProtocol
     private let session: URLSession
 
     public init(
+        model: String = ElevenLabsModelConstants.defaultModel,
         vault: CredentialVaultProtocol = KeychainVault(),
         session: URLSession? = nil
     ) {
+        self.model = model
         self.vault = vault
         self.session = session ?? NetworkSessionFactory.makeSession()
     }
@@ -355,7 +454,7 @@ public final class ElevenLabsProvider: VoiceSynthesisProvider, @unchecked Sendab
 
         let payload: [String: Any] = [
             "text": text,
-            "model_id": "eleven_monolingual_v1",
+            "model_id": model,
             "voice_settings": [
                 "stability": 0.5,
                 "similarity_boost": 0.75
@@ -394,9 +493,18 @@ public final class ElevenLabsProvider: VoiceSynthesisProvider, @unchecked Sendab
 
         let audioData = try Data(contentsOf: audioURL)
         let filename = audioURL.lastPathComponent
+        let ext = audioURL.pathExtension.lowercased()
+        let mimeType: String
+        switch ext {
+        case "wav": mimeType = "audio/wav"
+        case "mp3": mimeType = "audio/mpeg"
+        case "m4a", "mp4", "aac": mimeType = "audio/mp4"
+        default: mimeType = "audio/wav"
+        }
+
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"files\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: audio/wav\r\n\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
         body.append(audioData)
         body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
         request.httpBody = body
@@ -512,7 +620,7 @@ public final class GeminiTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
             throw SynthesisError.missingAPIKey(.gemini)
         }
 
-        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent") else {
+        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/interactions") else {
             throw SynthesisError.synthesisFailed("Invalid Gemini API URL")
         }
 
@@ -523,24 +631,14 @@ public final class GeminiTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
 
         let voiceName = voiceID ?? "Puck"
         let payload: [String: Any] = [
-            "contents": [
-                [
-                    "role": "user",
-                    "parts": [
-                        ["text": text]
-                    ]
-                ]
+            "model": model,
+            "input": text,
+            "response_format": [
+                "type": "audio"
             ],
-            "generationConfig": [
-                "response_format": [
-                    "type": "audio"
-                ],
-                "speechConfig": [
-                    "voiceConfig": [
-                        "prebuiltVoiceConfig": [
-                            "voiceName": voiceName
-                        ]
-                    ]
+            "generation_config": [
+                "speech_config": [
+                    ["voice": voiceName]
                 ]
             ]
         ]
@@ -556,24 +654,43 @@ public final class GeminiTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
             throw SynthesisError.synthesisFailed("Gemini TTS error (HTTP \(http.statusCode)): \(errorMsg)")
         }
 
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let candidates = json["candidates"] as? [[String: Any]],
-              let firstCandidate = candidates.first,
-              let content = firstCandidate["content"] as? [String: Any],
-              let parts = content["parts"] as? [[String: Any]],
-              let firstPart = parts.first else {
-            throw SynthesisError.synthesisFailed("Failed to parse candidates from Gemini TTS response")
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw SynthesisError.synthesisFailed("Failed to parse JSON from Gemini TTS response")
         }
 
         var audioBase64: String? = nil
         var mimeType = "audio/wav"
 
-        if let inlineData = firstPart["inlineData"] as? [String: Any] {
-            audioBase64 = inlineData["data"] as? String
-            mimeType = (inlineData["mimeType"] as? String)?.lowercased() ?? "audio/wav"
-        } else if let audioDict = firstPart["audio"] as? [String: Any] {
-            audioBase64 = (audioDict["data"] as? String) ?? (audioDict["audio_bytes"] as? String)
-            mimeType = (audioDict["mimeType"] as? String)?.lowercased() ?? "audio/wav"
+        if let outAudio = json["output_audio"] as? [String: Any] {
+            audioBase64 = outAudio["data"] as? String
+            mimeType = (outAudio["mime_type"] as? String) ?? (outAudio["mimeType"] as? String) ?? "audio/wav"
+        } else if let interaction = json["interaction"] as? [String: Any],
+                  let outAudio = interaction["output_audio"] as? [String: Any] {
+            audioBase64 = outAudio["data"] as? String
+            mimeType = (outAudio["mime_type"] as? String) ?? (outAudio["mimeType"] as? String) ?? "audio/wav"
+        } else if let steps = json["steps"] as? [[String: Any]] {
+            for step in steps {
+                if let modelOutput = step["model_output"] as? [String: Any],
+                   let audio = modelOutput["audio"] as? [String: Any] {
+                    audioBase64 = audio["data"] as? String
+                    mimeType = (audio["mime_type"] as? String) ?? (audio["mimeType"] as? String) ?? "audio/wav"
+                    break
+                }
+            }
+        } else if let candidates = json["candidates"] as? [[String: Any]] {
+            for candidate in candidates {
+                if let content = candidate["content"] as? [String: Any],
+                   let parts = content["parts"] as? [[String: Any]] {
+                    for part in parts {
+                        if let inlineData = (part["inlineData"] as? [String: Any]) ?? (part["inline_data"] as? [String: Any]) {
+                            audioBase64 = inlineData["data"] as? String
+                            mimeType = (inlineData["mimeType"] as? String) ?? (inlineData["mime_type"] as? String) ?? "audio/wav"
+                            break
+                        }
+                    }
+                }
+                if audioBase64 != nil { break }
+            }
         }
 
         guard let base64Str = audioBase64, let audioData = Data(base64Encoded: base64Str) else {
@@ -588,5 +705,35 @@ public final class GeminiTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
         }
 
         return try AudioBufferUtils.pcmBuffer(fromAudioData: wavData, fileExtension: "wav")
+    }
+}
+
+// MARK: - Persistent Synthesis Provider Registry
+
+public final class SynthesisProviderRegistry: @unchecked Sendable {
+    public let pocketTTS: PocketTTSProvider
+    public let elevenLabs: ElevenLabsProvider
+    public let resemble: ResembleProvider
+    public let geminiTTS: GeminiTTSProvider
+
+    public init(
+        pocketTTS: PocketTTSProvider = PocketTTSProvider(),
+        elevenLabs: ElevenLabsProvider = ElevenLabsProvider(),
+        resemble: ResembleProvider = ResembleProvider(),
+        geminiTTS: GeminiTTSProvider = GeminiTTSProvider()
+    ) {
+        self.pocketTTS = pocketTTS
+        self.elevenLabs = elevenLabs
+        self.resemble = resemble
+        self.geminiTTS = geminiTTS
+    }
+
+    public func provider(for type: SynthesisProviderType) -> VoiceSynthesisProvider {
+        switch type {
+        case .pocketTTS: return pocketTTS
+        case .elevenLabs: return elevenLabs
+        case .resemble: return resemble
+        case .geminiTTS: return geminiTTS
+        }
     }
 }

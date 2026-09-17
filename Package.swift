@@ -67,7 +67,12 @@ let package = Package(
             name: "MacDubCoreTests",
             dependencies: [
                 "MacDubCore",
-                "MacDubApp"
+                "MacDubApp",
+                .product(name: "FluidAudio", package: "FluidAudio")
+            ],
+            resources: [
+                .copy("Fixtures/human_speech_reference.wav"),
+                .copy("Fixtures/README.md")
             ],
             swiftSettings: testSwiftSettings
         )

@@ -9,7 +9,10 @@ public struct IdentifiableRewriteResult: Identifiable {
 
 @MainActor
 public final class ScriptEditorViewModel: ObservableObject {
-    @Published public var selectedProvider: SynthesisProviderType = .pocketTTS
+    public weak var appViewModel: AnyObject?
+    private var providerGetter: (() -> SynthesisProviderType)?
+    private var providerSetter: ((SynthesisProviderType) -> Void)?
+
     @Published public var isSynthesizing: Bool = false
     @Published public var isRewriting: Bool = false
     @Published public var activeRewriteResult: GrammarRewriteResult?
@@ -17,6 +20,16 @@ public final class ScriptEditorViewModel: ObservableObject {
     @Published public var errorMessage: String?
 
     public let grammarProvider: GrammarProvider
+
+    public var selectedProvider: SynthesisProviderType {
+        get { providerGetter?() ?? .pocketTTS }
+        set { providerSetter?(newValue) }
+    }
+
+    public func bindProvider(get: @escaping () -> SynthesisProviderType, set: @escaping (SynthesisProviderType) -> Void) {
+        self.providerGetter = get
+        self.providerSetter = set
+    }
 
     public init(grammarProvider: GrammarProvider = GeminiGrammarProvider()) {
         self.grammarProvider = grammarProvider
@@ -40,6 +53,7 @@ public final class ScriptEditorViewModel: ObservableObject {
 
 public struct ScriptEditorSidebarView: View {
     @ObservedObject public var editorViewModel: ScriptEditorViewModel
+    @Binding public var selectedProvider: SynthesisProviderType
     @Binding public var cues: [Cue]
     @Binding public var selectedCueID: UUID?
     public let currentTime: CMTime
@@ -51,6 +65,7 @@ public struct ScriptEditorSidebarView: View {
 
     public init(
         editorViewModel: ScriptEditorViewModel,
+        selectedProvider: Binding<SynthesisProviderType>,
         cues: Binding<[Cue]>,
         selectedCueID: Binding<UUID?>,
         currentTime: CMTime,
@@ -61,6 +76,7 @@ public struct ScriptEditorSidebarView: View {
         onDiscardCandidate: ((UUID) -> Void)? = nil
     ) {
         self.editorViewModel = editorViewModel
+        self._selectedProvider = selectedProvider
         self._cues = cues
         self._selectedCueID = selectedCueID
         self.currentTime = currentTime
@@ -354,7 +370,7 @@ public struct ScriptEditorSidebarView: View {
 
             // Synthesis Controls
             HStack(spacing: 10) {
-                Picker("Voice:", selection: $editorViewModel.selectedProvider) {
+                Picker("Voice:", selection: $selectedProvider) {
                     ForEach(SynthesisProviderType.allCases, id: \.self) { provider in
                         Text(provider.rawValue).tag(provider)
                     }
@@ -447,7 +463,7 @@ public struct ScriptEditorSidebarView: View {
         editorViewModel.isSynthesizing = true
         Task {
             do {
-                try await onSynthesizeCue(id, editorViewModel.selectedProvider)
+                try await onSynthesizeCue(id, selectedProvider)
                 self.editorViewModel.isSynthesizing = false
             } catch {
                 self.editorViewModel.isSynthesizing = false

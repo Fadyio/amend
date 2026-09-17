@@ -321,6 +321,21 @@ struct AssembledAppE2ETests {
         #expect(cueB.timeRange.end == cueToSplit.timeRange.end)
     }
 
+    private func referenceVoiceURL() -> URL? {
+        if let envPath = ProcessInfo.processInfo.environment["MACDUB_TEST_REFERENCE_VOICE"],
+           FileManager.default.fileExists(atPath: envPath) {
+            return URL(fileURLWithPath: envPath)
+        }
+        let thisFile = URL(fileURLWithPath: #filePath)
+        let fixtureURL = thisFile
+            .deletingLastPathComponent() // Suites
+            .appendingPathComponent("Fixtures/human_speech_reference.wav")
+        if FileManager.default.fileExists(atPath: fixtureURL.path) {
+            return fixtureURL
+        }
+        return nil
+    }
+
     @Test("Live-Model End-to-End Acceptance Journey: Parakeet ASR + Silero VAD + PocketTTS Cloning (Opt-in)")
     @MainActor
     func test_live_model_end_to_end_journey() async throws {
@@ -329,29 +344,66 @@ struct AssembledAppE2ETests {
             return
         }
 
+        guard let humanSpeechURL = referenceVoiceURL() else {
+            #expect(Bool(false), "Authentic human speech fixture human_speech_reference.wav must exist")
+            return
+        }
+
         let tempDir = try createTempDir()
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
-        // Generate synthetic multi-track media fixture
+        // Generate synthetic multi-track media fixture with real human speech on narration track (Track 1)
         let sourceURL = tempDir.appendingPathComponent("live_source.mov")
-        let asset = try await Fixture2MultiTrack.generate(at: sourceURL)
+        let asset = try await SyntheticFixtureGenerator.createMovie(
+            at: sourceURL,
+            duration: CMTime(seconds: 5.5, preferredTimescale: 600),
+            audioTracks: [
+                SyntheticAudioTrackSpec(
+                    trackName: "Narration",
+                    segments: [
+                        .silence(duration: CMTime(seconds: 0.5, preferredTimescale: 600)),
+                        .audioFile(url: humanSpeechURL, duration: CMTime(seconds: 4.5, preferredTimescale: 600)),
+                        .silence(duration: CMTime(seconds: 0.5, preferredTimescale: 600))
+                    ]
+                ),
+                SyntheticAudioTrackSpec(
+                    trackName: "BackgroundMusic",
+                    segments: [
+                        .sineTone(frequency: 220.0, amplitude: 0.2, duration: CMTime(seconds: 5.5, preferredTimescale: 600))
+                    ]
+                )
+            ]
+        )
 
         // Initialize real AppViewModel with production CueGenerator (real Silero VAD + Parakeet)
         let appViewModel = AppViewModel()
         try await appViewModel.importMediaAsync(from: sourceURL)
         appViewModel.designatedNarrationID = Int(asset.audioTrackIDs[0])
+        appViewModel.passthroughTrackIDs = [Int(asset.audioTrackIDs[1])]
+        try await appViewModel.confirmTrackPickerAsync()
 
-        // Configure real Reference Voice
-        let refAudioURL = tempDir.appendingPathComponent("speaker_ref.wav")
-        let pcm = try SyntheticFixtureGenerator.createPCMBuffer(duration: CMTime(seconds: 3.0, preferredTimescale: 600), frequency: 220.0)
-        try SyntheticFixtureGenerator.writeWAVFile(buffer: pcm, to: refAudioURL)
-        try appViewModel.setReferenceVoice(name: "Test Reference", audioURL: refAudioURL)
+        // Verify VAD & ASR produced non-empty speech cues
+        #expect(!appViewModel.cues.isEmpty, "VAD and ASR must detect and produce at least 1 speech cue from human speech fixture")
+        guard let firstCue = appViewModel.cues.first else {
+            #expect(Bool(false), "Cues array must have at least one cue")
+            return
+        }
+        #expect(!firstCue.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, "ASR must transcribe non-empty text")
+
+        // Configure authentic Reference Voice
+        try appViewModel.setReferenceVoice(name: "Human Speaker", audioURL: humanSpeechURL)
+        #expect(appViewModel.referenceVoice?.pocketTTSStatus == .configured)
 
         // Synthesize first cue using real PocketTTS
-        if let firstCue = appViewModel.cues.first {
-            try await appViewModel.synthesizeCue(id: firstCue.id, providerType: .pocketTTS)
-            #expect(appViewModel.cues[0].editState == .synthesized || appViewModel.cues[0].editState == .overflowGated)
-        }
+        try await appViewModel.synthesizeCue(id: firstCue.id, providerType: .pocketTTS)
+        #expect(appViewModel.cues[0].editState == .synthesized || appViewModel.cues[0].editState == .overflowGated, "Synthesis must succeed and update edit state")
+        #expect(appViewModel.cues[0].audioWAVRelativePath != nil || appViewModel.cues[0].candidateAudioWAVRelativePath != nil, "Synthesized audio file must exist")
+        #expect(appViewModel.referenceVoice?.pocketTTSStatus == .ready, "PocketTTS status must be .ready after successful synthesis")
+
+        // Verify Preview Composition
+        let previewComp = try await appViewModel.buildPreviewComposition()
+        let previewAudioTracks = try await previewComp.loadTracks(withMediaType: .audio)
+        #expect(!previewAudioTracks.isEmpty, "Preview composition must contain audio tracks")
 
         // Export with passthrough pipeline
         let exportURL = tempDir.appendingPathComponent("live_exported.mov")
@@ -366,5 +418,9 @@ struct AssembledAppE2ETests {
         )
         let exportResult = try await pipeline.export(config: config)
         #expect(FileManager.default.fileExists(atPath: exportResult.outputURL.path))
+
+        let exportedAsset = AVURLAsset(url: exportResult.outputURL)
+        let exportedTracks = try await exportedAsset.loadTracks(withMediaType: .audio)
+        #expect(exportedTracks.count == 2, "Exported movie must contain exactly 2 audio tracks (narration + passthrough)")
     }
 }

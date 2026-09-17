@@ -86,7 +86,7 @@ public final class ProviderSettingsViewModel: ObservableObject {
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
-        panel.title = "Select Reference Voice Recording (.wav, .m4a)"
+        panel.title = "Select Reference Voice Audio File (.wav, .m4a)"
 
         if panel.runModal() == .OK, let url = panel.url {
             let voiceName = referenceVoiceName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -335,7 +335,7 @@ public struct ProviderSettingsView: View {
                     }
                 }
 
-                Text("Import a clean 10-30 second audio recording of your voice. Used for PocketTTS Core ML cloning and cloud voice cloning.")
+                Text("Import a clean 10-30 second audio file (.wav, .m4a) of your voice. Used for PocketTTS Core ML cloning and cloud voice cloning.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -432,11 +432,38 @@ public struct ProviderSettingsView: View {
                     .foregroundStyle(.secondary)
 
                 HStack {
-                    Image(systemName: viewModel.appViewModel?.referenceVoice != nil ? "checkmark.circle.fill" : "exclamationmark.triangle")
-                        .foregroundStyle(viewModel.appViewModel?.referenceVoice != nil ? .green : .orange)
-                    Text(viewModel.appViewModel?.referenceVoice != nil ? "Cloning Ready with Active Reference Voice" : "Requires Reference Voice configured above")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    let status = viewModel.appViewModel?.referenceVoice?.pocketTTSStatus ?? .unconfigured
+                    switch status {
+                    case .unconfigured:
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundStyle(.orange)
+                        Text("Requires Reference Voice audio file imported above")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    case .configured:
+                        Image(systemName: "doc.badge.gearshape")
+                            .foregroundStyle(.blue)
+                        Text("Reference Voice imported • Ready to synthesize cue")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    case .loading:
+                        ProgressView().controlSize(.small)
+                        Text("Cloning speaker embedding...")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    case .ready:
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                        Text("Voice model ready & cached")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    case .failed:
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.red)
+                        Text("Voice cloning failed")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             .padding(4)

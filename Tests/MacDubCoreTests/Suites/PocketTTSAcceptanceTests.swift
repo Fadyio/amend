@@ -12,10 +12,31 @@ struct PocketTTSAcceptanceTests {
         ProcessInfo.processInfo.environment["MACDUB_RUN_LOCAL_AI_TESTS"] == "1"
     }
 
+    private func referenceVoiceURL() -> URL? {
+        if let envPath = ProcessInfo.processInfo.environment["MACDUB_TEST_REFERENCE_VOICE"],
+           FileManager.default.fileExists(atPath: envPath) {
+            return URL(fileURLWithPath: envPath)
+        }
+        let thisFile = URL(fileURLWithPath: #filePath)
+        let fixtureURL = thisFile
+            .deletingLastPathComponent() // Suites
+            .deletingLastPathComponent() // MacDubCoreTests
+            .appendingPathComponent("Fixtures/human_speech_reference.wav")
+        if FileManager.default.fileExists(atPath: fixtureURL.path) {
+            return fixtureURL
+        }
+        return nil
+    }
+
     @Test("Real PocketTTS Core ML model download, voice cloning, and audio synthesis (Opt-in)")
     func test_real_pocket_tts_cloning_and_synthesis() async throws {
         guard isLocalAIRunner() else {
             print("[NOTICE] PocketTTS local acceptance test skipped. Run with MACDUB_RUN_LOCAL_AI_TESTS=1 on Apple Silicon Mac to verify.")
+            return
+        }
+
+        guard let refURL = referenceVoiceURL() else {
+            #expect(Bool(false), "Authentic human speech fixture human_speech_reference.wav must exist")
             return
         }
 
@@ -27,20 +48,7 @@ struct PocketTTSAcceptanceTests {
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
-        // Create a short reference voice audio WAV (44.1kHz mono)
-        let refURL = tempDir.appendingPathComponent("reference_speaker.wav")
-        let format = AVAudioFormat(standardFormatWithSampleRate: 24000.0, channels: 1)!
-        let frameCount = AVAudioFrameCount(24000 * 3) // 3.0 seconds
-        let refBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount)!
-        refBuffer.frameLength = frameCount
-        let channel = refBuffer.floatChannelData![0]
-        for i in 0..<Int(frameCount) {
-            channel[i] = Float(sin(2.0 * .pi * 220.0 * Double(i) / 24000.0)) * 0.4
-        }
-        let refFile = try AVAudioFile(forWriting: refURL, settings: format.settings, commonFormat: .pcmFormatFloat32, interleaved: false)
-        try refFile.write(from: refBuffer)
-
-        // Clone speaker from reference voice
+        // Clone speaker from authentic human speech reference voice
         let voiceData = try await manager.cloneVoice(from: refURL)
 
         // Synthesize short test sentence

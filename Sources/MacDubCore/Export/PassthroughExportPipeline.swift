@@ -136,9 +136,12 @@ public final class PassthroughExportPipeline: ExportPipelining, @unchecked Senda
 
         var narrationReader: AVAssetReader? = nil
 
+        let allowedTrackIDs = Set([config.designatedNarrationTrackID] + config.passthroughTrackIDs)
+
         if !hasEditedAudio {
-            // All audio tracks (passthrough + unedited narration) can be passed through compressed
+            // Only designated narration and explicit passthrough tracks are passed through compressed; ignored tracks remain strictly excluded
             for audioTrack in allAudioTracks {
+                guard allowedTrackIDs.contains(audioTrack.trackID) else { continue }
                 let audioFormatDescs = try await audioTrack.load(.formatDescriptions)
                 guard let audioFormatHint = audioFormatDescs.first else { continue }
 

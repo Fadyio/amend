@@ -4,6 +4,7 @@ import CoreMedia
 import Foundation
 @testable import MacDubCore
 @testable import MacDubApp
+import FluidAudio
 
 @Suite("Blocker Verification: Provider Contracts, Overflow Gating, Reference Voice & MOV Export", .serialized)
 struct ProviderAndOverflowBlockerTests {
@@ -49,6 +50,16 @@ struct ProviderAndOverflowBlockerTests {
         return crossings
     }
 
+    private func writeBufferToWAV(_ buffer: AVAudioPCMBuffer, to url: URL) throws {
+        let parentDir = url.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: parentDir, withIntermediateDirectories: true)
+        if FileManager.default.fileExists(atPath: url.path) {
+            try? FileManager.default.removeItem(at: url)
+        }
+        let file = try AVAudioFile(forWriting: url, settings: buffer.format.settings, commonFormat: .pcmFormatFloat32, interleaved: false)
+        try file.write(from: buffer)
+    }
+
     // MARK: - BLOCKER 2: Gemini Grammar Contract (gemini-2.5-flash & x-goog-api-key)
 
     @Test("Gemini Grammar uses current model and header-based authentication without API key in URL")
@@ -92,9 +103,9 @@ struct ProviderAndOverflowBlockerTests {
         #expect(authHeader == "AIzaSyTestValidFormatKey1234", "Must send x-goog-api-key header")
     }
 
-    // MARK: - BLOCKER 3: Gemini TTS Contract (gemini-3.1-flash-tts-preview & response_format)
+    // MARK: - BLOCKER 3: Gemini TTS Contract (v1beta/interactions & response_format audio)
 
-    @Test("Gemini TTS uses current audio model and header-based authentication")
+    @Test("Gemini TTS uses official interactions endpoint and header-based authentication")
     func test_gemini_tts_contract() async throws {
         let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyTestValidFormatKey1234"])
         let provider = GeminiTTSProvider(vault: vault)
@@ -118,16 +129,10 @@ struct ProviderAndOverflowBlockerTests {
             capturedRequest = req
             let mockJSON = """
             {
-                "candidates": [{
-                    "content": {
-                        "parts": [{
-                            "inlineData": {
-                                "mimeType": "audio/x-wav",
-                                "data": "\(base64Audio)"
-                            }
-                        }]
-                    }
-                }]
+                "output_audio": {
+                    "data": "\(base64Audio)",
+                    "mime_type": "audio/wav"
+                }
             }
             """.data(using: .utf8)!
             let resp = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
@@ -143,17 +148,21 @@ struct ProviderAndOverflowBlockerTests {
         }
 
         #expect(url.query == nil || !url.query!.contains("key="), "API key must NOT appear in URL query")
-        #expect(url.path.contains("gemini-3.1-flash-tts-preview"), "Must use current Gemini TTS model: \(url.path)")
+        #expect(url.path.contains("/v1beta/interactions"), "Must use official /v1beta/interactions endpoint: \(url.path)")
         #expect(req.value(forHTTPHeaderField: "x-goog-api-key") == "AIzaSyTestValidFormatKey1234")
 
-        // Inspect request body contains response_format audio
+        // Inspect request body contains official schema
         if let bodyData = req.httpBody,
-           let json = try? JSONSerialization.jsonObject(with: bodyData) as? [String: Any],
-           let genConfig = json["generationConfig"] as? [String: Any],
-           let respFormat = genConfig["response_format"] as? [String: Any] {
-            #expect(respFormat["type"] as? String == "audio", "Request must specify response_format audio")
+           let json = try? JSONSerialization.jsonObject(with: bodyData) as? [String: Any] {
+            #expect(json["model"] as? String == GeminiModelConstants.defaultTTSModel)
+            #expect(json["input"] as? String == "Synthesize test speech")
+            let respFormat = json["response_format"] as? [String: Any]
+            #expect(respFormat?["type"] as? String == "audio")
+            let genConfig = json["generation_config"] as? [String: Any]
+            let speechConfig = genConfig?["speech_config"] as? [[String: Any]]
+            #expect(speechConfig?.first?["voice"] as? String == "Puck")
         } else {
-            #expect(Bool(false), "Request body must contain generationConfig.response_format")
+            #expect(Bool(false), "Request body must match official interactions JSON schema")
         }
     }
 
@@ -258,12 +267,20 @@ struct ProviderAndOverflowBlockerTests {
         let clonedID = try await provider.cloneVoice(name: "Fady Voice", audioURL: tempRefWAV)
         #expect(clonedID == "cloned_voice_abc_123")
         #expect(capturedCloneRequest?.value(forHTTPHeaderField: "xi-api-key") == "eleven_key_secret_5678")
+        #expect(capturedCloneRequest?.value(forHTTPHeaderField: "Content-Type")?.contains("multipart/form-data") == true)
 
         // Test synthesize with voice ID
         let synthBuffer = try await provider.synthesize(text: "Hello from ElevenLabs", voiceID: clonedID)
         #expect(synthBuffer.frameLength > 0)
         #expect(capturedSynthRequest?.url?.path.contains("cloned_voice_abc_123") == true)
         #expect(capturedSynthRequest?.value(forHTTPHeaderField: "xi-api-key") == "eleven_key_secret_5678")
+
+        if let synthBody = capturedSynthRequest?.httpBody,
+           let json = try? JSONSerialization.jsonObject(with: synthBody) as? [String: Any] {
+            #expect(json["model_id"] as? String == "eleven_multilingual_v2", "Must default to eleven_multilingual_v2")
+        } else {
+            #expect(Bool(false), "Synthesis request body must be valid JSON with model_id")
+        }
     }
 
     @Test("Provider Settings Test Connection sends correct auth headers for all providers")
@@ -479,8 +496,7 @@ struct ProviderAndOverflowBlockerTests {
         // Create reference audio
         let refAudioURL = tempDir.appendingPathComponent("fady_clean_speech.wav")
         let refPCM = try createToneBuffer(durationSeconds: 1.0, freq: 300.0)
-        let refFile = try AVAudioFile(forWriting: refAudioURL, settings: refPCM.format.settings, commonFormat: .pcmFormatFloat32, interleaved: false)
-        try refFile.write(from: refPCM)
+        try writeBufferToWAV(refPCM, to: refAudioURL)
 
         // Configure Reference Voice in appViewModel
         try appVM.setReferenceVoice(name: "Fady Voice", audioURL: refAudioURL)
@@ -616,8 +632,7 @@ struct ProviderAndOverflowBlockerTests {
         let format = AVAudioFormat(standardFormatWithSampleRate: 44100.0, channels: 1)!
         let refBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 44100)!
         refBuffer.frameLength = 44100
-        let refFile = try AVAudioFile(forWriting: refURL, settings: format.settings, commonFormat: .pcmFormatFloat32, interleaved: false)
-        try refFile.write(from: refBuffer)
+        try writeBufferToWAV(refBuffer, to: refURL)
 
         try appVM.setReferenceVoice(name: "Test Voice", audioURL: refURL)
         appVM.setElevenLabsVoiceID("eleven_id_999")
@@ -700,5 +715,263 @@ struct ProviderAndOverflowBlockerTests {
 
         let durationSeconds = Double(pcm.frameLength) / 16000.0
         #expect(abs(durationSeconds - 1.5) < 0.05, "Extracted PCM duration should be ~1.5s, got \(durationSeconds)")
+    }
+
+    // MARK: - PocketTTS Provider & Cache Persistence Across Cues
+
+    @Test("PocketTTS caches voice clone and reuses embedding across repeated cue synthesis")
+    @MainActor
+    func test_pockettts_repeated_synthesis_caches_voice_clone() async throws {
+        let tempDir = try createTempDir()
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let appVM = AppViewModel()
+        let refURL = tempDir.appendingPathComponent("speaker.wav")
+        let tone = try createToneBuffer(durationSeconds: 0.5, sampleRate: 24000.0, freq: 440.0)
+        try writeBufferToWAV(tone, to: refURL)
+
+        try appVM.setReferenceVoice(name: "Test Voice", audioURL: refURL)
+        #expect(appVM.referenceVoice?.pocketTTSStatus == .configured)
+
+        let cue1 = Cue(
+            id: UUID(),
+            timeRange: CMTimeRange(start: .zero, duration: CMTime(seconds: 1.0, preferredTimescale: 600)),
+            text: "First cue to synthesize"
+        )
+        let cue2 = Cue(
+            id: UUID(),
+            timeRange: CMTimeRange(start: CMTime(seconds: 1.0, preferredTimescale: 600), duration: CMTime(seconds: 1.0, preferredTimescale: 600)),
+            text: "Second cue to synthesize"
+        )
+        appVM.cues = [cue1, cue2]
+
+        var cloneInvocationCount = 0
+        var synthInvocationCount = 0
+
+        // Configure test hooks on appVM's persistent PocketTTSProvider
+        appVM.providerRegistry.pocketTTS.cloneVoiceHandler = { url in
+            cloneInvocationCount += 1
+            return PocketTtsVoiceData(audioPrompt: [0.1, 0.2], promptLength: 2)
+        }
+        appVM.providerRegistry.pocketTTS.synthesizeHandler = { text, voiceData in
+            synthInvocationCount += 1
+            let buf = try self.createToneBuffer(durationSeconds: 0.3, sampleRate: 24000.0, freq: 440.0)
+            let outWav = tempDir.appendingPathComponent("out_\(synthInvocationCount).wav")
+            try self.writeBufferToWAV(buf, to: outWav)
+            return try Data(contentsOf: outWav)
+        }
+
+        // Synthesize first cue: should invoke cloneVoiceHandler once
+        try await appVM.synthesizeCue(id: cue1.id, providerType: .pocketTTS)
+        #expect(cloneInvocationCount == 1, "First synthesis must clone voice")
+        #expect(synthInvocationCount == 1)
+        #expect(appVM.providerRegistry.pocketTTS.cloneCount == 1)
+        #expect(appVM.referenceVoice?.pocketTTSStatus == .ready)
+
+        // Synthesize second cue: must REUSE cached voice clone without calling cloneVoiceHandler again!
+        try await appVM.synthesizeCue(id: cue2.id, providerType: .pocketTTS)
+        #expect(cloneInvocationCount == 1, "Second synthesis must REUSE cached clone, not clone again")
+        #expect(synthInvocationCount == 2)
+        #expect(appVM.providerRegistry.pocketTTS.cloneCount == 1, "cloneCount must remain 1")
+        #expect(appVM.referenceVoice?.pocketTTSStatus == .ready)
+
+        // Now update reference voice: must invalidate cache and re-clone on next synthesis
+        let refURL2 = tempDir.appendingPathComponent("speaker2.wav")
+        try writeBufferToWAV(tone, to: refURL2)
+        try appVM.setReferenceVoice(name: "Test Voice 2", audioURL: refURL2)
+        #expect(appVM.referenceVoice?.pocketTTSStatus == .configured)
+
+        try await appVM.synthesizeCue(id: cue1.id, providerType: .pocketTTS)
+        #expect(cloneInvocationCount == 2, "Synthesis after new voice import must re-clone")
+        #expect(appVM.providerRegistry.pocketTTS.cloneCount == 2)
+    }
+
+    // MARK: - Provider Selection Single Source of Truth & Bundle Persistence
+
+    @Test("Provider selection has single source of truth and roundtrips through project bundle")
+    @MainActor
+    func test_provider_selection_single_source_of_truth_persistence() async throws {
+        let tempDir = try createTempDir()
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let mockCueGen = CueGenerator(
+            silenceDetector: EnergySilenceDetector(minSilenceDuration: 0.2, speechPadding: 0.05, energyThresholdDB: -40.0),
+            transcriptionService: MockTranscriptionService()
+        )
+        let appVM = AppViewModel(cueGenerator: mockCueGen)
+        let sourceURL = tempDir.appendingPathComponent("source.mov")
+        _ = try await Fixture1SingleTrack.generate(at: sourceURL)
+        try await appVM.importMediaAsync(from: sourceURL)
+
+        // Verify initial state
+        #expect(appVM.selectedProviderType == .pocketTTS)
+        #expect(appVM.scriptEditorViewModel.selectedProvider == .pocketTTS)
+
+        // Update via ScriptEditorViewModel proxy: must directly update AppViewModel stored property
+        appVM.scriptEditorViewModel.selectedProvider = .elevenLabs
+        #expect(appVM.selectedProviderType == .elevenLabs)
+        #expect(appVM.scriptEditorViewModel.selectedProvider == .elevenLabs)
+
+        // Update via AppViewModel stored property: must immediately reflect in ScriptEditorViewModel proxy
+        appVM.selectedProviderType = .geminiTTS
+        #expect(appVM.scriptEditorViewModel.selectedProvider == .geminiTTS)
+
+        // Save project
+        let bundleURL = tempDir.appendingPathComponent("TestBundle.voicefix")
+        try appVM.saveProject(to: bundleURL)
+
+        // Load into a fresh AppViewModel
+        let freshVM = AppViewModel()
+        #expect(freshVM.selectedProviderType == .pocketTTS)
+        try freshVM.loadProject(from: bundleURL)
+
+        #expect(freshVM.selectedProviderType == .geminiTTS, "Loaded bundle must restore active provider type")
+        #expect(freshVM.scriptEditorViewModel.selectedProvider == .geminiTTS, "ScriptEditor proxy must match loaded provider type")
+    }
+
+    // MARK: - PassthroughExportPipeline Ignored Track Exclusion
+
+    @Test("PassthroughExportPipeline excludes ignored tracks both with and without edited cues")
+    func test_passthrough_export_excludes_ignored_tracks_with_and_without_edited_cues() async throws {
+        let tempDir = try createTempDir()
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        // Generate 3-track synthetic movie (Track 1: Narration, Track 2: Passthrough, Track 3: Ignored)
+        let sourceURL = tempDir.appendingPathComponent("source_3tracks.mov")
+        let asset = try await SyntheticFixtureGenerator.createMovie(
+            at: sourceURL,
+            duration: CMTime(seconds: 2.0, preferredTimescale: 600),
+            audioTracks: [
+                SyntheticAudioTrackSpec(trackName: "Narration", segments: [.sineTone(frequency: 440.0, duration: CMTime(seconds: 2.0, preferredTimescale: 600))]),
+                SyntheticAudioTrackSpec(trackName: "Music", segments: [.sineTone(frequency: 880.0, duration: CMTime(seconds: 2.0, preferredTimescale: 600))]),
+                SyntheticAudioTrackSpec(trackName: "IgnoredSFX", segments: [.noise(amplitude: 0.2, duration: CMTime(seconds: 2.0, preferredTimescale: 600))])
+            ]
+        )
+        #expect(asset.audioTrackIDs.count == 3)
+        let narrationID = Int(asset.audioTrackIDs[0])
+        let passthroughID = Int(asset.audioTrackIDs[1])
+
+        let pipeline = PassthroughExportPipeline()
+
+        // CASE A: Without edited cues (hasEditedAudio = false)
+        let uneditedCues = [
+            Cue(
+                timeRange: CMTimeRange(start: .zero, duration: CMTime(seconds: 2.0, preferredTimescale: 600)),
+                text: "Unedited narration",
+                audioWAVRelativePath: nil,
+                editState: .original
+            )
+        ]
+        let outURLUnedited = tempDir.appendingPathComponent("exported_unedited.mov")
+        let configUnedited = PassthroughExportConfig(
+            sourceURL: sourceURL,
+            destinationURL: outURLUnedited,
+            designatedNarrationTrackID: CMPersistentTrackID(narrationID),
+            passthroughTrackIDs: [CMPersistentTrackID(passthroughID)],
+            cues: uneditedCues,
+            bundleRootURL: tempDir
+        )
+
+        _ = try await pipeline.export(config: configUnedited)
+
+        let exportedAssetUnedited = AVURLAsset(url: outURLUnedited)
+        let audioTracksUnedited = try await exportedAssetUnedited.loadTracks(withMediaType: .audio)
+        #expect(audioTracksUnedited.count == 2, "Export without edited cues must contain exactly 2 audio tracks, excluding ignored track")
+
+        // CASE B: With edited cues (hasEditedAudio = true)
+        let tone = try createToneBuffer(durationSeconds: 2.0, sampleRate: 24000.0, freq: 550.0)
+        let cueWAVURL = tempDir.appendingPathComponent("audio/cues/cue_1.wav")
+        try writeBufferToWAV(tone, to: cueWAVURL)
+
+        let editedCues = [
+            Cue(
+                timeRange: CMTimeRange(start: .zero, duration: CMTime(seconds: 2.0, preferredTimescale: 600)),
+                text: "Edited narration",
+                audioWAVRelativePath: "audio/cues/cue_1.wav",
+                editState: .synthesized
+            )
+        ]
+        let outURLEdited = tempDir.appendingPathComponent("exported_edited.mov")
+        let configEdited = PassthroughExportConfig(
+            sourceURL: sourceURL,
+            destinationURL: outURLEdited,
+            designatedNarrationTrackID: CMPersistentTrackID(narrationID),
+            passthroughTrackIDs: [CMPersistentTrackID(passthroughID)],
+            cues: editedCues,
+            bundleRootURL: tempDir
+        )
+
+        _ = try await pipeline.export(config: configEdited)
+
+        let exportedAssetEdited = AVURLAsset(url: outURLEdited)
+        let audioTracksEdited = try await exportedAssetEdited.loadTracks(withMediaType: .audio)
+        #expect(audioTracksEdited.count == 2, "Export with edited cues must contain exactly 2 audio tracks, excluding ignored track")
+    }
+
+    // MARK: - Reference Voice Canonicalization & Lifecycle Semantics
+
+    @Test("Reference Voice canonicalization creates 24kHz mono WAV and enforces correct state semantics")
+    @MainActor
+    func test_reference_voice_canonicalization_and_status_lifecycle() async throws {
+        let tempDir = try createTempDir()
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let appVM = AppViewModel()
+        #expect(appVM.referenceVoice == nil)
+
+        // Create a 44.1kHz stereo audio file to import
+        let stereoFormat = AVAudioFormat(standardFormatWithSampleRate: 44100.0, channels: 2)!
+        let stereoBuf = AVAudioPCMBuffer(pcmFormat: stereoFormat, frameCapacity: 44100)!
+        stereoBuf.frameLength = 44100
+        let sourceURL = tempDir.appendingPathComponent("raw_input.aiff")
+        try writeBufferToWAV(stereoBuf, to: sourceURL)
+
+        // Import reference voice
+        try appVM.setReferenceVoice(name: "My Voice", audioURL: sourceURL)
+
+        guard let ref = appVM.referenceVoice else {
+            #expect(Bool(false), "referenceVoice must be non-nil after import")
+            return
+        }
+
+        #expect(ref.name == "My Voice")
+        #expect(ref.pocketTTSStatus == .configured, "Status must be .configured upon import, NOT .ready")
+        #expect(ref.audioRelativePath == "voice/reference_voice.wav", "Relative path must be canonical .wav")
+
+        // Verify file on disk is valid 24kHz mono WAV
+        let diskURL = appVM.sessionWorkingDir.appendingPathComponent(ref.audioRelativePath)
+        let diskFile = try AVAudioFile(forReading: diskURL)
+        #expect(diskFile.fileFormat.sampleRate == 24000.0)
+        #expect(diskFile.fileFormat.channelCount == 1)
+
+        // Test status transition during synthesis
+        let cueID = UUID()
+        appVM.cues = [Cue(id: cueID, timeRange: CMTimeRange(start: .zero, duration: CMTime(seconds: 1.0, preferredTimescale: 600)), text: "Hi")]
+
+        appVM.providerRegistry.pocketTTS.cloneVoiceHandler = { _ in
+            let status = await MainActor.run { appVM.referenceVoice?.pocketTTSStatus }
+            #expect(status == .loading, "Status must be .loading during synthesis")
+            return PocketTtsVoiceData(audioPrompt: [], promptLength: 0)
+        }
+        appVM.providerRegistry.pocketTTS.synthesizeHandler = { _, _ in
+            let tone = try self.createToneBuffer(durationSeconds: 0.2, sampleRate: 24000.0, freq: 440.0)
+            let outW = tempDir.appendingPathComponent("syn.wav")
+            try self.writeBufferToWAV(tone, to: outW)
+            return try Data(contentsOf: outW)
+        }
+
+        try await appVM.synthesizeCue(id: cueID, providerType: .pocketTTS)
+        #expect(appVM.referenceVoice?.pocketTTSStatus == .ready, "Status must be .ready after successful synthesis")
+
+        // Test failure transitions to .failed
+        appVM.providerRegistry.pocketTTS.synthesizeHandler = { _, _ in
+            throw NSError(domain: "Test", code: 999, userInfo: [NSLocalizedDescriptionKey: "Core ML failure"])
+        }
+        do {
+            try await appVM.synthesizeCue(id: cueID, providerType: .pocketTTS)
+            #expect(Bool(false), "Expected synthesis to fail")
+        } catch {
+            #expect(appVM.referenceVoice?.pocketTTSStatus == .failed, "Status must be .failed after failed synthesis")
+        }
     }
 }

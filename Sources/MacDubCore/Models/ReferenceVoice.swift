@@ -2,8 +2,10 @@ import Foundation
 
 public enum VoiceCloningStatus: String, Codable, Equatable, Sendable {
     case unconfigured = "Unconfigured"
-    case ready = "Ready"
-    case failed = "Failed"
+    case configured = "Reference Voice Configured"
+    case loading = "PocketTTS Loading"
+    case ready = "Voice Clone Ready"
+    case failed = "Error"
 }
 
 public struct ReferenceVoice: Identifiable, Codable, Equatable, Sendable {
@@ -20,7 +22,7 @@ public struct ReferenceVoice: Identifiable, Codable, Equatable, Sendable {
         id: UUID = UUID(),
         name: String,
         audioRelativePath: String,
-        pocketTTSStatus: VoiceCloningStatus = .ready,
+        pocketTTSStatus: VoiceCloningStatus = .configured,
         elevenLabsVoiceID: String? = nil,
         resembleVoiceUUID: String? = nil,
         createdAt: Date = Date(),
