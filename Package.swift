@@ -1,5 +1,20 @@
 // swift-tools-version: 6.0
+import Foundation
 import PackageDescription
+
+var testSwiftSettings: [SwiftSetting] = [
+    .swiftLanguageMode(.v5)
+]
+
+let cltTestingMacrosPath = "/Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib"
+if FileManager.default.fileExists(atPath: cltTestingMacrosPath) {
+    testSwiftSettings.append(
+        .unsafeFlags([
+            "-load-plugin-library",
+            cltTestingMacrosPath
+        ])
+    )
+}
 
 let package = Package(
     name: "macdub",
@@ -54,13 +69,7 @@ let package = Package(
                 "MacDubCore",
                 "MacDubApp"
             ],
-            swiftSettings: [
-                .swiftLanguageMode(.v5),
-                .unsafeFlags([
-                    "-load-plugin-library",
-                    "/Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib"
-                ])
-            ]
+            swiftSettings: testSwiftSettings
         )
     ],
     swiftLanguageModes: [.v5]

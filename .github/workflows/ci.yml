@@ -13,7 +13,7 @@ concurrency:
 jobs:
   build-and-test:
     name: Build & Deterministic Test Suite
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
       - name: Checkout Repository
@@ -22,6 +22,7 @@ jobs:
       - name: Inspect Swift Version & Environment
         run: |
           swift --version
+          xcodebuild -version
           uname -a
 
       - name: Build All Targets

@@ -5,7 +5,7 @@ This ledger documents the verification status across all 17 phases and 14 qualit
 
 - **Total Test Suites**: 25
 - **Total Passing Tests**: 239 / 239 (100% pass rate in deterministic test suite)
-- **CI Status**: macOS CI workflow configured at `.github/workflows/ci.yml` (macos-14, non-parallel)
+- **CI Status**: macOS CI workflow configured at `.github/workflows/ci.yml` (macos-15, non-parallel)
 - **Host Architecture**: Apple Silicon M1 (arm64, 8 GB RAM)
 
 ---
@@ -35,7 +35,7 @@ This ledger documents the verification status across all 17 phases and 14 qualit
 | **Export Format Enforcement** | **VERIFIED** | QuickTime Movie (.mov) strictly enforced; invalid containers (.mp4) fail cleanly with actionable errors. |
 | **Boundary Crossfades & Loudness Matching** | **VERIFIED** | 15ms equal-power boundary fades; ITU-R BS.1770 / EBU R128 loudness matched to surrounding original narration. |
 | **Frame Stepping Adaptation** | **VERIFIED** | Transport stepping (`TimelineClock.stepForward/Backward`) dynamically adapts to source FPS (24, 30, 60). |
-| **macOS GitHub Actions CI** | **VERIFIED** | `.github/workflows/ci.yml` runs non-parallel deterministic test suite on macos-14 runner. |
+| **macOS GitHub Actions CI** | **VERIFIED** | `.github/workflows/ci.yml` runs non-parallel deterministic test suite on macos-15 runner. |
 
 ---
 
