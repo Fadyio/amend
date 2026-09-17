@@ -39,6 +39,7 @@ public enum KeychainVaultError: LocalizedError, Equatable {
 }
 
 public final class KeychainVault: CredentialVaultProtocol, @unchecked Sendable {
+    private static let lock = NSLock()
     public let serviceIdentifier: String
     private let accessGroup: String?
 
@@ -48,6 +49,9 @@ public final class KeychainVault: CredentialVaultProtocol, @unchecked Sendable {
     }
 
     public func save(key: String, for service: ServiceKey) throws {
+        KeychainVault.lock.lock()
+        defer { KeychainVault.lock.unlock() }
+
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             throw KeychainVaultError.invalidInput("API key cannot be empty or whitespace.")
@@ -93,6 +97,9 @@ public final class KeychainVault: CredentialVaultProtocol, @unchecked Sendable {
     }
 
     public func get(keyFor service: ServiceKey) throws -> String? {
+        KeychainVault.lock.lock()
+        defer { KeychainVault.lock.unlock() }
+
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceIdentifier,
@@ -119,6 +126,9 @@ public final class KeychainVault: CredentialVaultProtocol, @unchecked Sendable {
     }
 
     public func delete(keyFor service: ServiceKey) throws {
+        KeychainVault.lock.lock()
+        defer { KeychainVault.lock.unlock() }
+
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceIdentifier,
@@ -135,6 +145,9 @@ public final class KeychainVault: CredentialVaultProtocol, @unchecked Sendable {
     }
 
     public func has(keyFor service: ServiceKey) -> Bool {
+        KeychainVault.lock.lock()
+        defer { KeychainVault.lock.unlock() }
+
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceIdentifier,

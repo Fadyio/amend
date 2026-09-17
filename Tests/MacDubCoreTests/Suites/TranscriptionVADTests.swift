@@ -65,6 +65,63 @@ struct TranscriptionVADTests {
         }
     }
 
+    @Test("LocalModelCoordinator concurrency stress test: overlapping requests serialize strictly with at most one active lease")
+    func test_local_model_coordinator_concurrency_stress() async throws {
+        let coordinator = LocalModelCoordinator()
+        final class StressState: @unchecked Sendable {
+            var activeCount = 0
+            var maxConcurrent = 0
+            var completedCount = 0
+            let lock = NSLock()
+
+            func enter() {
+                lock.lock()
+                activeCount += 1
+                if activeCount > maxConcurrent {
+                    maxConcurrent = activeCount
+                }
+                lock.unlock()
+            }
+
+            func leave() {
+                lock.lock()
+                activeCount -= 1
+                completedCount += 1
+                lock.unlock()
+            }
+        }
+
+        let state = StressState()
+        let taskCount = 12
+
+        await withTaskGroup(of: Void.self) { group in
+            for i in 0..<taskCount {
+                let modelType: ManagedModelType = (i % 2 == 0) ? .asr : .tts
+                group.addTask {
+                    do {
+                        _ = try await coordinator.withExclusiveModel(modelType) {
+                            state.enter()
+                            try await Task.sleep(nanoseconds: 5_000_000) // 5ms sleep across suspension
+                            state.leave()
+                            return i
+                        }
+                    } catch {
+                        Issue.record("Task \(i) failed with error: \(error)")
+                    }
+                }
+            }
+        }
+
+        state.lock.lock()
+        let maxSeen = state.maxConcurrent
+        let completed = state.completedCount
+        state.lock.unlock()
+
+        #expect(completed == taskCount, "All \(taskCount) tasks must complete successfully")
+        #expect(maxSeen == 1, "At most 1 local model lease may be active at any time, but observed \(maxSeen)")
+        #expect(await coordinator.currentState == .idle)
+    }
+
     // MARK: - SilenceDetector & Room Tone Sampling Tests (ADR-0005)
 
     @Test("SilenceDetector distinguishes speech bursts from silence and extracts optimal room tone")
@@ -224,5 +281,45 @@ struct TranscriptionVADTests {
         #expect(result.cues.isEmpty)
         #expect(result.roomToneRange != nil)
         #expect(result.roomToneBuffer != nil)
+    }
+
+    @Test("Silero VAD rejects non-speech loud tones and noise while EnergySilenceDetector naively triggers")
+    func test_silero_vad_vs_energy_detector_rejection() async throws {
+        let sampleRate: Double = 44100.0
+        let totalFrames = AVAudioFrameCount(round(2.0 * sampleRate))
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1),
+              let toneBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: totalFrames),
+              let noiseBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: totalFrames) else {
+            #expect(Bool(false), "Failed to allocate audio buffers")
+            return
+        }
+        toneBuffer.frameLength = totalFrames
+        noiseBuffer.frameLength = totalFrames
+
+        // 1. Fill toneBuffer with loud 440Hz sine wave (high amplitude)
+        let toneChannel = toneBuffer.floatChannelData![0]
+        for i in 0..<Int(totalFrames) {
+            let t = Double(i) / sampleRate
+            toneChannel[i] = Float(sin(2.0 * Double.pi * 440.0 * t)) * 0.9
+        }
+
+        // 2. Fill noiseBuffer with loud white noise
+        let noiseChannel = noiseBuffer.floatChannelData![0]
+        for i in 0..<Int(totalFrames) {
+            noiseChannel[i] = Float.random(in: -0.8...0.8)
+        }
+
+        // 3. Test Energy detector: loud sine and loud noise exceed threshold (-30 dB), naively triggering
+        let energyDetector = EnergySilenceDetector(minSilenceDuration: 0.3, speechPadding: 0.05, energyThresholdDB: -30.0)
+        let toneEnergyRegions = try await energyDetector.detectSpeechRegions(in: toneBuffer)
+        #expect(!toneEnergyRegions.isEmpty, "Energy detector naively marks loud sine wave as speech")
+
+        let noiseEnergyRegions = try await energyDetector.detectSpeechRegions(in: noiseBuffer)
+        #expect(!noiseEnergyRegions.isEmpty, "Energy detector naively marks loud white noise as speech")
+
+        // 4. Test Silero VAD: ML neural network correctly classifies pure tone as non-speech
+        let sileroDetector = SilenceDetector(minSilenceDuration: 0.3, speechPadding: 0.05)
+        let toneSpeechRegions = try await sileroDetector.detectSpeechRegions(in: toneBuffer)
+        #expect(toneSpeechRegions.isEmpty, "Silero VAD neural network must reject pure sine tone as non-speech")
     }
 }

@@ -56,6 +56,7 @@ public final class TranscriptionService: TranscriptionServing, @unchecked Sendab
         return try await coordinator.withExclusiveModel(.asr) {
             let asrManager = AsrManager()
             let result = try await asrManager.transcribe(audioBuffer, source: .system)
+            await asrManager.cleanup()
 
             guard let tokenTimings = result.tokenTimings, !tokenTimings.isEmpty else {
                 let duration = CMTime(seconds: result.duration, preferredTimescale: 600_000)
@@ -129,12 +130,14 @@ public final class TranscriptionService: TranscriptionServing, @unchecked Sendab
 /// Deterministic mock transcription service for unit testing without Core ML model downloads.
 public final class MockTranscriptionService: TranscriptionServing, @unchecked Sendable {
     public var scriptedTimings: [WordTiming]
+    public var lastTranscribedBuffer: AVAudioPCMBuffer?
 
     public init(scriptedTimings: [WordTiming] = []) {
         self.scriptedTimings = scriptedTimings
     }
 
     public func transcribe(audioBuffer: AVAudioPCMBuffer) async throws -> [WordTiming] {
+        self.lastTranscribedBuffer = audioBuffer
         return scriptedTimings
     }
 

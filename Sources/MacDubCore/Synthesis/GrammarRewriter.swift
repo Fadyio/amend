@@ -75,80 +75,142 @@ public enum GrammarError: Error, LocalizedError {
 
 public final class GeminiGrammarProvider: GrammarProvider, @unchecked Sendable {
     private let vault: CredentialVaultProtocol
+    private let session: URLSession
 
-    public init(vault: CredentialVaultProtocol = KeychainVault()) {
+    public init(
+        vault: CredentialVaultProtocol = KeychainVault(),
+        session: URLSession? = nil
+    ) {
         self.vault = vault
+        self.session = session ?? NetworkSessionFactory.makeSession()
     }
 
     public func rewrite(
         text: String,
         action: GrammarAction
     ) async throws -> GrammarRewriteResult {
-        guard let _ = try vault.get(keyFor: .gemini) else {
-            throw GrammarError.missingAPIKey
-        }
-        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
             throw GrammarError.emptyInput
         }
 
-        // Generate rewritten text respecting constraints and developer terms
-        let rewritten: String
-        switch action {
-        case .fixGrammar:
-            rewritten = applyGrammarRules(text)
-        case .makeNatural:
-            rewritten = makeNaturalSpokenStyle(text)
-        case .rewriteToFit(let targetDuration):
-            rewritten = compressTextToFit(text, targetSeconds: CMTimeGetSeconds(targetDuration))
-        case .restoreOriginal:
-            rewritten = text
+        if case .restoreOriginal = action {
+            return GrammarRewriteResult(originalText: text, rewrittenText: text, diff: [TextDiffChunk(type: .unchanged, text: text)])
         }
 
+        guard let apiKey = try vault.get(keyFor: .gemini), !apiKey.isEmpty else {
+            throw GrammarError.missingAPIKey
+        }
+
+        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\(apiKey)") else {
+            throw GrammarError.providerUnavailable("Invalid Generative Language API endpoint URL")
+        }
+
+        let prompt = makePrompt(for: trimmed, action: action)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let actionHeader: String
+        switch action {
+        case .fixGrammar: actionHeader = "fixGrammar"
+        case .makeNatural: actionHeader = "makeNatural"
+        case .rewriteToFit: actionHeader = "rewriteToFit"
+        case .restoreOriginal: actionHeader = "restoreOriginal"
+        }
+        request.setValue(actionHeader, forHTTPHeaderField: "X-MacDub-Action")
+
+        let requestBody: [String: Any] = [
+            "contents": [
+                [
+                    "parts": [
+                        ["text": prompt]
+                    ]
+                ]
+            ],
+            "generationConfig": [
+                "temperature": 0.2,
+                "maxOutputTokens": 2048
+            ]
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw GrammarError.providerUnavailable("Network error: \(error.localizedDescription)")
+        }
+
+        guard let http = response as? HTTPURLResponse else {
+            throw GrammarError.providerUnavailable("Invalid HTTP response")
+        }
+
+        guard http.statusCode == 200 else {
+            let errorBody = String(data: data, encoding: .utf8) ?? "HTTP \(http.statusCode)"
+            throw GrammarError.rewriteFailed("Gemini API error (HTTP \(http.statusCode)): \(errorBody)")
+        }
+
+        let rewritten = try parseGeminiResponse(data)
         let diff = computeWordDiff(original: text, rewritten: rewritten)
         return GrammarRewriteResult(originalText: text, rewrittenText: rewritten, diff: diff)
     }
 
-    private func applyGrammarRules(_ input: String) -> String {
-        var result = input
-        // Capitalize first letter if needed
-        if let first = result.first, first.isLowercase {
-            result = first.uppercased() + result.dropFirst()
+    private func makePrompt(for text: String, action: GrammarAction) -> String {
+        switch action {
+        case .fixGrammar:
+            return """
+            You are a professional audio transcript editor. Fix grammar, spelling, punctuation, and capitalization in the following spoken transcription while keeping wording and technical identifiers as close to the original as possible. Output ONLY the corrected text, with no preamble, quotes, or explanation.
+
+            Input:
+            \(text)
+            """
+
+        case .makeNatural:
+            return """
+            You are a professional audio transcript editor. Rewrite the following spoken transcription to sound more natural, fluent, and conversational for spoken voice narration. Preserve all key technical terms, names, and original meaning. Output ONLY the natural spoken text, with no preamble, quotes, or explanation.
+
+            Input:
+            \(text)
+            """
+
+        case .rewriteToFit(let targetDuration):
+            let seconds = CMTimeGetSeconds(targetDuration)
+            let maxWords = max(2, Int(floor(seconds * 2.5)))
+            return """
+            You are a professional voiceover script editor. Condense and rewrite the following spoken transcript to fit within \(String(format: "%.2f", seconds)) seconds when spoken at standard 150 words per minute rate (maximum ~\(maxWords) words). Preserve essential technical terms, code identifiers, numbers, and core meaning. Output ONLY the condensed rewritten text, with no preamble, quotes, or explanation.
+
+            Input:
+            \(text)
+            """
+
+        case .restoreOriginal:
+            return text
         }
-        // Ensure ends with period if no terminal punctuation
-        if !result.hasSuffix(".") && !result.hasSuffix("!") && !result.hasSuffix("?") {
-            result += "."
-        }
-        return result
     }
 
-    private func makeNaturalSpokenStyle(_ input: String) -> String {
-        return input
-            .replacingOccurrences(of: "do not", with: "don't")
-            .replacingOccurrences(of: "cannot", with: "can't")
-            .replacingOccurrences(of: "it is", with: "it's")
-    }
-
-    private func compressTextToFit(_ input: String, targetSeconds: Double) -> String {
-        let words = input.split(separator: " ").map(String.init)
-        // Average speaking rate ~ 2.5 words/sec (150 WPM)
-        let maxWords = max(2, Int(floor(targetSeconds * 2.5)))
-        if words.count <= maxWords {
-            return input
+    private func parseGeminiResponse(_ data: Data) throws -> String {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let candidates = json["candidates"] as? [[String: Any]],
+              let firstCandidate = candidates.first,
+              let content = firstCandidate["content"] as? [String: Any],
+              let parts = content["parts"] as? [[String: Any]],
+              let firstPart = parts.first,
+              let text = firstPart["text"] as? String else {
+            throw GrammarError.rewriteFailed("Invalid response JSON structure from Gemini API")
         }
 
-        // Condense words while preserving code identifiers and numbers
-        let preserved = words.prefix(maxWords).joined(separator: " ")
-        if !preserved.hasSuffix(".") && !preserved.hasSuffix("!") && !preserved.hasSuffix("?") {
-            return preserved + "."
+        var cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.hasPrefix("\"") && cleaned.hasSuffix("\"") && cleaned.count >= 2 {
+            cleaned = String(cleaned.dropFirst().dropLast())
         }
-        return preserved
+        return cleaned
     }
 
     internal func computeWordDiff(original: String, rewritten: String) -> [TextDiffChunk] {
         let origWords = original.split(separator: " ", omittingEmptySubsequences: false).map(String.init)
         let rewWords = rewritten.split(separator: " ", omittingEmptySubsequences: false).map(String.init)
 
-        // Simple LCS-based or token diff
         var chunks: [TextDiffChunk] = []
         var i = 0
         var j = 0
@@ -158,7 +220,7 @@ public final class GeminiGrammarProvider: GrammarProvider, @unchecked Sendable {
                 chunks.append(TextDiffChunk(type: .unchanged, text: origWords[i]))
                 i += 1
                 j += 1
-            } else if j < rewWords.count && (i >= origWords.count || !origWords.contains(rewWords[j])) {
+            } else if j < rewWords.count && (i >= origWords.count || !origWords[i...].contains(rewWords[j])) {
                 chunks.append(TextDiffChunk(type: .added, text: rewWords[j]))
                 j += 1
             } else if i < origWords.count {
@@ -166,35 +228,7 @@ public final class GeminiGrammarProvider: GrammarProvider, @unchecked Sendable {
                 i += 1
             }
         }
+
         return chunks
-    }
-}
-
-/// Deterministic Mock Grammar Provider for automated testing
-public final class MockGrammarProvider: GrammarProvider, @unchecked Sendable {
-    public var scriptedResult: String?
-
-    public init(scriptedResult: String? = nil) {
-        self.scriptedResult = scriptedResult
-    }
-
-    public func rewrite(
-        text: String,
-        action: GrammarAction
-    ) async throws -> GrammarRewriteResult {
-        let rewritten = scriptedResult ?? {
-            switch action {
-            case .fixGrammar: return "Fixed: " + text
-            case .makeNatural: return "Natural: " + text
-            case .rewriteToFit: return "Short: " + text
-            case .restoreOriginal: return text
-            }
-        }()
-
-        let diff = [
-            TextDiffChunk(type: .deleted, text: text),
-            TextDiffChunk(type: .added, text: rewritten)
-        ]
-        return GrammarRewriteResult(originalText: text, rewrittenText: rewritten, diff: diff)
     }
 }

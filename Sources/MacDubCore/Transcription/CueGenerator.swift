@@ -22,8 +22,18 @@ public protocol CueGenerating: Sendable {
 
     func generateCues(
         from audioURL: URL,
-        totalDuration: CMTime
+        totalDuration: CMTime,
+        narrationTrackID: CMPersistentTrackID?
     ) async throws -> CueGenerationResult
+}
+
+extension CueGenerating {
+    public func generateCues(
+        from audioURL: URL,
+        totalDuration: CMTime
+    ) async throws -> CueGenerationResult {
+        try await generateCues(from: audioURL, totalDuration: totalDuration, narrationTrackID: nil)
+    }
 }
 
 public final class CueGenerator: CueGenerating, @unchecked Sendable {
@@ -144,13 +154,27 @@ public final class CueGenerator: CueGenerating, @unchecked Sendable {
 
     public func generateCues(
         from audioURL: URL,
-        totalDuration: CMTime
+        totalDuration: CMTime,
+        narrationTrackID: CMPersistentTrackID? = nil
     ) async throws -> CueGenerationResult {
-        let file = try AVAudioFile(forReading: audioURL)
-        guard let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)) else {
+        let asset = AVURLAsset(url: audioURL)
+        let audioTracks = try await asset.loadTracks(withMediaType: .audio)
+        guard !audioTracks.isEmpty else {
             return CueGenerationResult(cues: [], roomToneRange: nil, roomToneBuffer: nil)
         }
-        try file.read(into: buffer)
+
+        let targetTrackID: CMPersistentTrackID
+        if let explicitID = narrationTrackID {
+            guard audioTracks.contains(where: { $0.trackID == explicitID }) else {
+                throw AudioTrackInspectorError.designatedTrackNotInAsset(Int(explicitID))
+            }
+            targetTrackID = explicitID
+        } else {
+            targetTrackID = audioTracks[0].trackID
+        }
+
+        let extractor = AudioTrackExtractor()
+        let buffer = try await extractor.extractPCMBuffer(from: asset, trackID: targetTrackID, targetSampleRate: 16000.0)
         return try await generateCues(from: buffer, totalDuration: totalDuration)
     }
 

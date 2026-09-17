@@ -1,7 +1,7 @@
 import Foundation
 import CoreMedia
 @preconcurrency import AVFoundation
-import FluidAudioTTS
+import FluidAudio
 
 public enum SynthesisProviderType: String, CaseIterable, Sendable, Codable {
     case pocketTTS = "PocketTTS (Local Voice Clone)"
@@ -49,14 +49,147 @@ public enum SynthesisError: Error, LocalizedError {
     }
 }
 
+// MARK: - Audio Buffer Utilities
+
+public enum AudioBufferUtils {
+    public static func pcmBuffer(fromAudioData data: Data, fileExtension: String = "wav") throws -> AVAudioPCMBuffer {
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension(fileExtension)
+        try data.write(to: tempURL)
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        let file = try AVAudioFile(forReading: tempURL)
+        let format = file.processingFormat
+        let frameCount = AVAudioFrameCount(file.length)
+        guard frameCount > 0, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
+            throw SynthesisError.synthesisFailed("Failed to decode audio data into PCM buffer")
+        }
+        try file.read(into: buffer)
+        return buffer
+    }
+
+    /// Wraps raw 16-bit linear PCM mono samples in a valid 44-byte RIFF WAV header.
+    public static func wrapPCM16InWAV(pcmData: Data, sampleRate: Int = 24000, channels: Int = 1) -> Data {
+        var wav = Data()
+        let totalDataLen = Int32(pcmData.count)
+        let totalFileLen = totalDataLen + 36
+        let byteRate = Int32(sampleRate * channels * 2)
+        let blockAlign = Int16(channels * 2)
+
+        wav.append(contentsOf: "RIFF".utf8)
+        var fLen = totalFileLen.littleEndian
+        wav.append(Data(bytes: &fLen, count: 4))
+        wav.append(contentsOf: "WAVEfmt ".utf8)
+        var subchunk1Size = Int32(16).littleEndian
+        wav.append(Data(bytes: &subchunk1Size, count: 4))
+        var audioFormat = Int16(1).littleEndian // PCM
+        wav.append(Data(bytes: &audioFormat, count: 2))
+        var ch = Int16(channels).littleEndian
+        wav.append(Data(bytes: &ch, count: 2))
+        var sRate = Int32(sampleRate).littleEndian
+        wav.append(Data(bytes: &sRate, count: 4))
+        var bRate = byteRate.littleEndian
+        wav.append(Data(bytes: &bRate, count: 4))
+        var bAlign = blockAlign.littleEndian
+        wav.append(Data(bytes: &bAlign, count: 2))
+        var bps = Int16(16).littleEndian
+        wav.append(Data(bytes: &bps, count: 2))
+        wav.append(contentsOf: "data".utf8)
+        var dLen = totalDataLen.littleEndian
+        wav.append(Data(bytes: &dLen, count: 4))
+        wav.append(pcmData)
+        return wav
+    }
+}
+
+// MARK: - Network Session Factory & Test Protocol
+
+public enum NetworkSessionFactory {
+    public static func makeSession() -> URLSession {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 60
+        config.protocolClasses = [TestURLProtocol.self] + (config.protocolClasses ?? [])
+        return URLSession(configuration: config)
+    }
+}
+
+public final class TestURLProtocol: URLProtocol, @unchecked Sendable {
+    public static var testHandlers: [String: @Sendable (URLRequest) -> (HTTPURLResponse, Data)?] = [:]
+    private static let lock = NSLock()
+
+    public static func registerHandler(for prefix: String, handler: @escaping @Sendable (URLRequest) -> (HTTPURLResponse, Data)?) {
+        lock.lock()
+        defer { lock.unlock() }
+        testHandlers[prefix] = handler
+    }
+
+    public static func reset() {
+        lock.lock()
+        defer { lock.unlock() }
+        testHandlers.removeAll()
+    }
+
+    override public class func canInit(with request: URLRequest) -> Bool {
+        guard let urlStr = request.url?.absoluteString else { return false }
+        lock.lock()
+        defer { lock.unlock() }
+        return testHandlers.keys.contains { urlStr.contains($0) }
+    }
+
+    override public class func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
+
+    override public func startLoading() {
+        guard let url = request.url else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+            return
+        }
+        let urlStr = url.absoluteString
+
+        TestURLProtocol.lock.lock()
+        let matchingHandler = TestURLProtocol.testHandlers.first { urlStr.contains($0.key) }?.value
+        TestURLProtocol.lock.unlock()
+
+        if let handler = matchingHandler, let (resp, data) = handler(request) {
+            client?.urlProtocol(self, didReceive: resp, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: data)
+            client?.urlProtocolDidFinishLoading(self)
+            return
+        }
+
+        let resp = HTTPURLResponse(url: url, statusCode: 404, httpVersion: nil, headerFields: nil)!
+        client?.urlProtocol(self, didReceive: resp, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data())
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override public func stopLoading() {}
+}
+
 // MARK: - Local PocketTTS Provider
 
 public final class PocketTTSProvider: VoiceSynthesisProvider, @unchecked Sendable {
     public let providerType: SynthesisProviderType = .pocketTTS
     private let coordinator: LocalModelCoordinator
+    private let ttsManager: PocketTtsManager
 
-    public init(coordinator: LocalModelCoordinator = .shared) {
+    public init(
+        coordinator: LocalModelCoordinator = .shared,
+        ttsManager: PocketTtsManager? = nil
+    ) {
         self.coordinator = coordinator
+        let mgr = ttsManager ?? PocketTtsManager()
+        self.ttsManager = mgr
+
+        Task { [weak mgr] in
+            await coordinator.registerTeardown(for: .tts) {
+                guard let mgr = mgr else { return }
+                await mgr.cleanup()
+            }
+        }
     }
 
     public func synthesize(
@@ -65,33 +198,29 @@ public final class PocketTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
         referenceAudioURL: URL? = nil
     ) async throws -> AVAudioPCMBuffer {
         return try await coordinator.withExclusiveModel(.tts) {
-            _ = TtSManager.self
-            // In live environment with downloaded models:
-            // let audioData = try await ttsManager.synthesize(text: text, voice: voiceID)
-            // Convert to AVAudioPCMBuffer
-            // When running offline or if models not yet initialized, generate local PCM tone fallback
-            guard let format = AVAudioFormat(standardFormatWithSampleRate: 24000.0, channels: 1) else {
-                throw SynthesisError.synthesisFailed("Invalid audio format")
-            }
-
-            // Estimate speech duration: ~150 words per minute -> 2.5 words/sec -> 0.4s per word
-            let wordCount = max(1, text.split(separator: " ").count)
-            let estimatedSec = max(0.5, Double(wordCount) * 0.38)
-            let frameCount = AVAudioFrameCount(round(estimatedSec * 24000.0))
-
-            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
-                throw SynthesisError.synthesisFailed("Buffer allocation failed")
-            }
-            buffer.frameLength = frameCount
-
-            if let ch = buffer.floatChannelData?[0] {
-                let twoPi = 2.0 * Double.pi
-                for i in 0..<Int(frameCount) {
-                    let t = Double(i) / 24000.0
-                    ch[i] = Float(sin(twoPi * 220.0 * t)) * 0.5
+            do {
+                let isAvail = await self.ttsManager.isAvailable
+                if !isAvail {
+                    try await self.ttsManager.initialize()
                 }
+
+                let wavData: Data
+                if let refURL = referenceAudioURL {
+                    guard FileManager.default.fileExists(atPath: refURL.path) else {
+                        throw SynthesisError.invalidReferenceAudio
+                    }
+                    let voiceData = try await self.ttsManager.cloneVoice(from: refURL)
+                    wavData = try await self.ttsManager.synthesize(text: text, voiceData: voiceData)
+                } else {
+                    wavData = try await self.ttsManager.synthesize(text: text, voice: voiceID)
+                }
+
+                return try AudioBufferUtils.pcmBuffer(fromAudioData: wavData, fileExtension: "wav")
+            } catch let error as SynthesisError {
+                throw error
+            } catch {
+                throw SynthesisError.synthesisFailed(error.localizedDescription)
             }
-            return buffer
         }
     }
 }
@@ -101,9 +230,14 @@ public final class PocketTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
 public final class ElevenLabsProvider: VoiceSynthesisProvider, @unchecked Sendable {
     public let providerType: SynthesisProviderType = .elevenLabs
     private let vault: CredentialVaultProtocol
+    private let session: URLSession
 
-    public init(vault: CredentialVaultProtocol = KeychainVault()) {
+    public init(
+        vault: CredentialVaultProtocol = KeychainVault(),
+        session: URLSession? = nil
+    ) {
         self.vault = vault
+        self.session = session ?? NetworkSessionFactory.makeSession()
     }
 
     public func synthesize(
@@ -111,19 +245,105 @@ public final class ElevenLabsProvider: VoiceSynthesisProvider, @unchecked Sendab
         voiceID: String?,
         referenceAudioURL: URL? = nil
     ) async throws -> AVAudioPCMBuffer {
-        guard let _ = try vault.get(keyFor: .elevenLabs) else {
+        guard let apiKey = try vault.get(keyFor: .elevenLabs), !apiKey.isEmpty else {
             throw SynthesisError.missingAPIKey(.elevenLabs)
         }
-        return try createSyntheticSpeechBuffer(for: text, sampleRate: 44100.0)
+
+        var selectedVoiceID = voiceID ?? "21m00Tcm4TlvDq8ikWAM" // Default: Rachel
+
+        // If reference audio is provided, clone voice first
+        if let refURL = referenceAudioURL {
+            guard FileManager.default.fileExists(atPath: refURL.path) else {
+                throw SynthesisError.invalidReferenceAudio
+            }
+            selectedVoiceID = try await cloneVoice(audioURL: refURL, apiKey: apiKey)
+        }
+
+        guard let url = URL(string: "https://api.elevenlabs.io/v1/text-to-speech/\(selectedVoiceID)?output_format=mp3_44100_128") else {
+            throw SynthesisError.synthesisFailed("Invalid ElevenLabs endpoint URL")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
+
+        let payload: [String: Any] = [
+            "text": text,
+            "model_id": "eleven_monolingual_v1",
+            "voice_settings": [
+                "stability": 0.5,
+                "similarity_boost": 0.75
+            ]
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw SynthesisError.synthesisFailed("Invalid HTTP response from ElevenLabs")
+        }
+
+        guard http.statusCode == 200 else {
+            let errorMsg = String(data: data, encoding: .utf8) ?? "HTTP \(http.statusCode)"
+            throw SynthesisError.synthesisFailed("ElevenLabs error (HTTP \(http.statusCode)): \(errorMsg)")
+        }
+
+        return try AudioBufferUtils.pcmBuffer(fromAudioData: data, fileExtension: "mp3")
+    }
+
+    private func cloneVoice(audioURL: URL, apiKey: String) async throws -> String {
+        guard let url = URL(string: "https://api.elevenlabs.io/v1/voices/add") else {
+            throw SynthesisError.synthesisFailed("Invalid voice clone URL")
+        }
+
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        var body = Data()
+        let voiceName = "macdub_clone_\(UUID().uuidString.prefix(8))"
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"name\"\r\n\r\n".data(using: .utf8)!)
+        body.append("\(voiceName)\r\n".data(using: .utf8)!)
+
+        let audioData = try Data(contentsOf: audioURL)
+        let filename = audioURL.lastPathComponent
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"files\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: audio/wav\r\n\r\n".data(using: .utf8)!)
+        body.append(audioData)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        request.httpBody = body
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            let errorMsg = String(data: data, encoding: .utf8) ?? "Voice clone failed"
+            throw SynthesisError.synthesisFailed("ElevenLabs clone failed: \(errorMsg)")
+        }
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let voiceId = json["voice_id"] as? String else {
+            throw SynthesisError.synthesisFailed("Could not parse cloned voice_id from response")
+        }
+
+        return voiceId
     }
 }
 
 public final class ResembleProvider: VoiceSynthesisProvider, @unchecked Sendable {
     public let providerType: SynthesisProviderType = .resemble
     private let vault: CredentialVaultProtocol
+    private let session: URLSession
 
-    public init(vault: CredentialVaultProtocol = KeychainVault()) {
+    public init(
+        vault: CredentialVaultProtocol = KeychainVault(),
+        session: URLSession? = nil
+    ) {
         self.vault = vault
+        self.session = session ?? NetworkSessionFactory.makeSession()
     }
 
     public func synthesize(
@@ -131,19 +351,62 @@ public final class ResembleProvider: VoiceSynthesisProvider, @unchecked Sendable
         voiceID: String?,
         referenceAudioURL: URL? = nil
     ) async throws -> AVAudioPCMBuffer {
-        guard let _ = try vault.get(keyFor: .resemble) else {
+        guard let apiKey = try vault.get(keyFor: .resemble), !apiKey.isEmpty else {
             throw SynthesisError.missingAPIKey(.resemble)
         }
-        return try createSyntheticSpeechBuffer(for: text, sampleRate: 44100.0)
+
+        guard let url = URL(string: "https://app.resemble.ai/api/v2/clips/sync") else {
+            throw SynthesisError.synthesisFailed("Invalid Resemble API URL")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue(apiKey, forHTTPHeaderField: "x-access-token")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let payload: [String: Any] = [
+            "voice_uuid": voiceID ?? "default",
+            "body": text,
+            "title": "MacDub Dubbing Clip",
+            "sample_rate": 44100,
+            "output_format": "wav"
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw SynthesisError.synthesisFailed("Invalid HTTP response from Resemble")
+        }
+
+        guard http.statusCode == 200 else {
+            let errorMsg = String(data: data, encoding: .utf8) ?? "HTTP \(http.statusCode)"
+            throw SynthesisError.synthesisFailed("Resemble error (HTTP \(http.statusCode)): \(errorMsg)")
+        }
+
+        // Resemble sync API may return audio data directly or JSON with audio_src URL
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let item = json["item"] as? [String: Any],
+           let audioSrc = item["audio_src"] as? String,
+           let audioURL = URL(string: audioSrc) {
+            let (remoteAudio, _) = try await session.data(from: audioURL)
+            return try AudioBufferUtils.pcmBuffer(fromAudioData: remoteAudio, fileExtension: "wav")
+        }
+
+        return try AudioBufferUtils.pcmBuffer(fromAudioData: data, fileExtension: "wav")
     }
 }
 
 public final class GeminiTTSProvider: VoiceSynthesisProvider, @unchecked Sendable {
     public let providerType: SynthesisProviderType = .geminiTTS
     private let vault: CredentialVaultProtocol
+    private let session: URLSession
 
-    public init(vault: CredentialVaultProtocol = KeychainVault()) {
+    public init(
+        vault: CredentialVaultProtocol = KeychainVault(),
+        session: URLSession? = nil
+    ) {
         self.vault = vault
+        self.session = session ?? NetworkSessionFactory.makeSession()
     }
 
     public func synthesize(
@@ -151,35 +414,75 @@ public final class GeminiTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
         voiceID: String?,
         referenceAudioURL: URL? = nil
     ) async throws -> AVAudioPCMBuffer {
-        // Crucial requirement: Gemini TTS provides prebuilt natural voices and does NOT support reference voice cloning
+        // Strict architectural invariant: Gemini TTS is prebuilt natural voice only, reject voice cloning reference audio
         if referenceAudioURL != nil {
             throw SynthesisError.unsupportedOperation("Gemini TTS is a prebuilt natural voice provider and does not clone reference voices.")
         }
-        guard let _ = try vault.get(keyFor: .gemini) else {
+        guard let apiKey = try vault.get(keyFor: .gemini), !apiKey.isEmpty else {
             throw SynthesisError.missingAPIKey(.gemini)
         }
-        return try createSyntheticSpeechBuffer(for: text, sampleRate: 24000.0)
-    }
-}
 
-private func createSyntheticSpeechBuffer(for text: String, sampleRate: Double) throws -> AVAudioPCMBuffer {
-    guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1) else {
-        throw SynthesisError.synthesisFailed("Invalid format")
-    }
-    let wordCount = max(1, text.split(separator: " ").count)
-    let estimatedSec = max(0.5, Double(wordCount) * 0.38)
-    let frameCount = AVAudioFrameCount(round(estimatedSec * sampleRate))
-
-    guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
-        throw SynthesisError.synthesisFailed("Buffer allocation failed")
-    }
-    buffer.frameLength = frameCount
-    if let ch = buffer.floatChannelData?[0] {
-        let twoPi = 2.0 * Double.pi
-        for i in 0..<Int(frameCount) {
-            let t = Double(i) / sampleRate
-            ch[i] = Float(sin(twoPi * 330.0 * t)) * 0.5
+        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=\(apiKey)") else {
+            throw SynthesisError.synthesisFailed("Invalid Gemini API URL")
         }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let voiceName = voiceID ?? "Puck"
+        let payload: [String: Any] = [
+            "contents": [
+                [
+                    "role": "user",
+                    "parts": [
+                        ["text": text]
+                    ]
+                ]
+            ],
+            "generationConfig": [
+                "responseModalities": ["AUDIO"],
+                "speechConfig": [
+                    "voiceConfig": [
+                        "prebuiltVoiceConfig": [
+                            "voiceName": voiceName
+                        ]
+                    ]
+                ]
+            ]
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw SynthesisError.synthesisFailed("Invalid HTTP response from Gemini TTS")
+        }
+
+        guard http.statusCode == 200 else {
+            let errorMsg = String(data: data, encoding: .utf8) ?? "HTTP \(http.statusCode)"
+            throw SynthesisError.synthesisFailed("Gemini TTS error (HTTP \(http.statusCode)): \(errorMsg)")
+        }
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let candidates = json["candidates"] as? [[String: Any]],
+              let firstCandidate = candidates.first,
+              let content = firstCandidate["content"] as? [String: Any],
+              let parts = content["parts"] as? [[String: Any]],
+              let firstPart = parts.first,
+              let inlineData = firstPart["inlineData"] as? [String: Any],
+              let audioBase64 = inlineData["data"] as? String,
+              let audioData = Data(base64Encoded: audioBase64) else {
+            throw SynthesisError.synthesisFailed("Failed to parse audio data from Gemini TTS response")
+        }
+
+        let mimeType = (inlineData["mimeType"] as? String)?.lowercased() ?? "audio/pcm"
+        let wavData: Data
+        if mimeType.contains("wav") || audioData.starts(with: "RIFF".utf8) {
+            wavData = audioData
+        } else {
+            wavData = AudioBufferUtils.wrapPCM16InWAV(pcmData: audioData, sampleRate: 24000, channels: 1)
+        }
+
+        return try AudioBufferUtils.pcmBuffer(fromAudioData: wavData, fileExtension: "wav")
     }
-    return buffer
 }

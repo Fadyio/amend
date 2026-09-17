@@ -76,7 +76,6 @@ public final class PassthroughExportPipeline: ExportPipelining, @unchecked Senda
         config: PassthroughExportConfig,
         progress: (@Sendable (Double) -> Void)? = nil
     ) async throws -> ExportResult {
-        // Ensure destination folder exists and delete existing output file
         let destURL = config.destinationURL
         let parentDir = destURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: parentDir, withIntermediateDirectories: true)
@@ -113,37 +112,118 @@ public final class PassthroughExportPipeline: ExportPipelining, @unchecked Senda
         }
         writer.add(videoInput)
 
-        // 2. Configure Audio Tracks (Passthrough tracks + Narration track)
+        // Check if any cues have replacement synthesized audio
+        var hasEditedAudio = false
+        for cue in config.cues {
+            if cue.editState != .original, let rel = cue.audioWAVRelativePath {
+                let fullPath = rel.hasPrefix("/") ? rel : (config.bundleRootURL?.appendingPathComponent(rel).path ?? rel)
+                if FileManager.default.fileExists(atPath: fullPath) {
+                    hasEditedAudio = true
+                    break
+                }
+            }
+        }
+
+        // 2. Configure Audio Tracks
         struct AudioTrackPair {
-            let output: AVAssetReaderTrackOutput
+            let output: AVAssetReaderOutput
             let input: AVAssetWriterInput
         }
         var audioPairs: [AudioTrackPair] = []
 
-        for audioTrack in allAudioTracks {
-            let audioFormatDescs = try await audioTrack.load(.formatDescriptions)
-            guard let audioFormatHint = audioFormatDescs.first else { continue }
+        var narrationReader: AVAssetReader? = nil
 
-            // If this is a passthrough track OR an unedited narration track:
-            // Use compressed sample passthrough!
-            let audioOutput = AVAssetReaderTrackOutput(track: audioTrack, outputSettings: nil)
-            audioOutput.alwaysCopiesSampleData = false
-            reader.add(audioOutput)
+        if !hasEditedAudio {
+            // All audio tracks (passthrough + unedited narration) can be passed through compressed
+            for audioTrack in allAudioTracks {
+                let audioFormatDescs = try await audioTrack.load(.formatDescriptions)
+                guard let audioFormatHint = audioFormatDescs.first else { continue }
 
-            let audioInput = AVAssetWriterInput(mediaType: .audio, outputSettings: nil, sourceFormatHint: audioFormatHint)
-            audioInput.expectsMediaDataInRealTime = false
-            guard writer.canAdd(audioInput) else { continue }
-            writer.add(audioInput)
+                let audioOutput = AVAssetReaderTrackOutput(track: audioTrack, outputSettings: nil)
+                audioOutput.alwaysCopiesSampleData = false
+                reader.add(audioOutput)
 
-            audioPairs.append(AudioTrackPair(output: audioOutput, input: audioInput))
+                let audioInput = AVAssetWriterInput(mediaType: .audio, outputSettings: nil, sourceFormatHint: audioFormatHint)
+                audioInput.expectsMediaDataInRealTime = false
+                guard writer.canAdd(audioInput) else { continue }
+                writer.add(audioInput)
+
+                audioPairs.append(AudioTrackPair(output: audioOutput, input: audioInput))
+            }
+        } else {
+            // Passthrough tracks: untouched bitstream passthrough
+            for audioTrack in allAudioTracks {
+                if config.passthroughTrackIDs.contains(audioTrack.trackID) {
+                    let audioFormatDescs = try await audioTrack.load(.formatDescriptions)
+                    guard let audioFormatHint = audioFormatDescs.first else { continue }
+
+                    let audioOutput = AVAssetReaderTrackOutput(track: audioTrack, outputSettings: nil)
+                    audioOutput.alwaysCopiesSampleData = false
+                    reader.add(audioOutput)
+
+                    let audioInput = AVAssetWriterInput(mediaType: .audio, outputSettings: nil, sourceFormatHint: audioFormatHint)
+                    audioInput.expectsMediaDataInRealTime = false
+                    guard writer.canAdd(audioInput) else { continue }
+                    writer.add(audioInput)
+
+                    audioPairs.append(AudioTrackPair(output: audioOutput, input: audioInput))
+                }
+            }
+
+            // Designated Narration Track: reconstruct audio from preview composition and encode
+            let compGen = PreviewCompositionGenerator()
+            let composition = try await compGen.generateComposition(
+                sourceURL: config.sourceURL,
+                designatedNarrationTrackID: config.designatedNarrationTrackID,
+                passthroughTrackIDs: [],
+                cues: config.cues,
+                bundleRootURL: config.bundleRootURL
+            )
+
+            let compAudioTracks = try await composition.loadTracks(withMediaType: .audio)
+            if let narrationTrack = compAudioTracks.first {
+                let nReader = try AVAssetReader(asset: composition)
+                let decompressSettings: [String: Any] = [
+                    AVFormatIDKey: kAudioFormatLinearPCM,
+                    AVSampleRateKey: 44100.0,
+                    AVNumberOfChannelsKey: 1,
+                    AVLinearPCMBitDepthKey: 16,
+                    AVLinearPCMIsFloatKey: false,
+                    AVLinearPCMIsBigEndianKey: false,
+                    AVLinearPCMIsNonInterleaved: false
+                ]
+                let narrationOutput = AVAssetReaderTrackOutput(track: narrationTrack, outputSettings: decompressSettings)
+                narrationOutput.alwaysCopiesSampleData = false
+                nReader.add(narrationOutput)
+                narrationReader = nReader
+
+                let narrationEncodeSettings: [String: Any] = [
+                    AVFormatIDKey: kAudioFormatMPEG4AAC,
+                    AVSampleRateKey: 44100.0,
+                    AVNumberOfChannelsKey: 1,
+                    AVEncoderBitRateKey: 128000
+                ]
+                let narrationInput = AVAssetWriterInput(mediaType: .audio, outputSettings: narrationEncodeSettings)
+                narrationInput.expectsMediaDataInRealTime = false
+                if writer.canAdd(narrationInput) {
+                    writer.add(narrationInput)
+                    audioPairs.append(AudioTrackPair(output: narrationOutput, input: narrationInput))
+                }
+            }
         }
 
         // 3. Start Session
         guard reader.startReading() else {
             throw ExportError.readerInitFailed(reader.error ?? NSError(domain: "Export", code: 1))
         }
+        if let nReader = narrationReader {
+            guard nReader.startReading() else {
+                throw ExportError.readerInitFailed(nReader.error ?? NSError(domain: "Export", code: 2))
+            }
+        }
+
         guard writer.startWriting() else {
-            throw ExportError.writerInitFailed(writer.error ?? NSError(domain: "Export", code: 2))
+            throw ExportError.writerInitFailed(writer.error ?? NSError(domain: "Export", code: 3))
         }
         writer.startSession(atSourceTime: .zero)
 
@@ -194,7 +274,7 @@ public final class PassthroughExportPipeline: ExportPipelining, @unchecked Senda
             }
 
             if !progressMade {
-                try await Task.sleep(nanoseconds: 500_000) // 0.5ms sleep to yield to background writer thread
+                try await Task.sleep(nanoseconds: 500_000) // 0.5ms sleep
             }
         }
 
