@@ -4,8 +4,7 @@
 This ledger documents the verification status across all 17 phases and 14 quality gates of the MacDub project following the September 2026 audit and recovery. All automated tests run deterministically via `swift test --no-parallel` with zero synthetic fallback audio in production code and zero credential leaks.
 
 - **Total Test Suites**: 25
-- **Total Test Suites**: 25
-- **Total Passing Tests**: 248 / 248 (100% pass rate in deterministic test suite)
+- **Total Passing Tests (Deterministic)**: 253 / 253 (100% pass rate in deterministic test suite)
 - **CI Status**: macOS CI workflow configured at `.github/workflows/ci.yml` (macos-15, non-parallel)
 - **Host Architecture**: Apple Silicon M1 (arm64, 8 GB RAM)
 
@@ -19,7 +18,7 @@ This ledger documents the verification status across all 17 phases and 14 qualit
 | **Timeline** | **VERIFIED** | `TimelineClockTests`, `SMPTERulerFormatterTests`, `WaveformExtractorTests` pass deterministically. |
 | **Selected Narration Routing** | **VERIFIED** | AudioTrackExtractor extracts by CMPersistentTrackID; verified in `AudioRoutingTests` & `AssembledAppE2ETests`. |
 | **Silero VAD** | **VERIFIED** | Compiled Core ML Silero VAD v6.0.0 model executes on Apple Silicon Neural Engine in `TranscriptionVADTests`. |
-| **Parakeet ASR** | **VERIFIED (LOCAL M1 EXECUTED)** | Initialized in `TranscriptionService`; executed end-to-end on Apple Silicon M1 in `AssembledAppE2ETests` (transcribed Kathleen audio with `exciting`, `time`, `week`, `thursday`). |
+| **Parakeet ASR** | **REAL 8 GB M1 WORKFLOW EXECUTED SUCCESSFULLY** | Initialized in `TranscriptionService`; executed end-to-end on Apple Silicon M1 in `AssembledAppE2ETests` (transcribed Kathleen audio with `exciting`, `time`, `week`, `thursday`). |
 | **Project Bundle Persistence** | **VERIFIED** | `.voicefix` package saves/loads media reference, tracks, cues, candidate WAVs, Reference Voice, and provider IDs. |
 | **Single Source of Truth** | **VERIFIED** | `AppViewModel.selectedProviderType` is the single authoritative provider state; script editor uses proxy binding. |
 | **Preview Composition** | **VERIFIED** | Untouched video & passthrough audio, original narration outside cues, approved replacement audio in cues. |
@@ -29,13 +28,14 @@ This ledger documents the verification status across all 17 phases and 14 qualit
 | **DurationFitter** | **VERIFIED** | Asymmetric time compression within 8%, room-tone padding for shorter speech, 15ms boundary crossfades. |
 | **Overflow User Gating** | **VERIFIED** | >8% overflow candidate is stored for inspection but strictly excluded from preview and export until approved. |
 | **PocketTTS Engine Seam & Cache** | **VERIFIED** | MacDub-owned `PocketTTSEngine` abstraction with `SpyPocketTTSEngine` test seam; `Packages/FluidAudio` pristine with zero diff. |
-| **PocketTTS Voice Cloning Acceptance** | **VERIFIED (LOCAL M1 EXECUTED)** | Executed live on Apple Silicon M1 (`MACDUB_RUN_LOCAL_AI_TESTS=1 swift test --filter PocketTTSAcceptanceTests` passed in 1179.8s). |
+| **PocketTTS Voice Cloning Acceptance** | **REAL 8 GB M1 WORKFLOW EXECUTED SUCCESSFULLY** | Executed live on Apple Silicon M1 (`MACDUB_RUN_LOCAL_AI_TESTS=1 swift test --filter PocketTTSAcceptanceTests` passed in 1179.8s). |
 | **Speech Fixture & Provenance** | **VERIFIED** | Authentic human speech under CC0 1.0 Universal (`rhasspy/dataset-voice-kathleen`, `arctic_a0366`, 5.072s 24kHz mono WAV) documented in `Fixtures/README.md`; resolved via `TestReferenceVoiceResolver`. |
 | **Reference Voice State Semantics** | **VERIFIED** | Truthful states: `.unconfigured` -> `.configured` (on import) -> `.loading` (synthesizing) -> `.ready` / `.failed`. |
-| **Gemini Grammar** | **LIVE CREDENTIAL VERIFICATION REQUIRED** | Updated to `gemini-2.5-flash` with `x-goog-api-key` header (zero URL keys). Contract verified via `TestURLProtocol`. |
-| **Gemini TTS REST Parsing** | **LIVE CREDENTIAL VERIFICATION REQUIRED** | Verified against official `POST /v1beta/interactions` schema (`steps -> model_output -> content[type == "audio"]`), extracting audio metadata (`mime_type`, `sample_rate`, `channels`). Contract verified via `TestURLProtocol`. |
-| **ElevenLabs Backend & Workflow** | **LIVE CREDENTIAL VERIFICATION REQUIRED** | Default model `eleven_multilingual_v2`, instant voice cloning (`/v1/voices/add`) with dynamic MIME detection. |
-| **Resemble Backend** | **LIVE CREDENTIAL VERIFICATION REQUIRED** | Updated to current `POST https://f.cluster.resemble.ai/synthesize` with Bearer auth and `voice_uuid`. |
+| **Apple Foundation Models Grammar** | **DEFERRED — RUNTIME REQUIREMENT** | Local Foundation Models grammar provider is deferred (requires macOS 15.1+ Writing Tools/Apple Intelligence runtime, not supported on macOS 14 deployment target). Cloud Gemini provider is implemented and active. |
+| **Gemini Grammar** | **LIVE CREDENTIAL VERIFICATION REQUIRED** | Updated to `gemini-2.5-flash` with `x-goog-api-key` header (zero URL keys). Hermetic mock transport contract verified via `TestURLProtocol`; live call pending user key. |
+| **Gemini TTS REST & Missing-MIME Handling** | **LIVE CREDENTIAL VERIFICATION REQUIRED** | Verified against official `POST /v1beta/interactions` schema. Explicit WAV, MP3, M4A, raw PCM/L16, and RIFF magic byte payloads decoded safely; missing MIME treated as raw 16-bit PCM (24kHz mono) wrapped in valid RIFF WAV; malformed PCM and unsupported MIME rejected explicitly. Hermetic mock transport contract verified via `TestURLProtocol`; live call pending user key. |
+| **ElevenLabs Backend & Workflow** | **LIVE CREDENTIAL VERIFICATION REQUIRED** | Default model `eleven_multilingual_v2`, instant voice cloning (`/v1/voices/add`) with dynamic MIME detection. Hermetic mock transport contract verified via `TestURLProtocol`; live call pending user key. |
+| **Resemble Backend** | **EXISTING VOICE UUID ONLY — LIVE CREDENTIAL REQUIRED** | Resemble provider is manual-ID only (`Resemble — Existing Voice UUID`), not Reference Voice cloning. Executes synchronous synthesis via `POST https://f.cluster.resemble.ai/synthesize` with Bearer auth and `voice_uuid`. Hermetic mock transport contract verified via `TestURLProtocol`; live call pending user key. |
 | **Provider Settings** | **VERIFIED** | Test Connection tests authentic credentials with proper headers; truthful state display and canonical WAV conversion. |
 | **Export Format Enforcement** | **VERIFIED** | QuickTime Movie (.mov) strictly enforced; invalid containers (.mp4) fail cleanly with actionable errors. |
 | **Boundary Crossfades & Loudness Matching** | **VERIFIED** | 15ms equal-power boundary fades; ITU-R BS.1770 / EBU R128 loudness matched to surrounding original narration. |
@@ -109,13 +109,14 @@ This ledger documents the verification status across all 17 phases and 14 qualit
 - **Status**: PASSED (100% automated)
 - **Test Suites**:
   - `SynthesisDurationGrammarTests` (10/10 passed, serialized)
-  - `ProviderAndOverflowBlockerTests` (17/17 passed)
+  - `ProviderAndOverflowBlockerTests` (22/22 passed)
 - **Key Deliverables**:
   - Unified voice synthesis provider architecture (`VoiceSynthesizer`, `PocketTTSProvider`, `ElevenLabsProvider`, `ResembleProvider`, `GeminiTTSProvider`).
   - Gemini Grammar updated to `gemini-2.5-flash` with header-based auth (`x-goog-api-key`) and zero URL credential leaks.
   - Gemini TTS updated to official `POST /v1beta/interactions` endpoint with `response_format: { "type": "audio" }`, header-based auth (`x-goog-api-key`), and `gemini-3.1-flash-tts-preview`.
+  - Gemini TTS robust response decoding honoring explicit MIME, parsing RIFF/WAV magic bytes, wrapping raw PCM/L16 into WAV headers with sample alignment checks, and rejecting malformed or unsupported MIME formats.
   - ElevenLabs default model `eleven_multilingual_v2`, centralized model constants, instant voice cloning (`/v1/voices/add`) with dynamic MIME detection and Reference Voice wiring.
-  - Resemble synchronous synthesis via current `POST https://f.cluster.resemble.ai/synthesize` with Bearer auth and `voice_uuid`.
+  - Resemble synchronous synthesis via current `POST https://f.cluster.resemble.ai/synthesize` with Bearer auth and manual `voice_uuid` configuration.
   - Architectural constraint enforcement: Gemini TTS restricted to prebuilt natural voices; cloning reference audio is strictly rejected.
   - Zero synthetic fallback audio: missing or invalid credentials throw explicit, actionable errors (`SynthesisError.missingAPIKey`, `SynthesisError.synthesisFailed`).
   - User-gated asymmetric duration fitting with room-tone padding (sample rate auto-resampled), WSOLA time stretching (`DurationFitter`, ADR-0006), and candidate isolation for >8% overflow.
@@ -157,7 +158,7 @@ This ledger documents the verification status across all 17 phases and 14 qualit
     16. Bundle credential leak verification (`CredentialLeakScanner`).
   - Single-track advisory import and automatic cue generation without modal gating.
   - AppViewModel cue splitting maintaining timeline continuity and sync invariants.
-  - Opt-in live neural model end-to-end acceptance journey (`test_live_model_end_to_end_journey`).
+  - Strengthened opt-in live neural model end-to-end acceptance journey (`test_live_model_end_to_end_journey`) proving real PocketTTS cloned audio becomes an approved active replacement, enters preview, and reaches the exported narration track while preserving untouched narration, passthrough audio, and video bitstream samples.
 
 ---
 
@@ -166,11 +167,11 @@ This ledger documents the verification status across all 17 phases and 14 qualit
 | Quality Gate | Description | Implementation File | Verified By / Test | Result |
 | :--- | :--- | :--- | :--- | :--- |
 | **Gate A** | `swift build` succeeds for MacDubCore and macdub executable | `Package.swift`, `Sources/MacDubCore/`, `Sources/MacDubApp/`, `Sources/macdub/` | Full SPM target compilation (`swift build`) | **IMPLEMENTED + VERIFIED** |
-| **Gate B** | All deterministic unit/integration tests pass | `Tests/MacDubCoreTests/` (25 test suites) | `swift test --no-parallel` (248/248 passed) | **IMPLEMENTED + VERIFIED** |
+| **Gate B** | All deterministic unit/integration tests pass | `Tests/MacDubCoreTests/` (25 test suites) | `swift test --no-parallel` (253/253 passed) | **IMPLEMENTED + VERIFIED** |
 | **Gate C** | Assembled app-level E2E journey passes | `Sources/MacDubApp/ViewModels/AppViewModel.swift` | `AssembledAppE2ETests.test_complete_sixteen_step_assembled_user_journey` | **IMPLEMENTED + VERIFIED** |
 | **Gate D** | Real selected-track routing is verified | `Sources/MacDubCore/Composition/AudioTrackExtractor.swift`, `Sources/MacDubCore/Transcription/CueGenerator.swift` | `AudioRoutingTests` (zero-crossing routing verification on Track B) | **IMPLEMENTED + VERIFIED** |
 | **Gate E** | Real Silero VAD is verified | `Sources/MacDubCore/Transcription/SilenceDetector.swift` | `TranscriptionVADTests` (compiled Core ML model on Neural Engine/CPU rejecting tones) | **IMPLEMENTED + VERIFIED** |
-| **Gate F** | Real PocketTTS synthesis and local cloning work on target Mac | `Sources/MacDubCore/Synthesis/VoiceSynthesizer.swift`, `PocketTTSProvider` | `PocketTTSAcceptanceTests` & `AssembledAppE2ETests` (opt-in; downloaded models, cloned Kathleen voice, synthesized audio on M1 Neural Engine) | **IMPLEMENTED + VERIFIED (LOCAL M1 EXECUTION PROVEN)** |
+| **Gate F** | Real PocketTTS synthesis and local cloning work on target Mac | `Sources/MacDubCore/Synthesis/VoiceSynthesizer.swift`, `PocketTTSProvider` | `PocketTTSAcceptanceTests` & `AssembledAppE2ETests` (opt-in; downloaded models, cloned Kathleen voice, synthesized audio on M1 Neural Engine) | **IMPLEMENTED + VERIFIED (REAL 8 GB M1 WORKFLOW EXECUTED SUCCESSFULLY)** |
 | **Gate G** | Preview audibly/analytically contains replacement narration | `Sources/MacDubCore/Composition/PreviewComposition.swift` | `PreviewCompositionTests` (zero-crossing frequency assertions) | **IMPLEMENTED + VERIFIED** |
 | **Gate H** | Export analytically contains replacement narration | `Sources/MacDubCore/Export/PassthroughExportPipeline.swift` | `PassthroughExportTests` (narration rebuilt, passthrough preserved) | **IMPLEMENTED + VERIFIED** |
 | **Gate I** | Video compressed-sample identity is genuinely verified where passthrough is expected | `Sources/MacDubCore/Export/PassthroughExportPipeline.swift` | `PassthroughExportTests.test_passthrough_export_preserves_exact_compressed_sample_hashes` | **IMPLEMENTED + VERIFIED** |
@@ -179,4 +180,3 @@ This ledger documents the verification status across all 17 phases and 14 qualit
 | **Gate L** | Live Gemini Grammar & TTS tests pass with real user-supplied Keychain credential | `Sources/MacDubCore/Synthesis/VoiceSynthesizer.swift` (`GeminiTTSProvider`), `GrammarRewriter.swift` | Registered mock transport & negative auth rejection verified; live call pending user key | **IMPLEMENTED — LIVE CREDENTIAL VERIFICATION REQUIRED** |
 | **Gate M** | Live ElevenLabs test passes when configured | `Sources/MacDubCore/Synthesis/VoiceSynthesizer.swift` (`ElevenLabsProvider`) | Registered mock transport, clone & synth contract verified; live call pending user key | **IMPLEMENTED — LIVE CREDENTIAL VERIFICATION REQUIRED** |
 | **Gate N** | Live Resemble test passes only when configured and account capabilities permit it | `Sources/MacDubCore/Synthesis/VoiceSynthesizer.swift` (`ResembleProvider`) | Registered mock transport & /synthesize contract verified; live call pending user key | **IMPLEMENTED — LIVE CREDENTIAL VERIFICATION REQUIRED** |
-

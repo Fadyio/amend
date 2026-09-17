@@ -31,6 +31,18 @@ struct AssembledAppE2ETests {
         return crossings
     }
 
+    private func computeMeanAbsoluteDifference(bufferA: AVAudioPCMBuffer, bufferB: AVAudioPCMBuffer) -> Float {
+        guard let dataA = bufferA.floatChannelData?[0],
+              let dataB = bufferB.floatChannelData?[0] else { return 0.0 }
+        let count = min(Int(bufferA.frameLength), Int(bufferB.frameLength))
+        guard count > 0 else { return 0.0 }
+        var sum: Float = 0.0
+        for i in 0..<count {
+            sum += abs(dataA[i] - dataB[i])
+        }
+        return sum / Float(count)
+    }
+
     struct TestFrequencySynthesizer: VoiceSynthesisProvider, Sendable {
         let providerType: SynthesisProviderType = .pocketTTS
         let frequency: Double
@@ -382,18 +394,30 @@ struct AssembledAppE2ETests {
         try appViewModel.setReferenceVoice(name: "Human Speaker", audioURL: humanSpeechURL)
         #expect(appViewModel.referenceVoice?.pocketTTSStatus == .configured)
 
-        // Synthesize first cue using real PocketTTS
+        // 1. Choose or rewrite a deliberately short Cue sentence expected to fit its Cue duration
+        let shortSentence = "Exciting time."
+        appViewModel.cues[0] = appViewModel.cues[0].withUpdatedText(shortSentence)
+        appViewModel.timelineViewModel.setCues(appViewModel.cues, totalDuration: appViewModel.totalDuration)
+
+        // 2. Synthesize with real PocketTTS
         try await appViewModel.synthesizeCue(id: firstCue.id, providerType: .pocketTTS)
-        #expect(appViewModel.cues[0].editState == .synthesized || appViewModel.cues[0].editState == .overflowGated, "Synthesis must succeed and update edit state")
-        #expect(appViewModel.cues[0].audioWAVRelativePath != nil || appViewModel.cues[0].candidateAudioWAVRelativePath != nil, "Synthesized audio file must exist")
+
+        // 3. Require the Cue to become an APPROVED active replacement, not merely .overflowGated
+        // 4. If it unexpectedly overflows, explicitly resolve it using the production workflow
+        if appViewModel.cues[0].editState == .overflowGated {
+            try await appViewModel.forceFitCue(id: firstCue.id)
+        }
+        #expect(appViewModel.cues[0].editState == .synthesized || appViewModel.cues[0].editState == .forceFitted, "Cue must become an approved active replacement")
+        #expect(appViewModel.cues[0].audioWAVRelativePath != nil, "Synthesized active audio WAV relative path must exist")
+        #expect(appViewModel.cues[0].candidateAudioWAVRelativePath == nil, "Pending candidate audio must be cleared upon approval")
         #expect(appViewModel.referenceVoice?.pocketTTSStatus == .ready, "PocketTTS status must be .ready after successful synthesis")
 
-        // Verify Preview Composition
+        // 5. Build preview
         let previewComp = try await appViewModel.buildPreviewComposition()
         let previewAudioTracks = try await previewComp.loadTracks(withMediaType: .audio)
         #expect(!previewAudioTracks.isEmpty, "Preview composition must contain audio tracks")
 
-        // Export with passthrough pipeline
+        // 6. Export with passthrough pipeline
         let exportURL = tempDir.appendingPathComponent("live_exported.mov")
         let pipeline = PassthroughExportPipeline()
         let config = PassthroughExportConfig(
@@ -409,6 +433,77 @@ struct AssembledAppE2ETests {
 
         let exportedAsset = AVURLAsset(url: exportResult.outputURL)
         let exportedTracks = try await exportedAsset.loadTracks(withMediaType: .audio)
-        #expect(exportedTracks.count == 2, "Exported movie must contain exactly 2 audio tracks (narration + passthrough)")
+        #expect(exportedTracks.count == 2, "Exported movie must contain exactly 2 audio tracks (passthrough + narration)")
+
+        let sourceAsset = AVURLAsset(url: sourceURL)
+        let extractor = AudioTrackExtractor()
+
+        // 7. Analytically verify that the exported Narration interval differs from the original Narration interval
+        let cueTimeRange = appViewModel.cues[0].timeRange
+        let originalCuePCM = try await extractor.extractPCMBuffer(
+            from: sourceAsset,
+            trackID: asset.audioTrackIDs[0],
+            timeRange: cueTimeRange,
+            targetSampleRate: 16000.0,
+            targetChannels: 1
+        )
+        let exportedNarrationPCM = try await extractor.extractPCMBuffer(
+            from: exportedAsset,
+            trackID: exportedTracks[1].trackID,
+            timeRange: cueTimeRange,
+            targetSampleRate: 16000.0,
+            targetChannels: 1
+        )
+        #expect(originalCuePCM.frameLength > 0)
+        #expect(exportedNarrationPCM.frameLength > 0)
+        let cueDiff = computeMeanAbsoluteDifference(bufferA: originalCuePCM, bufferB: exportedNarrationPCM)
+        #expect(cueDiff > 0.005, "Exported Narration in cue slot must analytically differ from original due to PocketTTS replacement (got diff: \(cueDiff))")
+
+        // 8. Verify untouched Narration outside that Cue remains original
+        let untouchedTimeRange = CMTimeRange(start: .zero, duration: CMTime(seconds: 0.4, preferredTimescale: 600))
+        let originalUntouchedPCM = try await extractor.extractPCMBuffer(
+            from: sourceAsset,
+            trackID: asset.audioTrackIDs[0],
+            timeRange: untouchedTimeRange,
+            targetSampleRate: 16000.0,
+            targetChannels: 1
+        )
+        let exportedUntouchedPCM = try await extractor.extractPCMBuffer(
+            from: exportedAsset,
+            trackID: exportedTracks[1].trackID,
+            timeRange: untouchedTimeRange,
+            targetSampleRate: 16000.0,
+            targetChannels: 1
+        )
+        let untouchedDiff = computeMeanAbsoluteDifference(bufferA: originalUntouchedPCM, bufferB: exportedUntouchedPCM)
+        #expect(untouchedDiff < 0.001, "Untouched narration interval outside cue must match original source audio (got diff: \(untouchedDiff))")
+
+        // 9. Verify the Passthrough Track remains preserved
+        let exportedPassthroughPCM = try await extractor.extractPCMBuffer(
+            from: exportedAsset,
+            trackID: exportedTracks[0].trackID,
+            targetSampleRate: 16000.0
+        )
+        let sourcePassthroughPCM = try await extractor.extractPCMBuffer(
+            from: sourceAsset,
+            trackID: asset.audioTrackIDs[1],
+            targetSampleRate: 16000.0
+        )
+        #expect(exportedPassthroughPCM.frameLength > 0)
+        let passCrossings = countZeroCrossings(in: exportedPassthroughPCM, startSec: 1.0, durationSec: 1.0)
+        #expect(passCrossings >= 400 && passCrossings <= 480, "Exported passthrough track must preserve continuous 220Hz tone (got \(passCrossings) zero crossings)")
+        let passDiff = computeMeanAbsoluteDifference(bufferA: exportedPassthroughPCM, bufferB: sourcePassthroughPCM)
+        #expect(passDiff < 0.001, "Exported passthrough track samples must match source passthrough track (got diff: \(passDiff))")
+
+        // 10. Verify video compressed-sample identity remains unchanged
+        #expect(!exportResult.wasVideoReencoded, "Video bitstream must not be re-encoded")
+        #expect(exportResult.videoSampleCount > 0, "Video sample buffers must be preserved")
+        let sourceVideoTracks = try await sourceAsset.loadTracks(withMediaType: .video)
+        let exportedVideoTracks = try await exportedAsset.loadTracks(withMediaType: .video)
+        #expect(sourceVideoTracks.count == 1)
+        #expect(exportedVideoTracks.count == 1)
+        let sourceVideoFormat = try await sourceVideoTracks[0].load(.formatDescriptions)
+        let exportedVideoFormat = try await exportedVideoTracks[0].load(.formatDescriptions)
+        #expect(sourceVideoFormat.first?.mediaSubType == exportedVideoFormat.first?.mediaSubType, "Video codec sub-type must be identical")
     }
 }

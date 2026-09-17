@@ -9,7 +9,7 @@ To guarantee synchronization integrity across multi-agent development cycles wit
 - **E2E Testing Track**: Independently designs, maintains, and executes an opaque-box, requirement-driven test harness using programmatically generated **Synthetic AVFoundation Fixtures**.
 
 ### Key Principles
-1. **Zero External Media Assets**: No large binary video files in git. All test media is deterministically synthesized in milliseconds using native `AVFoundation`, `CoreMedia`, and `CoreVideo` APIs.
+1. **Deterministic AV Synthesis & Minimal Speech Provenance**: Deterministic AV/video test fixtures remain programmatically synthesized in milliseconds using native `AVFoundation`, `CoreMedia`, and `CoreVideo` APIs. A small, explicitly licensed human-speech WAV fixture (`human_speech_reference.wav`, ~247 KB, CC0 public domain) is committed under `Tests/MacDubCoreTests/Fixtures/` solely for opt-in ASR and PocketTTS neural acceptance testing. Ordinary CI remains entirely deterministic without downloading neural models or storing large recorded videos in git.
 2. **Opaque-Box Requirement Verification**: Tests exercise public subsystem boundaries and observable behaviors rather than internal implementation details.
 3. **Rigorous Invariant Enforcement**: Every cue edit, split, duration fit, and export is validated against mathematical `CMTime` invariants.
 4. **Sample Payload Identity**: The passthrough export pipeline is verified by asserting bit-for-bit SHA-256 payload identity between source and exported compressed video sample buffers (`CMSampleBuffer`).
@@ -61,7 +61,7 @@ Testing is organized into four distinct tiers covering depth, boundaries, integr
 
 ## 3. Synthetic AVFoundation Fixture Architecture
 
-All fixtures are located under `Tests/MacDubCoreTests/Fixtures/` and generate programmatically valid, playable QuickTime (`.mov`) and MPEG-4 (`.mp4`) assets on demand.
+All programmatic fixtures are located under `Tests/MacDubCoreTests/Fixtures/` and generate programmatically valid, playable QuickTime (`.mov`) and MPEG-4 (`.mp4`) assets on demand. In addition, an authentic CC0-licensed human-speech reference fixture (`human_speech_reference.wav`) is included exclusively for opt-in local neural acceptance tests (`MACDUB_RUN_LOCAL_AI_TESTS=1`).
 
 ### Architecture Diagram
 ```

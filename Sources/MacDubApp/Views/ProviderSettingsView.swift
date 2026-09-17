@@ -589,13 +589,13 @@ public struct ProviderSettingsView: View {
                 HStack {
                     Image(systemName: "waveform.circle")
                         .foregroundStyle(.teal)
-                    Text("Resemble AI (Cloud Voice Clone)")
+                    Text("Resemble — Existing Voice UUID")
                         .font(.subheadline.bold())
                     Spacer()
                     statusBadge(configured: viewModel.resembleConfigured)
                 }
 
-                Text("Used for Resemble AI speech dubbing (POST /synthesize with Bearer auth and voice_uuid).")
+                Text("Used for Resemble AI speech dubbing via existing voice UUID (POST /synthesize with Bearer auth and voice_uuid). Enter your voice UUID in Reference Voice settings.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

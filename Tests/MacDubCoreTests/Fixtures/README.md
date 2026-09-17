@@ -12,7 +12,7 @@ This directory contains test audio fixtures used by MacDub's deterministic and a
   - Upstream Commit SHA: `c51cb971036a127359b43c621f26ca5081eab13e`
   - Upstream Audio File Path: `data/arctic_a0366_1592708614.wav`
   - Upstream License URL: [https://raw.githubusercontent.com/rhasspy/dataset-voice-kathleen/master/LICENSE](https://raw.githubusercontent.com/rhasspy/dataset-voice-kathleen/master/LICENSE)
-  - Local License Copy: [`LICENSE-kathleen.txt`](LICENSE-kathleen.txt)
+  - Full License Text: Inlined below under [Upstream License (CC0 1.0 Universal)](#upstream-license-cc0-10-universal)
 - **License / Legal Status**: **Creative Commons CC0 1.0 Universal (Public Domain Dedication)**.
   The creator and contributor of the Kathleen voice recording dataset has explicitly and irrevocably dedicated the entire work to the public domain worldwide under CC0 1.0 Universal, waiving all copyright and related neighboring rights in all jurisdictions.
   *(Note: This provenance explicitly identifies the Kathleen sound recording itself as the CC0 source being redistributed, rather than relying solely on the text prompts or domestic U.S. federal copyright statutes like 17 U.S.C. § 105).*

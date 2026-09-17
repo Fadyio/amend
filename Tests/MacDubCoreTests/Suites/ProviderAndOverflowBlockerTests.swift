@@ -380,6 +380,228 @@ struct ProviderAndOverflowBlockerTests {
         }
     }
 
+    @Test("Gemini TTS decodes audio block with explicit WAV MIME")
+    func test_gemini_tts_wav_mime_succeeds() async throws {
+        let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyTestValidFormatKey1234"])
+        let provider = GeminiTTSProvider(vault: vault)
+
+        TestURLProtocol.reset()
+        defer { TestURLProtocol.reset() }
+
+        var rawPCM = Data()
+        for i in 0..<2400 {
+            var sample = Int16(sin(Double(i) * 0.1) * 10000.0).littleEndian
+            rawPCM.append(Data(bytes: &sample, count: 2))
+        }
+        let wavData = AudioBufferUtils.wrapPCM16InWAV(pcmData: rawPCM, sampleRate: 24000, channels: 1)
+        let base64Audio = wavData.base64EncodedString()
+
+        TestURLProtocol.registerHandler(for: "generativelanguage.googleapis.com") { req in
+            let mockJSON = """
+            {
+                "id": "interaction_wav_mime",
+                "status": "completed",
+                "steps": [
+                    {
+                        "type": "model_output",
+                        "content": [
+                            {
+                                "type": "audio",
+                                "data": "\(base64Audio)",
+                                "mime_type": "audio/wav",
+                                "sample_rate": 24000,
+                                "channels": 1
+                            }
+                        ]
+                    }
+                ]
+            }
+            """.data(using: .utf8)!
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, mockJSON)
+        }
+
+        let buffer = try await provider.synthesize(text: "Hello", voiceID: "Puck")
+        #expect(buffer.frameLength > 0)
+        #expect(buffer.format.sampleRate == 24000.0)
+    }
+
+    @Test("Gemini TTS wraps and decodes audio block with raw PCM MIME")
+    func test_gemini_tts_raw_pcm_mime_succeeds() async throws {
+        let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyTestValidFormatKey1234"])
+        let provider = GeminiTTSProvider(vault: vault)
+
+        TestURLProtocol.reset()
+        defer { TestURLProtocol.reset() }
+
+        var rawPCM = Data()
+        for i in 0..<2400 {
+            var sample = Int16(sin(Double(i) * 0.1) * 10000.0).littleEndian
+            rawPCM.append(Data(bytes: &sample, count: 2))
+        }
+        let base64Audio = rawPCM.base64EncodedString()
+
+        TestURLProtocol.registerHandler(for: "generativelanguage.googleapis.com") { req in
+            let mockJSON = """
+            {
+                "id": "interaction_raw_pcm_mime",
+                "status": "completed",
+                "steps": [
+                    {
+                        "type": "model_output",
+                        "content": [
+                            {
+                                "type": "audio",
+                                "data": "\(base64Audio)",
+                                "mime_type": "audio/l16",
+                                "sample_rate": 24000,
+                                "channels": 1
+                            }
+                        ]
+                    }
+                ]
+            }
+            """.data(using: .utf8)!
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, mockJSON)
+        }
+
+        let buffer = try await provider.synthesize(text: "Hello", voiceID: "Puck")
+        #expect(buffer.frameLength == 2400)
+        #expect(buffer.format.sampleRate == 24000.0)
+    }
+
+    @Test("Gemini TTS decodes audio block with no MIME but explicit sample rate and channels")
+    func test_gemini_tts_no_mime_with_sample_rate_channels_succeeds() async throws {
+        let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyTestValidFormatKey1234"])
+        let provider = GeminiTTSProvider(vault: vault)
+
+        TestURLProtocol.reset()
+        defer { TestURLProtocol.reset() }
+
+        var rawPCM = Data()
+        for i in 0..<2400 {
+            var sample = Int16(sin(Double(i) * 0.1) * 10000.0).littleEndian
+            rawPCM.append(Data(bytes: &sample, count: 2))
+        }
+        let base64Audio = rawPCM.base64EncodedString()
+
+        TestURLProtocol.registerHandler(for: "generativelanguage.googleapis.com") { req in
+            let mockJSON = """
+            {
+                "id": "interaction_no_mime_explicit_meta",
+                "status": "completed",
+                "steps": [
+                    {
+                        "type": "model_output",
+                        "content": [
+                            {
+                                "type": "audio",
+                                "data": "\(base64Audio)",
+                                "sample_rate": 24000,
+                                "channels": 1
+                            }
+                        ]
+                    }
+                ]
+            }
+            """.data(using: .utf8)!
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, mockJSON)
+        }
+
+        let buffer = try await provider.synthesize(text: "Hello", voiceID: "Puck")
+        #expect(buffer.frameLength == 2400)
+        #expect(buffer.format.sampleRate == 24000.0)
+    }
+
+    @Test("Gemini TTS decodes audio block with RIFF bytes and no MIME")
+    func test_gemini_tts_riff_bytes_no_mime_succeeds() async throws {
+        let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyTestValidFormatKey1234"])
+        let provider = GeminiTTSProvider(vault: vault)
+
+        TestURLProtocol.reset()
+        defer { TestURLProtocol.reset() }
+
+        var rawPCM = Data()
+        for i in 0..<2400 {
+            var sample = Int16(sin(Double(i) * 0.1) * 10000.0).littleEndian
+            rawPCM.append(Data(bytes: &sample, count: 2))
+        }
+        let wavData = AudioBufferUtils.wrapPCM16InWAV(pcmData: rawPCM, sampleRate: 24000, channels: 1)
+        let base64Audio = wavData.base64EncodedString()
+
+        TestURLProtocol.registerHandler(for: "generativelanguage.googleapis.com") { req in
+            let mockJSON = """
+            {
+                "id": "interaction_riff_no_mime",
+                "status": "completed",
+                "steps": [
+                    {
+                        "type": "model_output",
+                        "content": [
+                            {
+                                "type": "audio",
+                                "data": "\(base64Audio)"
+                            }
+                        ]
+                    }
+                ]
+            }
+            """.data(using: .utf8)!
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, mockJSON)
+        }
+
+        let buffer = try await provider.synthesize(text: "Hello", voiceID: "Puck")
+        #expect(buffer.frameLength > 0)
+        #expect(buffer.format.sampleRate == 24000.0)
+    }
+
+    @Test("Gemini TTS fails explicitly on malformed raw PCM with odd byte count")
+    func test_gemini_tts_malformed_raw_pcm_fails() async throws {
+        let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyTestValidFormatKey1234"])
+        let provider = GeminiTTSProvider(vault: vault)
+
+        TestURLProtocol.reset()
+        defer { TestURLProtocol.reset() }
+
+        // 5 bytes is not aligned to 16-bit (2-byte) linear PCM
+        let oddBytes = Data([0x01, 0x02, 0x03, 0x04, 0x05])
+        let base64Audio = oddBytes.base64EncodedString()
+
+        TestURLProtocol.registerHandler(for: "generativelanguage.googleapis.com") { req in
+            let mockJSON = """
+            {
+                "id": "interaction_malformed_pcm",
+                "status": "completed",
+                "steps": [
+                    {
+                        "type": "model_output",
+                        "content": [
+                            {
+                                "type": "audio",
+                                "data": "\(base64Audio)",
+                                "sample_rate": 24000,
+                                "channels": 1
+                            }
+                        ]
+                    }
+                ]
+            }
+            """.data(using: .utf8)!
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, mockJSON)
+        }
+
+        do {
+            _ = try await provider.synthesize(text: "Hello", voiceID: "Puck")
+            #expect(Bool(false), "Must fail when raw PCM is malformed")
+        } catch let SynthesisError.synthesisFailed(msg) {
+            #expect(msg.contains("Malformed raw PCM") || msg.contains("not aligned"), "Actionable error: \(msg)")
+        }
+    }
+
     // MARK: - BLOCKER 4: Resemble Contract (POST /synthesize with Bearer auth & voice_uuid)
 
     @Test("Resemble provider calls current /synthesize endpoint with Bearer auth and voice_uuid")

@@ -6,7 +6,7 @@ import FluidAudio
 public enum SynthesisProviderType: String, CaseIterable, Sendable, Codable {
     case pocketTTS = "PocketTTS (Local Voice Clone)"
     case elevenLabs = "ElevenLabs (Cloud Clone)"
-    case resemble = "Resemble AI (Cloud Clone)"
+    case resemble = "Resemble — Existing Voice UUID"
     case geminiTTS = "Gemini TTS (Prebuilt Natural Voice)"
 }
 
@@ -756,26 +756,52 @@ public final class GeminiTTSProvider: VoiceSynthesisProvider, @unchecked Sendabl
             throw SynthesisError.synthesisFailed("Gemini audio content block contained invalid base64 data")
         }
 
-        let mime = (foundAudioBlock.mimeType ?? "audio/wav").lowercased()
+        let rawMime = foundAudioBlock.mimeType?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let isRIFF = rawAudioData.count >= 12 && rawAudioData.starts(with: "RIFF".utf8) && rawAudioData[8..<12].elementsEqual("WAVE".utf8)
+
         let fileExt: String
         let formattedAudioData: Data
 
-        if mime.contains("wav") || rawAudioData.starts(with: "RIFF".utf8) {
+        if let mime = rawMime, !mime.isEmpty {
+            if mime.contains("wav") || isRIFF {
+                fileExt = "wav"
+                formattedAudioData = rawAudioData
+            } else if mime.contains("mpeg") || mime.contains("mp3") {
+                fileExt = "mp3"
+                formattedAudioData = rawAudioData
+            } else if mime.contains("aac") || mime.contains("mp4") || mime.contains("m4a") {
+                fileExt = "m4a"
+                formattedAudioData = rawAudioData
+            } else if mime.contains("l16") || mime.contains("pcm") || mime.contains("raw") {
+                fileExt = "wav"
+                let sampleRate = foundAudioBlock.sampleRate ?? 24000
+                let channels = foundAudioBlock.channels ?? 1
+                guard sampleRate > 0, channels > 0 else {
+                    throw SynthesisError.synthesisFailed("Invalid Gemini audio metadata: sampleRate=\(sampleRate), channels=\(channels)")
+                }
+                guard rawAudioData.count % (channels * 2) == 0 else {
+                    throw SynthesisError.synthesisFailed("Malformed raw PCM audio data from Gemini TTS: byte count \(rawAudioData.count) is not aligned to 16-bit block size \(channels * 2)")
+                }
+                formattedAudioData = AudioBufferUtils.wrapPCM16InWAV(pcmData: rawAudioData, sampleRate: sampleRate, channels: channels)
+            } else {
+                throw SynthesisError.synthesisFailed("Unsupported Gemini audio MIME type: \(foundAudioBlock.mimeType ?? mime)")
+            }
+        } else if isRIFF {
+            // MIME is absent, but payload begins with RIFF/WAV magic bytes
             fileExt = "wav"
-            formattedAudioData = rawAudioData
-        } else if mime.contains("mpeg") || mime.contains("mp3") {
-            fileExt = "mp3"
-            formattedAudioData = rawAudioData
-        } else if mime.contains("l16") || mime.contains("pcm") || mime.contains("raw") {
-            fileExt = "wav"
-            let sampleRate = foundAudioBlock.sampleRate ?? 24000
-            let channels = foundAudioBlock.channels ?? 1
-            formattedAudioData = AudioBufferUtils.wrapPCM16InWAV(pcmData: rawAudioData, sampleRate: sampleRate, channels: channels)
-        } else if mime.contains("aac") || mime.contains("mp4") || mime.contains("m4a") {
-            fileExt = "m4a"
             formattedAudioData = rawAudioData
         } else {
-            throw SynthesisError.synthesisFailed("Unsupported Gemini audio MIME type: \(foundAudioBlock.mimeType ?? "unknown")")
+            // MIME is absent and payload is not a RIFF file -> treat as raw 16-bit PCM according to documented Gemini TTS contract
+            let sampleRate = foundAudioBlock.sampleRate ?? 24000
+            let channels = foundAudioBlock.channels ?? 1
+            guard sampleRate > 0, channels > 0 else {
+                throw SynthesisError.synthesisFailed("Invalid Gemini audio metadata: sampleRate=\(sampleRate), channels=\(channels)")
+            }
+            guard rawAudioData.count % (channels * 2) == 0 else {
+                throw SynthesisError.synthesisFailed("Malformed raw PCM audio data from Gemini TTS: byte count \(rawAudioData.count) is not aligned to 16-bit block size \(channels * 2)")
+            }
+            formattedAudioData = AudioBufferUtils.wrapPCM16InWAV(pcmData: rawAudioData, sampleRate: sampleRate, channels: channels)
+            fileExt = "wav"
         }
 
         do {
