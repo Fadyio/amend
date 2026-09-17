@@ -2,9 +2,10 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 import MacDubCore
+import MacDubApp
 
 @main
-struct MacDubApp: App {
+struct MacDubMain: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var appViewModel = AppViewModel()
 

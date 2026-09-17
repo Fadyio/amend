@@ -8,12 +8,13 @@ let package = Package(
     ],
     products: [
         .library(name: "MacDubCore", targets: ["MacDubCore"]),
+        .library(name: "MacDubApp", targets: ["MacDubApp"]),
         .executable(name: "macdub", targets: ["macdub"])
     ],
     dependencies: [
         .package(url: "https://github.com/dmrschmidt/DSWaveformImage.git", from: "14.5.0"),
         .package(url: "https://github.com/orchetect/swift-timecode.git", from: "3.1.4"),
-        .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.9.1")
+        .package(path: "Packages/FluidAudio")
     ],
     targets: [
         .target(
@@ -22,8 +23,16 @@ let package = Package(
                 .product(name: "DSWaveformImage", package: "DSWaveformImage"),
                 .product(name: "SwiftTimecodeCore", package: "swift-timecode"),
                 .product(name: "SwiftTimecodeAV", package: "swift-timecode"),
-                .product(name: "FluidAudio", package: "FluidAudio"),
-                .product(name: "FluidAudioTTS", package: "FluidAudio")
+                .product(name: "FluidAudio", package: "FluidAudio")
+            ],
+            swiftSettings: [
+                .swiftLanguageMode(.v5)
+            ]
+        ),
+        .target(
+            name: "MacDubApp",
+            dependencies: [
+                "MacDubCore"
             ],
             swiftSettings: [
                 .swiftLanguageMode(.v5)
@@ -32,7 +41,8 @@ let package = Package(
         .executableTarget(
             name: "macdub",
             dependencies: [
-                "MacDubCore"
+                "MacDubCore",
+                "MacDubApp"
             ],
             swiftSettings: [
                 .swiftLanguageMode(.v5)
@@ -40,7 +50,10 @@ let package = Package(
         ),
         .testTarget(
             name: "MacDubCoreTests",
-            dependencies: ["MacDubCore"],
+            dependencies: [
+                "MacDubCore",
+                "MacDubApp"
+            ],
             swiftSettings: [
                 .swiftLanguageMode(.v5),
                 .unsafeFlags([
