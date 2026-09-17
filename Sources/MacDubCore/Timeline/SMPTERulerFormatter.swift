@@ -43,6 +43,15 @@ public extension TimecodeFrameRate {
         case .fps120, .fps120d: return 120.0
         }
     }
+
+    /// Finds the closest matching standard TimecodeFrameRate for a given nominal FPS value.
+    static func closest(to fps: Double) -> TimecodeFrameRate {
+        let candidates: [TimecodeFrameRate] = [
+            .fps23_976, .fps24, .fps25, .fps29_97, .fps30,
+            .fps50, .fps59_94, .fps60, .fps120
+        ]
+        return candidates.min(by: { abs($0.realTimeFPS - fps) < abs($1.realTimeFPS - fps) }) ?? .fps30
+    }
 }
 
 /// Formatter providing frame-rate aware SMPTE timecode conversions and dynamic ruler tick subdivision.

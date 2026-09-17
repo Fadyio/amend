@@ -210,20 +210,6 @@ public actor WaveformExtractor: WaveformExtracting {
 
         let actualTrackID = track.trackID
         let duration = try await asset.load(.duration)
-        let reader = try AVAssetReader(asset: asset)
-        let outputSettings: [String: Any] = [
-            AVFormatIDKey: kAudioFormatLinearPCM,
-            AVLinearPCMBitDepthKey: 32,
-            AVLinearPCMIsFloatKey: true,
-            AVLinearPCMIsBigEndianKey: false,
-            AVLinearPCMIsNonInterleaved: false
-        ]
-        let trackOutput = AVAssetReaderTrackOutput(track: track, outputSettings: outputSettings)
-        trackOutput.alwaysCopiesSampleData = false
-        reader.add(trackOutput)
-        guard reader.startReading() else {
-            throw WaveformError.readerFailed(reader.status, reader.error)
-        }
 
         let formatDescriptions = try await track.load(.formatDescriptions)
         var sampleRate: Double = 44100.0
@@ -238,6 +224,23 @@ public actor WaveformExtractor: WaveformExtracting {
                     channelCount = Int(asbd.mChannelsPerFrame)
                 }
             }
+        }
+
+        let reader = try AVAssetReader(asset: asset)
+        let outputSettings: [String: Any] = [
+            AVFormatIDKey: kAudioFormatLinearPCM,
+            AVSampleRateKey: sampleRate,
+            AVNumberOfChannelsKey: channelCount,
+            AVLinearPCMBitDepthKey: 32,
+            AVLinearPCMIsFloatKey: true,
+            AVLinearPCMIsBigEndianKey: false,
+            AVLinearPCMIsNonInterleaved: false
+        ]
+        let trackOutput = AVAssetReaderTrackOutput(track: track, outputSettings: outputSettings)
+        trackOutput.alwaysCopiesSampleData = false
+        reader.add(trackOutput)
+        guard reader.startReading() else {
+            throw WaveformError.readerFailed(reader.status, reader.error)
         }
 
         let samplesPerBucket = max(1, Int(round(sampleRate / 100.0))) // 100 buckets/sec (10ms)

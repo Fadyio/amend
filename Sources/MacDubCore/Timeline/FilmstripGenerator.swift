@@ -258,13 +258,11 @@ public final class FilmstripGenerator: FilmstripGenerating, @unchecked Sendable 
     }
 
     private func saveDiskImage(_ image: CGImage, to url: URL) {
-        Task.detached(priority: .utility) {
-            let parentDir = url.deletingLastPathComponent()
-            try? FileManager.default.createDirectory(at: parentDir, withIntermediateDirectories: true)
-            guard let destination = CGImageDestinationCreateWithURL(url as CFURL, "public.jpeg" as CFString, 1, nil) else { return }
-            let options: [CFString: Any] = [kCGImageDestinationLossyCompressionQuality: 0.85]
-            CGImageDestinationAddImage(destination, image, options as CFDictionary)
-            CGImageDestinationFinalize(destination)
-        }
+        let parentDir = url.deletingLastPathComponent()
+        try? FileManager.default.createDirectory(at: parentDir, withIntermediateDirectories: true)
+        guard let destination = CGImageDestinationCreateWithURL(url as CFURL, "public.jpeg" as CFString, 1, nil) else { return }
+        let options: [CFString: Any] = [kCGImageDestinationLossyCompressionQuality: 0.85]
+        CGImageDestinationAddImage(destination, image, options as CFDictionary)
+        CGImageDestinationFinalize(destination)
     }
 }
