@@ -4,7 +4,7 @@ import CoreMedia
 import Foundation
 @testable import MacDubCore
 
-@Suite("Milestone 5: Voice Synthesis, Duration Fitting & Grammar Tests")
+@Suite("Milestone 5: Voice Synthesis, Duration Fitting & Grammar Tests", .serialized)
 struct SynthesisDurationGrammarTests {
 
     private func createToneBuffer(durationSeconds: Double, sampleRate: Double = 44100.0, freq: Double = 440.0) throws -> AVAudioPCMBuffer {
@@ -136,7 +136,7 @@ struct SynthesisDurationGrammarTests {
 
     @Test("Gemini TTS rejects voice cloning reference audio as per architectural constraint")
     func test_gemini_tts_rejects_voice_cloning() async throws {
-        let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyFakeKeyForTesting1234567890"])
+        let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyTestValidFormatKeyForUnitTests1234"])
         let provider = GeminiTTSProvider(vault: vault)
 
         let dummyURL = URL(fileURLWithPath: "/tmp/voice_sample.wav")
@@ -144,9 +144,69 @@ struct SynthesisDurationGrammarTests {
             try await provider.synthesize(text: "Hello", voiceID: "Puck", referenceAudioURL: dummyURL)
         }
 
+        // Register hermetic mock HTTP transport for Gemini TTS
+        TestURLProtocol.reset()
+        defer { TestURLProtocol.reset() }
+
+        let testPCM = try createToneBuffer(durationSeconds: 0.2, sampleRate: 24000.0, freq: 440.0)
+        let tempWAV = FileManager.default.temporaryDirectory.appendingPathComponent("mock_gemini_\(UUID().uuidString).wav")
+        do {
+            let file = try AVAudioFile(forWriting: tempWAV, settings: testPCM.format.settings, commonFormat: .pcmFormatFloat32, interleaved: false)
+            try file.write(from: testPCM)
+        }
+        defer { try? FileManager.default.removeItem(at: tempWAV) }
+
+        let wavData = try Data(contentsOf: tempWAV)
+        let base64Audio = wavData.base64EncodedString()
+        let mockJSON = """
+        {
+            "candidates": [{
+                "content": {
+                    "parts": [{
+                        "inlineData": {
+                            "mimeType": "audio/x-wav",
+                            "data": "\(base64Audio)"
+                        }
+                    }]
+                }
+            }]
+        }
+        """.data(using: .utf8)!
+
+        TestURLProtocol.registerHandler(for: "generativelanguage.googleapis.com") { req in
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, mockJSON)
+        }
+
         // Without referenceAudioURL, prebuilt voice synthesis succeeds
         let buffer = try await provider.synthesize(text: "Hello from Gemini prebuilt voice", voiceID: "Puck", referenceAudioURL: nil)
         #expect(buffer.frameLength > 0)
+        #expect(buffer.format.sampleRate == 24000.0)
+    }
+
+    @Test("Gemini TTS throws actionable error on authentication failure without local fallback")
+    func test_gemini_tts_auth_failure() async throws {
+        let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyInvalidKey123"])
+        let provider = GeminiTTSProvider(vault: vault)
+
+        TestURLProtocol.reset()
+        defer { TestURLProtocol.reset() }
+
+        TestURLProtocol.registerHandler(for: "generativelanguage.googleapis.com") { req in
+            let errorJSON = "{\"error\": {\"code\": 400, \"message\": \"API_KEY_INVALID\"}}".data(using: .utf8)!
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 400, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, errorJSON)
+        }
+
+        await #expect(throws: SynthesisError.self) {
+            try await provider.synthesize(text: "Test authentication failure", voiceID: "Puck")
+        }
+    }
+
+    @Test("PocketTTS provider delegates to local model coordinator and manager")
+    func test_pocket_tts_provider() async throws {
+        let provider = PocketTTSProvider()
+        #expect(provider.providerType == .pocketTTS)
     }
 
     @Test("Cloud providers throw missingAPIKey when credentials absent from vault")
@@ -173,8 +233,28 @@ struct SynthesisDurationGrammarTests {
 
     @Test("GrammarRewriter generates word diffs and preserves original transcript text")
     func test_grammar_rewriter_actions_and_diffs() async throws {
-        let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyFakeKeyForTesting1234567890"])
+        let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyTestValidFormatKeyForUnitTests1234"])
         let provider = GeminiGrammarProvider(vault: vault)
+
+        TestURLProtocol.reset()
+        defer { TestURLProtocol.reset() }
+
+        TestURLProtocol.registerHandler(for: "generativelanguage.googleapis.com") { req in
+            let action = req.value(forHTTPHeaderField: "X-MacDub-Action") ?? ""
+            let text: String
+            if action == "fixGrammar" {
+                text = "I cannot find the screen recording file."
+            } else if action == "makeNatural" {
+                text = "don't delete it's important"
+            } else if action == "rewriteToFit" {
+                text = "Narration fits slot."
+            } else {
+                text = "Rewritten transcript text."
+            }
+            let json = "{\"candidates\": [{\"content\": {\"parts\": [{\"text\": \"\(text)\"}]}}]}".data(using: .utf8)!
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, json)
+        }
 
         // 1. Fix Grammar
         let original = "i cannot find the screen recording file"
@@ -196,6 +276,25 @@ struct SynthesisDurationGrammarTests {
         // 4. Word Diff contains added/deleted/unchanged chunks
         #expect(!resFit.diff.isEmpty)
         #expect(resFit.diff.contains { $0.type == .deleted })
+    }
+
+    @Test("GrammarRewriter throws actionable error on authentication failure without local fallback")
+    func test_grammar_rewriter_auth_failure() async throws {
+        let vault = MockCredentialVault(initialValues: [.gemini: "AIzaSyInvalidKey123"])
+        let provider = GeminiGrammarProvider(vault: vault)
+
+        TestURLProtocol.reset()
+        defer { TestURLProtocol.reset() }
+
+        TestURLProtocol.registerHandler(for: "generativelanguage.googleapis.com") { req in
+            let errorJSON = "{\"error\": {\"code\": 400, \"message\": \"API_KEY_INVALID\"}}".data(using: .utf8)!
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 400, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, errorJSON)
+        }
+
+        await #expect(throws: GrammarError.self) {
+            _ = try await provider.rewrite(text: "Some text", action: .fixGrammar)
+        }
     }
 
     @Test("Rewriting narration text preserves immutable Cue timeRange and originalText")

@@ -105,10 +105,11 @@ public final class DurationFitter: DurationFitting, @unchecked Sendable {
 
         if residualFrames > 0 {
             if let rt = roomToneBuffer, rt.frameLength > 0 {
-                // Loop room tone into residual space
-                let rtFrames = Int(rt.frameLength)
+                // Ensure room tone format matches speech buffer (resample if sample rates or channel counts differ)
+                let compatibleRT = resampleBuffer(rt, to: speechBuffer.format) ?? rt
+                let rtFrames = Int(compatibleRT.frameLength)
                 for ch in 0..<channels {
-                    guard let rtSrc = rt.floatChannelData?[ch % Int(rt.format.channelCount)],
+                    guard let rtSrc = compatibleRT.floatChannelData?[ch % Int(compatibleRT.format.channelCount)],
                           let dst = output.floatChannelData?[ch] else { continue }
                     var filled = 0
                     while filled < residualFrames {
@@ -213,5 +214,26 @@ public final class DurationFitter: DurationFitting, @unchecked Sendable {
         }
 
         return output
+    }
+
+    private func resampleBuffer(_ buffer: AVAudioPCMBuffer, to targetFormat: AVAudioFormat) -> AVAudioPCMBuffer? {
+        if buffer.format == targetFormat { return buffer }
+        guard let converter = AVAudioConverter(from: buffer.format, to: targetFormat) else { return nil }
+        let sampleRateRatio = targetFormat.sampleRate / buffer.format.sampleRate
+        let targetCapacity = AVAudioFrameCount(Double(buffer.frameLength) * sampleRateRatio + 100)
+        guard let converted = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: targetCapacity) else { return nil }
+        var error: NSError?
+        var hasProvidedData = false
+        converter.convert(to: converted, error: &error) { inNumPackets, outStatus in
+            if hasProvidedData {
+                outStatus.pointee = .noDataNow
+                return nil
+            }
+            hasProvidedData = true
+            outStatus.pointee = .haveData
+            return buffer
+        }
+        if error != nil { return nil }
+        return converted
     }
 }
