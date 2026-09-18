@@ -23,21 +23,28 @@ public struct PlayheadOverlayView: View {
         ZStack(alignment: .topLeading) {
             // 2pt Needle Line
             Rectangle()
-                .fill(Color.red)
+                .fill(Color(red: 0.2, green: 0.55, blue: 1.0))
                 .frame(width: 2, height: totalHeight)
                 .offset(x: CGFloat(playheadClock.playheadX) - 1.0, y: 0)
+                .shadow(color: Color.blue.opacity(0.6), radius: 3, x: 0, y: 0)
 
             // Scrubber Top Cap Handle
             PlayheadCapShape()
-                .fill(Color.red)
+                .fill(Color(red: 0.2, green: 0.55, blue: 1.0))
                 .frame(width: 14, height: 16)
+                .shadow(color: Color.black.opacity(0.4), radius: 2, x: 0, y: 1)
                 .offset(x: CGFloat(playheadClock.playheadX) - 7.0, y: 0)
                 .gesture(
                     DragGesture(minimumDistance: 1)
                         .onChanged { value in
-                            onScrubDrag(Double(value.location.x))
+                            if playheadClock.dragStartX == nil {
+                                playheadClock.dragStartX = playheadClock.playheadX
+                            }
+                            let effectiveX = max(0.0, (playheadClock.dragStartX ?? playheadClock.playheadX) + Double(value.translation.width))
+                            onScrubDrag(effectiveX)
                         }
                         .onEnded { _ in
+                            playheadClock.dragStartX = nil
                             onScrubEnd()
                         }
                 )

@@ -37,7 +37,7 @@ public final class AppViewModel: ObservableObject {
     public var exportSheetViewModel: ExportSheetViewModel?
 
     // AVPlayer
-    public private(set) var player: AVPlayer?
+    @Published public private(set) var player: AVPlayer?
 
     // Services
     public let providerRegistry: SynthesisProviderRegistry
@@ -117,6 +117,10 @@ public final class AppViewModel: ObservableObject {
         self.statusMessage = "Inspecting audio tracks..."
         self.isProcessing = true
         self.errorMessage = nil
+
+        // Pause and cleanly detach any existing player
+        self.player?.pause()
+        self.timelineViewModel.clock.detachPlayer()
 
         let newPlayer = AVPlayer(url: url)
         self.player = newPlayer
@@ -528,6 +532,19 @@ public final class AppViewModel: ObservableObject {
         statusMessage = "Discarded overflow candidate"
     }
 
+    public func updateCueText(id: UUID, newText: String) {
+        guard let index = cues.firstIndex(where: { $0.id == id }) else { return }
+        cues[index] = cues[index].withUpdatedText(newText)
+        timelineViewModel.setCues(cues, totalDuration: totalDuration)
+    }
+
+    public func restoreOriginalCue(id: UUID) {
+        guard let index = cues.firstIndex(where: { $0.id == id }) else { return }
+        let original = cues[index].originalText
+        cues[index] = cues[index].withUpdatedText(original)
+        timelineViewModel.setCues(cues, totalDuration: totalDuration)
+    }
+
     // MARK: - Preview Composition Playback (Phase 12)
 
     @discardableResult
@@ -543,7 +560,22 @@ public final class AppViewModel: ObservableObject {
             cues: self.cues,
             bundleRootURL: self.projectBundleURL ?? self.sessionWorkingDir
         )
-        self.player?.replaceCurrentItem(with: AVPlayerItem(asset: comp))
+        let wasPlaying = self.timelineViewModel.clock.isPlaying
+        let currentTime = self.timelineViewModel.clock.currentTime
+        let newItem = AVPlayerItem(asset: comp)
+        if let player = self.player {
+            player.replaceCurrentItem(with: newItem)
+            if currentTime.isValid && !currentTime.isIndefinite && currentTime > .zero {
+                await player.seek(to: currentTime, toleranceBefore: .zero, toleranceAfter: .zero)
+            }
+            if wasPlaying {
+                self.timelineViewModel.clock.play()
+            }
+        } else {
+            let newPlayer = AVPlayer(playerItem: newItem)
+            self.player = newPlayer
+            self.timelineViewModel.updatePlayer(newPlayer)
+        }
         return comp
     }
 
@@ -673,6 +705,10 @@ public final class AppViewModel: ObservableObject {
             self.timelineViewModel.rulerFormatter = SMPTERulerFormatter(frameRate: matchingRate)
         }
         self.timelineViewModel.setCues(bundle.metadata.cues, totalDuration: bundle.metadata.totalDuration)
+
+        // Pause and cleanly detach any existing player
+        self.player?.pause()
+        self.timelineViewModel.clock.detachPlayer()
 
         let newPlayer = AVPlayer(url: resolvedMediaURL)
         self.player = newPlayer

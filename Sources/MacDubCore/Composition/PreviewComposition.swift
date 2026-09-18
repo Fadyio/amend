@@ -23,10 +23,16 @@ public struct PreviewCompositionGenerator: Sendable {
             guard let compVideoTrack = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid) else {
                 throw AudioTrackInspectorError.unreadableAsset(sourceURL, "Failed to create video track in preview composition")
             }
-            let timeRange = CMTimeRange(start: .zero, duration: totalDuration)
-            try compVideoTrack.insertTimeRange(timeRange, of: sourceVideoTrack, at: .zero)
+            let naturalSize = try await sourceVideoTrack.load(.naturalSize)
             let transform = try await sourceVideoTrack.load(.preferredTransform)
+            let trackTimeRange = try await sourceVideoTrack.load(.timeRange)
+
+            composition.naturalSize = naturalSize
             compVideoTrack.preferredTransform = transform
+
+            let durationToInsert = min(totalDuration, trackTimeRange.duration)
+            let timeRange = CMTimeRange(start: trackTimeRange.start, duration: durationToInsert)
+            try compVideoTrack.insertTimeRange(timeRange, of: sourceVideoTrack, at: .zero)
         }
 
         // 2. Passthrough Audio Tracks

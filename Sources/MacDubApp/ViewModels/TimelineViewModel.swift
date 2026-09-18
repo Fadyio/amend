@@ -11,6 +11,7 @@ import SwiftTimecodeCore
 public final class PlayheadClock: ObservableObject {
     @Published public private(set) var playheadX: Double = 0.0
     @Published public private(set) var currentTime: CMTime = .zero
+    public var dragStartX: Double? = nil
 
     public init() {}
 

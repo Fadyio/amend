@@ -86,6 +86,65 @@ struct MacDubMain: App {
                 }
                 .keyboardShortcut(.leftArrow, modifiers: [])
             }
+
+            CommandMenu("Narration") {
+                Button("Synthesize Current Cue") {
+                    if let id = appViewModel.selectedCueID {
+                        Task {
+                            try? await appViewModel.synthesizeCue(id: id, providerType: appViewModel.selectedProviderType)
+                        }
+                    }
+                }
+                .keyboardShortcut(.return, modifiers: .command)
+                .disabled(appViewModel.selectedCueID == nil)
+
+                Button("Fix Grammar") {
+                    if let id = appViewModel.selectedCueID, let cue = appViewModel.cues.first(where: { $0.id == id }) {
+                        appViewModel.scriptEditorViewModel.triggerRewrite(cueText: cue.text, action: .fixGrammar, title: "Fix Grammar")
+                    }
+                }
+                .keyboardShortcut("g", modifiers: .command)
+                .disabled(appViewModel.selectedCueID == nil)
+
+                Button("Rewrite to Fit") {
+                    if let id = appViewModel.selectedCueID, let cue = appViewModel.cues.first(where: { $0.id == id }) {
+                        appViewModel.scriptEditorViewModel.triggerRewrite(cueText: cue.text, action: .rewriteToFit(targetDuration: cue.duration), title: "Rewrite to Fit")
+                    }
+                }
+                .keyboardShortcut("g", modifiers: [.command, .shift])
+                .disabled(appViewModel.selectedCueID == nil)
+
+                Button("Split Cue at Playhead") {
+                    try? appViewModel.timelineViewModel.splitCueAtPlayhead()
+                }
+                .keyboardShortcut("s", modifiers: [])
+                .disabled(appViewModel.cues.isEmpty)
+
+                Divider()
+
+                Button("Select Next Cue") {
+                    if let id = appViewModel.selectedCueID, let idx = appViewModel.cues.firstIndex(where: { $0.id == id }), idx + 1 < appViewModel.cues.count {
+                        let next = appViewModel.cues[idx + 1]
+                        appViewModel.selectedCueID = next.id
+                        appViewModel.timelineViewModel.seek(to: next.start)
+                    } else if !appViewModel.cues.isEmpty {
+                        appViewModel.selectedCueID = appViewModel.cues[0].id
+                        appViewModel.timelineViewModel.seek(to: appViewModel.cues[0].start)
+                    }
+                }
+                .keyboardShortcut(.downArrow, modifiers: [])
+                .disabled(appViewModel.cues.isEmpty)
+
+                Button("Select Previous Cue") {
+                    if let id = appViewModel.selectedCueID, let idx = appViewModel.cues.firstIndex(where: { $0.id == id }), idx > 0 {
+                        let prev = appViewModel.cues[idx - 1]
+                        appViewModel.selectedCueID = prev.id
+                        appViewModel.timelineViewModel.seek(to: prev.start)
+                    }
+                }
+                .keyboardShortcut(.upArrow, modifiers: [])
+                .disabled(appViewModel.cues.isEmpty)
+            }
         }
     }
 }

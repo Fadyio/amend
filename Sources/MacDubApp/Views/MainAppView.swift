@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import AVFoundation
 import UniformTypeIdentifiers
 import CoreMedia
 import MacDubCore
@@ -11,66 +12,169 @@ public struct MainAppView: View {
         self.appViewModel = appViewModel
     }
 
+    private var selectedCue: Cue? {
+        guard let id = appViewModel.selectedCueID else { return nil }
+        return appViewModel.cues.first(where: { $0.id == id })
+    }
+
+    private var selectedCueIndex: Int? {
+        guard let id = appViewModel.selectedCueID else { return nil }
+        return appViewModel.cues.firstIndex(where: { $0.id == id })
+    }
+
     public var body: some View {
         VStack(spacing: 0) {
-            // Top App Toolbar
-            topToolbarView
+            // Native Liquid Glass Top Toolbar
+            MacDubToolbar(
+                sourceURL: appViewModel.sourceMediaURL,
+                projectBundleURL: appViewModel.projectBundleURL,
+                isProcessing: appViewModel.isProcessing,
+                statusMessage: appViewModel.statusMessage,
+                onOpenMedia: openMediaFile,
+                onOpenProject: openProjectFile,
+                onSaveProject: saveProjectFile,
+                onExport: { appViewModel.prepareExport() },
+                onOpenSettings: { appViewModel.showProviderSettings = true }
+            )
 
             Divider()
 
-            // Main Content Area: Split View
+            // Main Information Architecture:
+            // SCRIPT DOCUMENT (Primary Left) | REFERENCE MONITOR + CUE INSPECTOR (Right)
             HSplitView {
-                // Left Column: Video Player + Timeline
-                VStack(spacing: 0) {
-                    // Video Player Area
-                    ZStack {
-                        Color.black
-
-                        if let player = appViewModel.player {
-                            VideoPlayerView(player: player)
-                        } else {
-                            emptyMediaPlaceholder
-                        }
+                // Left Column: Script / Narration Document (Primary Workspace)
+                ZStack {
+                    if appViewModel.sourceMediaURL == nil {
+                        EmptyProjectView(
+                            onOpenMedia: openMediaFile,
+                            onOpenProject: openProjectFile
+                        )
+                    } else if appViewModel.isProcessing && appViewModel.cues.isEmpty {
+                        TranscribingStateView(statusMessage: appViewModel.statusMessage)
+                    } else {
+                        ScriptDocumentView(
+                            cues: $appViewModel.cues,
+                            selectedCueID: $appViewModel.selectedCueID,
+                            currentTime: appViewModel.timelineViewModel.clock.currentTime,
+                            editorViewModel: appViewModel.scriptEditorViewModel,
+                            onSeek: { time in
+                                appViewModel.timelineViewModel.seek(to: time)
+                            },
+                            onSynthesizeCue: { id in
+                                Task {
+                                    try? await appViewModel.synthesizeCue(id: id, providerType: appViewModel.selectedProviderType)
+                                }
+                            },
+                            onForceFitCue: { id in
+                                Task {
+                                    try? await appViewModel.forceFitCue(id: id)
+                                }
+                            },
+                            onDiscardCandidate: { id in
+                                appViewModel.discardCandidateCue(id: id)
+                            },
+                            onRestoreOriginalCue: { id in
+                                appViewModel.restoreOriginalCue(id: id)
+                            },
+                            onOpenMedia: openMediaFile
+                        )
                     }
-                    .frame(minHeight: 240, maxHeight: .infinity)
+                }
+                .frame(minWidth: 480, maxWidth: .infinity, maxHeight: .infinity)
+
+                // Right Column: Reference Monitor + Contextual Cue Inspector
+                VStack(spacing: 0) {
+                    // Video Reference Monitor (Smaller, Immutable Synchronization Reference)
+                    ReferenceMonitorView(
+                        player: appViewModel.player,
+                        currentTime: appViewModel.timelineViewModel.clock.currentTime,
+                        totalDuration: appViewModel.totalDuration,
+                        isPlaying: appViewModel.timelineViewModel.clock.isPlaying,
+                        onTogglePlayPause: {
+                            appViewModel.timelineViewModel.clock.togglePlayPause()
+                        },
+                        onStepBackward: {
+                            appViewModel.timelineViewModel.clock.stepBackward(by: 5)
+                        },
+                        onStepForward: {
+                            appViewModel.timelineViewModel.clock.stepForward(by: 5)
+                        }
+                    )
+                    .padding(12)
 
                     Divider()
 
-                    // Fixed-Slot Sync Invariant Timeline
-                    TimelineView(
-                        viewModel: appViewModel.timelineViewModel,
-                        sourceURL: appViewModel.sourceMediaURL,
-                        waveform: appViewModel.multiScaleWaveform
+                    // Cue Inspector (Voice Engine, Duration Fit, AI Actions, Synthesis)
+                    CueInspectorView(
+                        cue: selectedCue,
+                        cueIndex: selectedCueIndex,
+                        totalCues: appViewModel.cues.count,
+                        selectedProvider: $appViewModel.selectedProviderType,
+                        referenceVoice: appViewModel.referenceVoice,
+                        isSynthesizing: appViewModel.scriptEditorViewModel.isSynthesizing,
+                        isRewriting: appViewModel.scriptEditorViewModel.isRewriting,
+                        onSynthesize: {
+                            if let id = appViewModel.selectedCueID {
+                                Task {
+                                    try? await appViewModel.synthesizeCue(id: id, providerType: appViewModel.selectedProviderType)
+                                }
+                            }
+                        },
+                        onPreviewAudio: {
+                            if let cue = selectedCue, let path = cue.audioWAVRelativePath {
+                                let base = appViewModel.projectBundleURL ?? appViewModel.sessionWorkingDir
+                                let fullURL = path.hasPrefix("/") ? URL(fileURLWithPath: path) : base.appendingPathComponent(path)
+                                let previewPlayer = AVPlayer(url: fullURL)
+                                previewPlayer.play()
+                            }
+                        },
+                        onForceFit: {
+                            if let id = appViewModel.selectedCueID {
+                                Task {
+                                    try? await appViewModel.forceFitCue(id: id)
+                                }
+                            }
+                        },
+                        onDiscardCandidate: {
+                            if let id = appViewModel.selectedCueID {
+                                appViewModel.discardCandidateCue(id: id)
+                            }
+                        },
+                        onSplitCue: {
+                            if let id = appViewModel.selectedCueID {
+                                appViewModel.splitCue(id: id, at: appViewModel.timelineViewModel.clock.currentTime)
+                            }
+                        },
+                        onRestoreOriginal: {
+                            if let id = appViewModel.selectedCueID {
+                                appViewModel.restoreOriginalCue(id: id)
+                            }
+                        },
+                        onTriggerRewrite: { action, title in
+                            if let text = selectedCue?.text {
+                                appViewModel.scriptEditorViewModel.triggerRewrite(cueText: text, action: action, title: title)
+                            }
+                        },
+                        onOpenSettings: {
+                            appViewModel.showProviderSettings = true
+                        }
                     )
                 }
-                .frame(minWidth: 500, maxWidth: .infinity)
-
-                // Right Column: Script Editor Sidebar
-                ScriptEditorSidebarView(
-                    editorViewModel: appViewModel.scriptEditorViewModel,
-                    selectedProvider: $appViewModel.selectedProviderType,
-                    cues: $appViewModel.cues,
-                    selectedCueID: $appViewModel.selectedCueID,
-                    currentTime: appViewModel.timelineViewModel.clock.currentTime,
-                    onSeek: { time in
-                        appViewModel.timelineViewModel.seek(to: time)
-                    },
-                    onSplitCue: { id, time in
-                        appViewModel.splitCue(id: id, at: time)
-                    },
-                    onSynthesizeCue: { id, provider in
-                        try await appViewModel.synthesizeCue(id: id, providerType: provider)
-                    },
-                    onForceFitCue: { id in
-                        try await appViewModel.forceFitCue(id: id)
-                    },
-                    onDiscardCandidate: { id in
-                        appViewModel.discardCandidateCue(id: id)
-                    }
-                )
-                .frame(minWidth: 320, idealWidth: 380, maxWidth: 500)
+                .frame(minWidth: 320, idealWidth: 360, maxWidth: 440)
+                .background(.ultraThinMaterial)
             }
+
+            Divider()
+
+            // Bottom Full-Width Narration Timeline
+            NarrationTimelineView(
+                viewModel: appViewModel.timelineViewModel,
+                sourceURL: appViewModel.sourceMediaURL,
+                waveform: appViewModel.multiScaleWaveform,
+                isSingleTrackAdvisory: appViewModel.isSingleTrackAdvisory
+            )
         }
+        .background(MacDubTheme.baseGraphite)
         .sheet(isPresented: $appViewModel.showTrackPicker) {
             TrackPickerView(
                 audioTracks: appViewModel.detectedAudioTracks,
@@ -104,128 +208,6 @@ public struct MainAppView: View {
         } message: {
             Text(appViewModel.errorMessage ?? "")
         }
-    }
-
-    // MARK: - Toolbar
-    private var topToolbarView: some View {
-        HStack(spacing: 12) {
-            // App Branding
-            HStack(spacing: 6) {
-                Image(systemName: "waveform.badge.mic")
-                    .font(.title3)
-                    .foregroundStyle(.blue)
-                Text("macdub")
-                    .font(.headline.bold())
-            }
-
-            Divider()
-                .frame(height: 18)
-
-            // Open Media
-            Button(action: openMediaFile) {
-                Label("Open Media...", systemImage: "folder")
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-
-            // Open Project
-            Button(action: openProjectFile) {
-                Label("Open Project...", systemImage: "doc.badge.gearshape")
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-
-            // Save Project
-            Button(action: saveProjectFile) {
-                Label("Save Project", systemImage: "square.and.arrow.down")
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .disabled(appViewModel.sourceMediaURL == nil)
-
-            // Single Track Advisory (ADR-0003)
-            if appViewModel.isSingleTrackAdvisory {
-                HStack(spacing: 4) {
-                    Image(systemName: "info.circle.fill")
-                        .foregroundStyle(.yellow)
-                    Text("Single Audio Track: Replacing narration may replace embedded system audio")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.yellow.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-            }
-
-            Spacer()
-
-            // Status indicator
-            if appViewModel.isProcessing {
-                HStack(spacing: 6) {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text(appViewModel.statusMessage)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            } else {
-                Text(appViewModel.statusMessage)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            // Export Button (ADR-0008)
-            Button(action: {
-                appViewModel.prepareExport()
-            }) {
-                Label("Export Video...", systemImage: "arrow.up.forward.square.fill")
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
-            .disabled(appViewModel.sourceMediaURL == nil)
-
-            Divider()
-                .frame(height: 18)
-
-            // Provider & Keychain Settings
-            Button(action: {
-                appViewModel.showProviderSettings = true
-            }) {
-                Image(systemName: "gearshape")
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .help("Provider & Keychain Settings")
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(Color(nsColor: .windowBackgroundColor))
-    }
-
-    // MARK: - Empty State Placeholder
-    private var emptyMediaPlaceholder: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "video.badge.plus")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
-
-            VStack(spacing: 4) {
-                Text("No Screen Recording Loaded")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text("Open a .mov or .mp4 recording to transcribe and edit speech")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            Button(action: openMediaFile) {
-                Label("Select Video File...", systemImage: "doc.badge.plus")
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-        }
-        .padding(32)
     }
 
     private func openMediaFile() {

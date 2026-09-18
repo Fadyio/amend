@@ -1,0 +1,122 @@
+import SwiftUI
+import UniformTypeIdentifiers
+import MacDubCore
+
+public struct MacDubToolbar: View {
+    public let sourceURL: URL?
+    public let projectBundleURL: URL?
+    public let isProcessing: Bool
+    public let statusMessage: String
+    public let onOpenMedia: () -> Void
+    public let onOpenProject: () -> Void
+    public let onSaveProject: () -> Void
+    public let onExport: () -> Void
+    public let onOpenSettings: () -> Void
+
+    public init(
+        sourceURL: URL?,
+        projectBundleURL: URL?,
+        isProcessing: Bool,
+        statusMessage: String,
+        onOpenMedia: @escaping () -> Void,
+        onOpenProject: @escaping () -> Void,
+        onSaveProject: @escaping () -> Void,
+        onExport: @escaping () -> Void,
+        onOpenSettings: @escaping () -> Void
+    ) {
+        self.sourceURL = sourceURL
+        self.projectBundleURL = projectBundleURL
+        self.isProcessing = isProcessing
+        self.statusMessage = statusMessage
+        self.onOpenMedia = onOpenMedia
+        self.onOpenProject = onOpenProject
+        self.onSaveProject = onSaveProject
+        self.onExport = onExport
+        self.onOpenSettings = onOpenSettings
+    }
+
+    public var body: some View {
+        HStack(spacing: 12) {
+            // App Branding
+            HStack(spacing: 6) {
+                Image(systemName: "waveform.badge.mic")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(MacDubTheme.accent)
+
+                Text("MacDub")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.primary)
+            }
+
+            Divider()
+                .frame(height: 16)
+
+            // Primary File Actions
+            Menu {
+                Button("Open Recording...", action: onOpenMedia)
+                    .keyboardShortcut("o", modifiers: .command)
+
+                Button("Open Project Bundle...", action: onOpenProject)
+                    .keyboardShortcut("o", modifiers: [.command, .shift])
+            } label: {
+                Label("Open", systemImage: "folder")
+            }
+            .buttonStyle(GlassButtonStyle())
+
+            Button(action: onSaveProject) {
+                Label("Save", systemImage: "square.and.arrow.down")
+            }
+            .buttonStyle(GlassButtonStyle())
+            .disabled(sourceURL == nil)
+
+            Button(action: onExport) {
+                Label("Export...", systemImage: "arrow.up.forward.square.fill")
+            }
+            .buttonStyle(GlassButtonStyle(isProminent: true))
+            .disabled(sourceURL == nil)
+
+            Spacer()
+
+            // Center Project Title & Status
+            HStack(spacing: 8) {
+                if isProcessing {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+
+                VStack(alignment: .center, spacing: 1) {
+                    Text(projectTitle)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.primary)
+
+                    Text(statusMessage)
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            // Settings & Preferences
+            Button(action: onOpenSettings) {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 12))
+            }
+            .buttonStyle(GlassButtonStyle())
+            .help("Provider credentials & settings")
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial)
+    }
+
+    private var projectTitle: String {
+        if let bundle = projectBundleURL {
+            return bundle.deletingPathExtension().lastPathComponent
+        }
+        if let source = sourceURL {
+            return source.lastPathComponent
+        }
+        return "Untitled Project"
+    }
+}
