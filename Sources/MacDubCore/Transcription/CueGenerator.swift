@@ -89,7 +89,8 @@ public final class CueGenerator: CueGenerating, @unchecked Sendable {
                     text: text,
                     originalText: text,
                     audioWAVRelativePath: nil,
-                    editState: .original
+                    editState: .original,
+                    words: wordsInRegion
                 )
                 generatedCues.append(cue)
             }
@@ -120,7 +121,8 @@ public final class CueGenerator: CueGenerating, @unchecked Sendable {
                         id: UUID(),
                         timeRange: CMTimeRange(start: cueStart, duration: duration),
                         text: text,
-                        originalText: text
+                        originalText: text,
+                        words: currentWords
                     )
                     generatedCues.append(cue)
                     currentWords.removeAll()

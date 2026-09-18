@@ -22,6 +22,13 @@ public struct MainAppView: View {
         return appViewModel.cues.firstIndex(where: { $0.id == id })
     }
 
+    private var videoAspectRatio: CGFloat {
+        guard let size = appViewModel.videoNaturalSize, size.height > 0 else {
+            return 16.0 / 9.0
+        }
+        return size.width / size.height
+    }
+
     public var body: some View {
         VStack(spacing: 0) {
             // Native Liquid Glass Top Toolbar
@@ -30,11 +37,19 @@ public struct MainAppView: View {
                 projectBundleURL: appViewModel.projectBundleURL,
                 isProcessing: appViewModel.isProcessing,
                 statusMessage: appViewModel.statusMessage,
+                hasUnsavedChanges: appViewModel.hasUnsavedChanges,
+                selectedProvider: appViewModel.selectedProviderType,
+                isInspectorVisible: appViewModel.isInspectorVisible,
                 onOpenMedia: openMediaFile,
                 onOpenProject: openProjectFile,
                 onSaveProject: saveProjectFile,
                 onExport: { appViewModel.prepareExport() },
-                onOpenSettings: { appViewModel.showProviderSettings = true }
+                onOpenSettings: { appViewModel.showProviderSettings = true },
+                onToggleInspector: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        appViewModel.isInspectorVisible.toggle()
+                    }
+                }
             )
 
             Divider()
@@ -82,86 +97,90 @@ public struct MainAppView: View {
                 }
                 .frame(minWidth: 480, maxWidth: .infinity, maxHeight: .infinity)
 
-                // Right Column: Reference Monitor + Contextual Cue Inspector
-                VStack(spacing: 0) {
-                    // Video Reference Monitor (Smaller, Immutable Synchronization Reference)
-                    ReferenceMonitorView(
-                        player: appViewModel.player,
-                        currentTime: appViewModel.timelineViewModel.clock.currentTime,
-                        totalDuration: appViewModel.totalDuration,
-                        isPlaying: appViewModel.timelineViewModel.clock.isPlaying,
-                        onTogglePlayPause: {
-                            appViewModel.timelineViewModel.clock.togglePlayPause()
-                        },
-                        onStepBackward: {
-                            appViewModel.timelineViewModel.clock.stepBackward(by: 5)
-                        },
-                        onStepForward: {
-                            appViewModel.timelineViewModel.clock.stepForward(by: 5)
-                        }
-                    )
-                    .padding(12)
+                // Right Column: Reference Monitor + Contextual Cue Inspector (collapsible for narrow screens)
+                if appViewModel.isInspectorVisible {
+                    VStack(spacing: 0) {
+                        // Video Reference Monitor (Smaller, Immutable Synchronization Reference)
+                        ReferenceMonitorView(
+                            player: appViewModel.player,
+                            currentTime: appViewModel.timelineViewModel.clock.currentTime,
+                            totalDuration: appViewModel.totalDuration,
+                            isPlaying: appViewModel.timelineViewModel.clock.isPlaying,
+                            videoAspectRatio: videoAspectRatio,
+                            isExpandedPopoverPresented: $appViewModel.isExpandedVideoPopoverPresented,
+                            onTogglePlayPause: {
+                                appViewModel.timelineViewModel.clock.togglePlayPause()
+                            },
+                            onStepBackward: {
+                                appViewModel.timelineViewModel.clock.stepBackward(by: 5)
+                            },
+                            onStepForward: {
+                                appViewModel.timelineViewModel.clock.stepForward(by: 5)
+                            }
+                        )
+                        .padding(12)
 
-                    Divider()
+                        Divider()
 
-                    // Cue Inspector (Voice Engine, Duration Fit, AI Actions, Synthesis)
-                    CueInspectorView(
-                        cue: selectedCue,
-                        cueIndex: selectedCueIndex,
-                        totalCues: appViewModel.cues.count,
-                        selectedProvider: $appViewModel.selectedProviderType,
-                        referenceVoice: appViewModel.referenceVoice,
-                        isSynthesizing: appViewModel.scriptEditorViewModel.isSynthesizing,
-                        isRewriting: appViewModel.scriptEditorViewModel.isRewriting,
-                        onSynthesize: {
-                            if let id = appViewModel.selectedCueID {
-                                Task {
-                                    try? await appViewModel.synthesizeCue(id: id, providerType: appViewModel.selectedProviderType)
+                        // Cue Inspector (Voice Engine, Duration Fit, AI Actions, Synthesis)
+                        CueInspectorView(
+                            cue: selectedCue,
+                            cueIndex: selectedCueIndex,
+                            totalCues: appViewModel.cues.count,
+                            selectedProvider: $appViewModel.selectedProviderType,
+                            referenceVoice: appViewModel.referenceVoice,
+                            isSynthesizing: appViewModel.scriptEditorViewModel.isSynthesizing,
+                            isRewriting: appViewModel.scriptEditorViewModel.isRewriting,
+                            onSynthesize: {
+                                if let id = appViewModel.selectedCueID {
+                                    Task {
+                                        try? await appViewModel.synthesizeCue(id: id, providerType: appViewModel.selectedProviderType)
+                                    }
                                 }
-                            }
-                        },
-                        onPreviewAudio: {
-                            if let cue = selectedCue, let path = cue.audioWAVRelativePath {
-                                let base = appViewModel.projectBundleURL ?? appViewModel.sessionWorkingDir
-                                let fullURL = path.hasPrefix("/") ? URL(fileURLWithPath: path) : base.appendingPathComponent(path)
-                                let previewPlayer = AVPlayer(url: fullURL)
-                                previewPlayer.play()
-                            }
-                        },
-                        onForceFit: {
-                            if let id = appViewModel.selectedCueID {
-                                Task {
-                                    try? await appViewModel.forceFitCue(id: id)
+                            },
+                            onPreviewAudio: {
+                                if let cue = selectedCue {
+                                    appViewModel.previewCueAudio(for: cue)
                                 }
+                            },
+                            onForceFit: {
+                                if let id = appViewModel.selectedCueID {
+                                    Task {
+                                        try? await appViewModel.forceFitCue(id: id)
+                                    }
+                                }
+                            },
+                            onDiscardCandidate: {
+                                if let id = appViewModel.selectedCueID {
+                                    appViewModel.discardCandidateCue(id: id)
+                                }
+                            },
+                            onSplitCue: {
+                                if let id = appViewModel.selectedCueID {
+                                    appViewModel.splitCue(id: id, at: appViewModel.timelineViewModel.clock.currentTime)
+                                }
+                            },
+                            onRestoreOriginal: {
+                                if let id = appViewModel.selectedCueID {
+                                    appViewModel.restoreOriginalCue(id: id)
+                                }
+                            },
+                            onTriggerRewrite: { action, title in
+                                if let text = selectedCue?.text {
+                                    appViewModel.scriptEditorViewModel.triggerRewrite(cueText: text, action: action, title: title)
+                                }
+                            },
+                            onOpenSettings: {
+                                appViewModel.showProviderSettings = true
+                            },
+                            onImportReferenceVoice: {
+                                importReferenceVoiceFile()
                             }
-                        },
-                        onDiscardCandidate: {
-                            if let id = appViewModel.selectedCueID {
-                                appViewModel.discardCandidateCue(id: id)
-                            }
-                        },
-                        onSplitCue: {
-                            if let id = appViewModel.selectedCueID {
-                                appViewModel.splitCue(id: id, at: appViewModel.timelineViewModel.clock.currentTime)
-                            }
-                        },
-                        onRestoreOriginal: {
-                            if let id = appViewModel.selectedCueID {
-                                appViewModel.restoreOriginalCue(id: id)
-                            }
-                        },
-                        onTriggerRewrite: { action, title in
-                            if let text = selectedCue?.text {
-                                appViewModel.scriptEditorViewModel.triggerRewrite(cueText: text, action: action, title: title)
-                            }
-                        },
-                        onOpenSettings: {
-                            appViewModel.showProviderSettings = true
-                        }
-                    )
+                        )
+                    }
+                    .frame(minWidth: 320, idealWidth: 360, maxWidth: 440)
+                    .background(.ultraThinMaterial)
                 }
-                .frame(minWidth: 320, idealWidth: 360, maxWidth: 440)
-                .background(.ultraThinMaterial)
             }
 
             Divider()
@@ -254,6 +273,24 @@ public struct MainAppView: View {
             } catch {
                 appViewModel.errorMessage = "Failed to save project: \(error.localizedDescription)"
                 appViewModel.statusMessage = "Project save failed"
+            }
+        }
+    }
+
+    private func importReferenceVoiceFile() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.audio, .quickTimeMovie, .wav, .mp3, .mpeg4Audio]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.title = "Import Reference Voice Audio"
+        panel.message = "Select a clean audio recording (WAV, MP3, M4A, or MOV) of your voice."
+        if panel.runModal() == .OK, let url = panel.url {
+            let name = url.deletingPathExtension().lastPathComponent
+            do {
+                try appViewModel.setReferenceVoice(name: name, audioURL: url)
+            } catch {
+                appViewModel.errorMessage = "Failed to import reference voice: \(error.localizedDescription)"
             }
         }
     }

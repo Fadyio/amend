@@ -70,6 +70,16 @@ public struct ScriptCueRow: View {
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(.tertiary)
 
+                if cue.editState == .synthesized || cue.editState == .forceFitted {
+                    Text("✓ Fits")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(MacDubTheme.statusSuccess)
+                } else if cue.editState == .overflowGated, let delta = cue.overflowDelta {
+                    Text(String(format: "+%.2fs", CMTimeGetSeconds(delta)))
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(MacDubTheme.statusError)
+                }
+
                 Spacer()
 
                 StatusBadge(state: cue.editState, overflowDelta: cue.overflowDelta)
@@ -78,7 +88,7 @@ public struct ScriptCueRow: View {
             // Editable Narration Paragraph
             ZStack(alignment: .topLeading) {
                 if isSelected {
-                    // In-place editable text field for selected cue
+                    // In-place editable text field for selected cue (Phase 3 & 4)
                     TextField(
                         "Enter narration text...",
                         text: Binding<String>(
@@ -93,13 +103,17 @@ public struct ScriptCueRow: View {
                     .foregroundStyle(.primary)
                     .focused($isFieldFocused)
                 } else {
-                    // Document presentation view
+                    // Document presentation view with word-level playback highlight (Phase 10)
                     Text(renderedParagraph)
                         .font(.system(size: 14, weight: .regular))
                         .lineSpacing(4)
                         .foregroundStyle(isActive ? .primary : Color.primary.opacity(0.88))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
+                        .onTapGesture(count: 2) {
+                            onSelect()
+                            isFieldFocused = true
+                        }
                         .onTapGesture {
                             onSelect()
                             onSeek(cue.start)
@@ -125,6 +139,11 @@ public struct ScriptCueRow: View {
                     lineWidth: 1
                 )
         )
+        .onChange(of: isSelected) { _, selected in
+            if selected {
+                isFieldFocused = true
+            }
+        }
         .contextMenu {
             Button("Fix Grammar") {
                 onTriggerRewrite(.fixGrammar, "Fix Grammar")
@@ -152,7 +171,34 @@ public struct ScriptCueRow: View {
     }
 
     private var renderedParagraph: AttributedString {
-        AttributedString(cue.text)
+        var attr = AttributedString(cue.text)
+        if isActive {
+            if let targetWord = findActiveWord(), !targetWord.isEmpty {
+                if let range = attr.range(of: targetWord) {
+                    attr[range].foregroundColor = MacDubTheme.accent
+                    attr[range].inlinePresentationIntent = .stronglyEmphasized
+                }
+            }
+        }
+        return attr
+    }
+
+    private func findActiveWord() -> String? {
+        if let words = cue.words, !words.isEmpty {
+            if let matching = words.first(where: { $0.contains(time: currentTime) }) {
+                return matching.word
+            }
+        }
+        // Fallback: estimate word position based on continuous playback progress through the cue slot
+        let cueDur = CMTimeGetSeconds(cue.duration)
+        guard cueDur > 0.0 else { return nil }
+        let elapsed = CMTimeGetSeconds(CMTimeSubtract(currentTime, cue.start))
+        guard elapsed >= 0 && elapsed <= cueDur else { return nil }
+        let progress = elapsed / cueDur
+        let wordTokens = cue.text.split(separator: " ").map(String.init)
+        guard !wordTokens.isEmpty else { return nil }
+        let index = min(wordTokens.count - 1, max(0, Int(progress * Double(wordTokens.count))))
+        return wordTokens[index]
     }
 
     private func formatTime(_ time: CMTime) -> String {

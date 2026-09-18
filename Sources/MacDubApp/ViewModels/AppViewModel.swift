@@ -27,9 +27,13 @@ public final class AppViewModel: ObservableObject {
     @Published public var showTrackPicker: Bool = false
     @Published public var showExportSheet: Bool = false
     @Published public var showProviderSettings: Bool = false
+    @Published public var isInspectorVisible: Bool = true
+    @Published public var isExpandedVideoPopoverPresented: Bool = false
     @Published public var isProcessing: Bool = false
     @Published public var statusMessage: String = "Ready"
     @Published public var errorMessage: String?
+    @Published public var hasUnsavedChanges: Bool = false
+    @Published public var videoNaturalSize: CGSize?
 
     // Child ViewModels & Controllers
     @Published public var timelineViewModel: TimelineViewModel
@@ -38,6 +42,7 @@ public final class AppViewModel: ObservableObject {
 
     // AVPlayer
     @Published public private(set) var player: AVPlayer?
+    @Published public private(set) var cuePreviewPlayer: AVPlayer?
 
     // Services
     public let providerRegistry: SynthesisProviderRegistry
@@ -131,7 +136,7 @@ public final class AppViewModel: ObservableObject {
             let asset = AVURLAsset(url: url)
             let dur = try await asset.load(.duration)
 
-            // Inspect nominal frame rate (Phase 14 & Blocker 10)
+            // Inspect video track for frame rate and presentation aspect ratio
             if let videoTrack = try await asset.loadTracks(withMediaType: .video).first {
                 let fps = try await videoTrack.load(.nominalFrameRate)
                 if fps > 0 {
@@ -139,9 +144,17 @@ public final class AppViewModel: ObservableObject {
                     self.timelineViewModel.rulerFormatter = SMPTERulerFormatter(frameRate: matchingRate)
                     self.timelineViewModel.clock.frameRate = Double(fps)
                 }
+                let rawSize = try await videoTrack.load(.naturalSize)
+                let transform = try await videoTrack.load(.preferredTransform)
+                let transformedRect = CGRect(origin: .zero, size: rawSize).applying(transform)
+                let presentationSize = CGSize(width: abs(transformedRect.width), height: abs(transformedRect.height))
+                self.videoNaturalSize = (presentationSize.width > 0 && presentationSize.height > 0) ? presentationSize : rawSize
+            } else {
+                self.videoNaturalSize = nil
             }
 
             self.totalDuration = dur
+            self.hasUnsavedChanges = false
             self.timelineViewModel.setCues([], totalDuration: dur)
 
             switch inspection {
@@ -257,6 +270,7 @@ public final class AppViewModel: ObservableObject {
             audioRelativePath: relativePath,
             pocketTTSStatus: .configured
         )
+        self.hasUnsavedChanges = true
         self.statusMessage = "Configured Reference Voice: \(name)"
     }
 
@@ -310,6 +324,7 @@ public final class AppViewModel: ObservableObject {
         do {
             let (newCues, cueA, _) = try cueSplitter.splitCue(in: cues, targetCueID: id, at: time)
             self.cues = newCues
+            self.hasUnsavedChanges = true
             self.timelineViewModel.setCues(newCues, totalDuration: totalDuration)
             self.selectedCueID = cueA.id
         } catch {
@@ -422,11 +437,15 @@ public final class AppViewModel: ObservableObject {
             try FileManager.default.createDirectory(at: targetWAV.deletingLastPathComponent(), withIntermediateDirectories: true)
             try writeBuffer(fittedBuffer, to: targetWAV)
 
+            let genDur = CMTime(seconds: Double(fittedBuffer.frameLength) / fittedBuffer.format.sampleRate, preferredTimescale: 600_000)
+
             cues[index] = cue.withUpdatedAudio(
                 audioWAVRelativePath: relativePath,
                 editState: .synthesized,
-                overflowDelta: nil
+                overflowDelta: nil,
+                generatedDuration: genDur
             )
+            self.hasUnsavedChanges = true
             timelineViewModel.setCues(cues, totalDuration: totalDuration)
             refreshPreviewPlayback()
             statusMessage = "Fitted replacement audio for cue \(index + 1)"
@@ -438,10 +457,14 @@ public final class AppViewModel: ObservableObject {
             try FileManager.default.createDirectory(at: targetCandidateWAV.deletingLastPathComponent(), withIntermediateDirectories: true)
             try writeBuffer(uncompressedBuffer, to: targetCandidateWAV)
 
+            let uncompressedDur = CMTime(seconds: Double(uncompressedBuffer.frameLength) / uncompressedBuffer.format.sampleRate, preferredTimescale: 600_000)
+
             cues[index] = cue.withCandidateAudio(
                 candidateAudioWAVRelativePath: relativeCandidatePath,
-                overflowDelta: delta
+                overflowDelta: delta,
+                generatedDuration: uncompressedDur
             )
+            self.hasUnsavedChanges = true
             timelineViewModel.setCues(cues, totalDuration: totalDuration)
             refreshPreviewPlayback() // Candidate audio is strictly ignored by preview
             statusMessage = String(format: "Cue duration overflow (+%.2fs). Awaiting user resolution.", CMTimeGetSeconds(delta))
@@ -505,11 +528,15 @@ public final class AppViewModel: ObservableObject {
             try? FileManager.default.removeItem(at: candURL)
         }
 
+        let genDur = CMTime(seconds: Double(buffer.frameLength) / buffer.format.sampleRate, preferredTimescale: 600_000)
+
         cues[index] = cue.withUpdatedAudio(
             audioWAVRelativePath: relativePath,
             editState: .forceFitted,
-            overflowDelta: nil
+            overflowDelta: nil,
+            generatedDuration: genDur
         )
+        self.hasUnsavedChanges = true
 
         timelineViewModel.setCues(cues, totalDuration: totalDuration)
         refreshPreviewPlayback()
@@ -527,6 +554,7 @@ public final class AppViewModel: ObservableObject {
         }
 
         cues[index] = cue.withDiscardedCandidate()
+        self.hasUnsavedChanges = true
         timelineViewModel.setCues(cues, totalDuration: totalDuration)
         refreshPreviewPlayback()
         statusMessage = "Discarded overflow candidate"
@@ -535,6 +563,7 @@ public final class AppViewModel: ObservableObject {
     public func updateCueText(id: UUID, newText: String) {
         guard let index = cues.firstIndex(where: { $0.id == id }) else { return }
         cues[index] = cues[index].withUpdatedText(newText)
+        self.hasUnsavedChanges = true
         timelineViewModel.setCues(cues, totalDuration: totalDuration)
     }
 
@@ -542,7 +571,19 @@ public final class AppViewModel: ObservableObject {
         guard let index = cues.firstIndex(where: { $0.id == id }) else { return }
         let original = cues[index].originalText
         cues[index] = cues[index].withUpdatedText(original)
+        self.hasUnsavedChanges = true
         timelineViewModel.setCues(cues, totalDuration: totalDuration)
+    }
+
+    public func previewCueAudio(for cue: Cue) {
+        guard let path = cue.audioWAVRelativePath else { return }
+        let base = projectBundleURL ?? sessionWorkingDir
+        let fullURL = path.hasPrefix("/") ? URL(fileURLWithPath: path) : base.appendingPathComponent(path)
+        guard FileManager.default.fileExists(atPath: fullURL.path) else { return }
+
+        let p = AVPlayer(url: fullURL)
+        self.cuePreviewPlayer = p
+        p.play()
     }
 
     // MARK: - Preview Composition Playback (Phase 12)
@@ -674,6 +715,7 @@ public final class AppViewModel: ObservableObject {
         try ProjectBundleSerializer.save(bundle: updatedBundle)
 
         self.projectBundleURL = bundleURL
+        self.hasUnsavedChanges = false
         self.statusMessage = "Project saved to \(bundleURL.lastPathComponent)"
     }
 
@@ -696,6 +738,7 @@ public final class AppViewModel: ObservableObject {
         self.totalDuration = bundle.metadata.totalDuration
         self.cues = bundle.metadata.cues
         self.referenceVoice = bundle.metadata.referenceVoice
+        self.hasUnsavedChanges = false
         if let prov = bundle.metadata.activeProviderType {
             self.selectedProviderType = prov
         }
@@ -714,6 +757,19 @@ public final class AppViewModel: ObservableObject {
         self.player = newPlayer
         self.timelineViewModel.updatePlayer(newPlayer)
         self.statusMessage = "Project loaded: \(bundle.metadata.name)"
+
+        Task {
+            let asset = AVURLAsset(url: resolvedMediaURL)
+            if let videoTrack = try? await asset.loadTracks(withMediaType: .video).first {
+                let rawSize = (try? await videoTrack.load(.naturalSize)) ?? .zero
+                let transform = (try? await videoTrack.load(.preferredTransform)) ?? .identity
+                let transformedRect = CGRect(origin: .zero, size: rawSize).applying(transform)
+                let presentationSize = CGSize(width: abs(transformedRect.width), height: abs(transformedRect.height))
+                await MainActor.run {
+                    self.videoNaturalSize = (presentationSize.width > 0 && presentationSize.height > 0) ? presentationSize : rawSize
+                }
+            }
+        }
 
         refreshPreviewPlayback()
     }

@@ -21,48 +21,62 @@ public struct DiffPreviewView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Image(systemName: "text.badge.checkmark")
-                    .font(.title)
-                    .foregroundStyle(.purple)
+            HStack(spacing: 10) {
+                Image(systemName: "wand.and.stars")
+                    .font(.title2)
+                    .foregroundStyle(MacDubTheme.accent)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(actionTitle)
-                        .font(.title2.bold())
-                    Text("Review the changes below before replacing your narration text. Original transcript is always preserved.")
-                        .font(.callout)
+                        .font(.headline.bold())
+                        .foregroundStyle(.primary)
+                    Text("Review the changes below before replacing your narration text.")
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
 
             Divider()
 
-            Text("Changes Preview:")
-                .font(.headline)
+            // Original vs Proposed Comparison (Phase 13)
+            VStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("ORIGINAL")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.secondary)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    // Inline Diff Flow
-                    Text(diffAttributedString)
-                        .font(.body)
-                        .lineSpacing(6)
-                        .padding(12)
+                    Text(result.originalText)
+                        .font(.system(size: 13))
+                        .lineSpacing(4)
+                        .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(nsColor: .controlBackgroundColor))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .padding(10)
+                        .glassPanel(cornerRadius: MacDubTheme.cornerRadiusSmall)
+                }
 
-                    HStack(spacing: 16) {
-                        HStack(spacing: 4) {
-                            Circle().fill(Color.red.opacity(0.4)).frame(width: 8, height: 8)
-                            Text("Removed").font(.caption).foregroundStyle(.secondary)
-                        }
-                        HStack(spacing: 4) {
-                            Circle().fill(Color.green.opacity(0.4)).frame(width: 8, height: 8)
-                            Text("Added").font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("PROPOSED")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(MacDubTheme.accent)
+
+                    Text(diffAttributedString)
+                        .font(.system(size: 13))
+                        .lineSpacing(4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(10)
+                        .glassPanel(cornerRadius: MacDubTheme.cornerRadiusSmall)
                 }
             }
-            .frame(height: 140)
+
+            HStack(spacing: 16) {
+                HStack(spacing: 4) {
+                    Circle().fill(MacDubTheme.statusError.opacity(0.6)).frame(width: 7, height: 7)
+                    Text("Removed").font(.caption2).foregroundStyle(.secondary)
+                }
+                HStack(spacing: 4) {
+                    Circle().fill(MacDubTheme.statusSuccess.opacity(0.8)).frame(width: 7, height: 7)
+                    Text("Added").font(.caption2).foregroundStyle(.secondary)
+                }
+            }
 
             Divider()
 
@@ -70,19 +84,21 @@ public struct DiffPreviewView: View {
                 Button("Cancel", role: .cancel) {
                     onCancel()
                 }
+                .buttonStyle(GlassButtonStyle())
                 .keyboardShortcut(.cancelAction)
 
                 Spacer()
 
-                Button("Apply Rewrite") {
+                Button("Apply") {
                     onApply(result.rewrittenText)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(GlassButtonStyle(isProminent: true))
                 .keyboardShortcut(.defaultAction)
             }
         }
         .padding(20)
         .frame(width: 520)
+        .background(MacDubTheme.panelGraphite)
     }
 
     private var diffAttributedString: AttributedString {
@@ -93,12 +109,12 @@ public struct DiffPreviewView: View {
             case .unchanged:
                 chunkStr.foregroundColor = .primary
             case .added:
-                chunkStr.foregroundColor = .green
-                chunkStr.backgroundColor = Color.green.opacity(0.15)
+                chunkStr.foregroundColor = MacDubTheme.statusSuccess
+                chunkStr.backgroundColor = MacDubTheme.statusSuccess.opacity(0.18)
                 chunkStr.inlinePresentationIntent = .stronglyEmphasized
             case .deleted:
-                chunkStr.foregroundColor = .red
-                chunkStr.backgroundColor = Color.red.opacity(0.15)
+                chunkStr.foregroundColor = MacDubTheme.statusError
+                chunkStr.backgroundColor = MacDubTheme.statusError.opacity(0.18)
                 chunkStr.strikethroughStyle = .single
             }
             str.append(chunkStr)

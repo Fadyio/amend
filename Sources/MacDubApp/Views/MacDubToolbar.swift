@@ -7,32 +7,44 @@ public struct MacDubToolbar: View {
     public let projectBundleURL: URL?
     public let isProcessing: Bool
     public let statusMessage: String
+    public let hasUnsavedChanges: Bool
+    public let selectedProvider: SynthesisProviderType
+    public let isInspectorVisible: Bool
     public let onOpenMedia: () -> Void
     public let onOpenProject: () -> Void
     public let onSaveProject: () -> Void
     public let onExport: () -> Void
     public let onOpenSettings: () -> Void
+    public let onToggleInspector: () -> Void
 
     public init(
         sourceURL: URL?,
         projectBundleURL: URL?,
         isProcessing: Bool,
         statusMessage: String,
+        hasUnsavedChanges: Bool = false,
+        selectedProvider: SynthesisProviderType = .pocketTTS,
+        isInspectorVisible: Bool = true,
         onOpenMedia: @escaping () -> Void,
         onOpenProject: @escaping () -> Void,
         onSaveProject: @escaping () -> Void,
         onExport: @escaping () -> Void,
-        onOpenSettings: @escaping () -> Void
+        onOpenSettings: @escaping () -> Void,
+        onToggleInspector: @escaping () -> Void = {}
     ) {
         self.sourceURL = sourceURL
         self.projectBundleURL = projectBundleURL
         self.isProcessing = isProcessing
         self.statusMessage = statusMessage
+        self.hasUnsavedChanges = hasUnsavedChanges
+        self.selectedProvider = selectedProvider
+        self.isInspectorVisible = isInspectorVisible
         self.onOpenMedia = onOpenMedia
         self.onOpenProject = onOpenProject
         self.onSaveProject = onSaveProject
         self.onExport = onExport
         self.onOpenSettings = onOpenSettings
+        self.onToggleInspector = onToggleInspector
     }
 
     public var body: some View {
@@ -51,7 +63,7 @@ public struct MacDubToolbar: View {
             Divider()
                 .frame(height: 16)
 
-            // Primary File Actions
+            // Primary File Actions (Phase 7: Open, Save, Export)
             Menu {
                 Button("Open Recording...", action: onOpenMedia)
                     .keyboardShortcut("o", modifiers: .command)
@@ -77,21 +89,43 @@ public struct MacDubToolbar: View {
 
             Spacer()
 
-            // Center Project Title & Status
+            // Center Project Title, Saved/Unsaved state, and Status (Phase 4 & 7)
             HStack(spacing: 8) {
                 if isProcessing {
                     ProgressView()
                         .controlSize(.small)
                 }
 
-                VStack(alignment: .center, spacing: 1) {
-                    Text(projectTitle)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.primary)
+                VStack(alignment: .center, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(projectTitle)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.primary)
 
-                    Text(statusMessage)
-                        .font(.system(size: 9))
-                        .foregroundStyle(.secondary)
+                        if hasUnsavedChanges {
+                            Text("Edited")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1)
+                                .background(Color.white.opacity(0.12))
+                                .clipShape(Capsule())
+                        }
+                    }
+
+                    HStack(spacing: 5) {
+                        Text(statusMessage)
+                            .font(.system(size: 9))
+                            .foregroundStyle(.secondary)
+
+                        Text("•")
+                            .font(.system(size: 8))
+                            .foregroundStyle(.tertiary)
+
+                        Text(providerDisplayName)
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(MacDubTheme.accent)
+                    }
                 }
             }
 
@@ -104,6 +138,15 @@ public struct MacDubToolbar: View {
             }
             .buttonStyle(GlassButtonStyle())
             .help("Provider credentials & settings")
+
+            // Inspector Toggle (Phase 16)
+            Button(action: onToggleInspector) {
+                Image(systemName: "sidebar.right")
+                    .font(.system(size: 12))
+                    .foregroundStyle(isInspectorVisible ? MacDubTheme.accent : .secondary)
+            }
+            .buttonStyle(GlassButtonStyle())
+            .help("Toggle Inspector & Video Reference Monitor")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
@@ -118,5 +161,18 @@ public struct MacDubToolbar: View {
             return source.lastPathComponent
         }
         return "Untitled Project"
+    }
+
+    private var providerDisplayName: String {
+        switch selectedProvider {
+        case .pocketTTS:
+            return "PocketTTS"
+        case .elevenLabs:
+            return "ElevenLabs"
+        case .geminiTTS:
+            return "Gemini"
+        case .resemble:
+            return "Resemble"
+        }
     }
 }

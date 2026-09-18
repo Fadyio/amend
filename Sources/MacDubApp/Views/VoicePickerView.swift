@@ -5,15 +5,18 @@ public struct VoicePickerView: View {
     @Binding public var selectedProvider: SynthesisProviderType
     public let referenceVoice: ReferenceVoice?
     public let onOpenSettings: () -> Void
+    public let onImportReferenceVoice: () -> Void
 
     public init(
         selectedProvider: Binding<SynthesisProviderType>,
         referenceVoice: ReferenceVoice? = nil,
-        onOpenSettings: @escaping () -> Void = {}
+        onOpenSettings: @escaping () -> Void = {},
+        onImportReferenceVoice: @escaping () -> Void = {}
     ) {
         self._selectedProvider = selectedProvider
         self.referenceVoice = referenceVoice
         self.onOpenSettings = onOpenSettings
+        self.onImportReferenceVoice = onImportReferenceVoice
     }
 
     public var body: some View {
@@ -34,6 +37,7 @@ public struct VoicePickerView: View {
                 .help("Provider credentials & settings")
             }
 
+            // Intentional Engine Selection Menu
             Menu {
                 ForEach(SynthesisProviderType.allCases, id: \.self) { provider in
                     Button(action: {
@@ -74,6 +78,96 @@ public struct VoicePickerView: View {
                 .glassPanel(cornerRadius: MacDubTheme.cornerRadiusSmall)
             }
             .menuStyle(.borderlessButton)
+
+            // Voice Status / Reference Voice Configuration Card (Phase 11 & 12)
+            if selectedProvider == .pocketTTS || selectedProvider == .elevenLabs {
+                if let ref = referenceVoice, !ref.name.isEmpty {
+                    HStack(spacing: 8) {
+                        Image(systemName: "person.wave.2.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(MacDubTheme.statusSuccess)
+
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(ref.name)
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.primary)
+                            Text("Reference Voice Active")
+                                .font(.system(size: 9))
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        Button("Change", action: onImportReferenceVoice)
+                            .buttonStyle(GlassButtonStyle())
+                            .controlSize(.mini)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .glassPanel(cornerRadius: MacDubTheme.cornerRadiusSmall)
+                } else {
+                    // Empty state: No reference voice (Phase 11)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "mic.slash.fill")
+                                .font(.system(size: 11))
+                                .foregroundStyle(MacDubTheme.statusWarning)
+
+                            Text("No Reference Voice")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.primary)
+                        }
+
+                        Text("Import a short clean recording to generate narration in your voice.")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Button(action: onImportReferenceVoice) {
+                            Label("Import Reference Voice", systemImage: "arrow.up.circle.fill")
+                                .font(.system(size: 10, weight: .medium))
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(GlassButtonStyle(isProminent: true))
+                        .controlSize(.small)
+                    }
+                    .padding(8)
+                    .glassPanel(cornerRadius: MacDubTheme.cornerRadiusSmall)
+                }
+            } else if selectedProvider == .geminiTTS {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 10))
+                        .foregroundStyle(MacDubTheme.accent)
+                    Text("Voice: Puck • Natural Cloud Voice")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+            } else if selectedProvider == .resemble {
+                if let uuid = referenceVoice?.resembleVoiceUUID, !uuid.isEmpty {
+                    HStack(spacing: 6) {
+                        Image(systemName: "waveform")
+                            .font(.system(size: 10))
+                            .foregroundStyle(MacDubTheme.statusSuccess)
+                        Text("UUID: \(uuid.prefix(12))...")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                } else {
+                    Button(action: onOpenSettings) {
+                        Label("Configure Resemble Voice UUID", systemImage: "exclamationmark.circle")
+                            .font(.system(size: 10))
+                            .foregroundStyle(MacDubTheme.statusWarning)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                }
+            }
         }
     }
 

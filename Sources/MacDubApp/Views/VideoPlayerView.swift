@@ -46,6 +46,22 @@ public final class MacDubPlayerNSView: NSView {
         playerLayer.frame = bounds
         CATransaction.commit()
     }
+
+    public override func viewDidChangeBackingProperties() {
+        super.viewDidChangeBackingProperties()
+        updateBackingScale()
+    }
+
+    public override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateBackingScale()
+    }
+
+    private func updateBackingScale() {
+        let scale = window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2.0
+        playerLayer.contentsScale = scale
+        layer?.contentsScale = scale
+    }
 }
 
 /// SwiftUI wrapper for native video reference monitor.

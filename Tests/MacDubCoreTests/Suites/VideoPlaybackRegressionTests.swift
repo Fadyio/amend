@@ -252,4 +252,80 @@ struct VideoPlaybackRegressionTests {
         #expect(FileManager.default.fileExists(atPath: screenshotsDir.appendingPathComponent("3_synthesis_duration_state.png").path))
         #expect(FileManager.default.fileExists(atPath: screenshotsDir.appendingPathComponent("4_timeline_video_preview_state.png").path))
     }
+
+    @Test("Cue audio preview player is strongly retained on AppViewModel to prevent premature deallocation")
+    @MainActor
+    func test_cue_audio_preview_retains_player() async throws {
+        let tempDir = try createTempDir()
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let mediaURL = tempDir.appendingPathComponent("preview_test.mov")
+        _ = try await Fixture1SingleTrack.generate(at: mediaURL)
+
+        let appVM = AppViewModel()
+        try await appVM.importMediaAsync(from: mediaURL)
+
+        let testWAV = tempDir.appendingPathComponent("test_cue.wav")
+        let buf = try SyntheticFixtureGenerator.createPCMBuffer(duration: CMTime(seconds: 2.0, preferredTimescale: 600), frequency: 440.0)
+        try SyntheticFixtureGenerator.writeWAVFile(buffer: buf, to: testWAV)
+
+        let cue = Cue(
+            id: UUID(),
+            timeRange: CMTimeRange(start: .zero, duration: CMTime(seconds: 2.0, preferredTimescale: 600)),
+            text: "Testing preview audio retention",
+            audioWAVRelativePath: testWAV.path,
+            editState: .synthesized
+        )
+
+        appVM.previewCueAudio(for: cue)
+        #expect(appVM.cuePreviewPlayer != nil, "cuePreviewPlayer must be retained on AppViewModel")
+        #expect(appVM.cuePreviewPlayer?.currentItem != nil, "cuePreviewPlayer must possess an active currentItem")
+    }
+
+    @Test("Unsaved changes flag transitions correctly across cue edits, splits, and project saves")
+    @MainActor
+    func test_unsaved_changes_tracking_across_cue_operations() async throws {
+        let tempDir = try createTempDir()
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let mediaURL = tempDir.appendingPathComponent("dirty_test.mov")
+        _ = try await Fixture1SingleTrack.generate(at: mediaURL)
+
+        let appVM = AppViewModel()
+        try await appVM.importMediaAsync(from: mediaURL)
+        #expect(!appVM.hasUnsavedChanges, "Freshly imported media should not be marked dirty")
+
+        guard !appVM.cues.isEmpty else { return }
+        let firstCue = appVM.cues[0]
+
+        // 1. Text edit marks dirty
+        appVM.updateCueText(id: firstCue.id, newText: "Altered narration text")
+        #expect(appVM.hasUnsavedChanges, "Text modification must set hasUnsavedChanges to true")
+
+        // 2. Save resets dirty
+        let bundleURL = tempDir.appendingPathComponent("DirtyTest.voicefix")
+        try appVM.saveProject(to: bundleURL)
+        #expect(!appVM.hasUnsavedChanges, "Saving project must clear hasUnsavedChanges")
+
+        // 3. Split marks dirty
+        appVM.splitCue(id: firstCue.id, at: CMTime(seconds: 1.0, preferredTimescale: 600))
+        #expect(appVM.hasUnsavedChanges, "Splitting cue must set hasUnsavedChanges to true")
+    }
+
+    @Test("Cue word timing propagation and contains verification")
+    func test_cue_word_timing_propagation() {
+        let w1 = WordTiming(word: "Hello", timeRange: CMTimeRange(start: CMTime(seconds: 0.0, preferredTimescale: 600), duration: CMTime(seconds: 0.5, preferredTimescale: 600)))
+        let w2 = WordTiming(word: "world", timeRange: CMTimeRange(start: CMTime(seconds: 0.5, preferredTimescale: 600), duration: CMTime(seconds: 0.5, preferredTimescale: 600)))
+
+        let cue = Cue(
+            timeRange: CMTimeRange(start: .zero, duration: CMTime(seconds: 1.0, preferredTimescale: 600)),
+            text: "Hello world",
+            words: [w1, w2]
+        )
+
+        #expect(cue.words?.count == 2)
+        #expect(w1.contains(time: CMTime(seconds: 0.25, preferredTimescale: 600)))
+        #expect(!w1.contains(time: CMTime(seconds: 0.75, preferredTimescale: 600)))
+        #expect(w2.contains(time: CMTime(seconds: 0.75, preferredTimescale: 600)))
+    }
 }

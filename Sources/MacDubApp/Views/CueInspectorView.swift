@@ -19,6 +19,7 @@ public struct CueInspectorView: View {
     public let onRestoreOriginal: () -> Void
     public let onTriggerRewrite: (GrammarAction, String) -> Void
     public let onOpenSettings: () -> Void
+    public let onImportReferenceVoice: () -> Void
 
     public init(
         cue: Cue?,
@@ -35,7 +36,8 @@ public struct CueInspectorView: View {
         onSplitCue: @escaping () -> Void = {},
         onRestoreOriginal: @escaping () -> Void = {},
         onTriggerRewrite: @escaping (GrammarAction, String) -> Void = { _, _ in },
-        onOpenSettings: @escaping () -> Void = {}
+        onOpenSettings: @escaping () -> Void = {},
+        onImportReferenceVoice: @escaping () -> Void = {}
     ) {
         self.cue = cue
         self.cueIndex = cueIndex
@@ -52,6 +54,7 @@ public struct CueInspectorView: View {
         self.onRestoreOriginal = onRestoreOriginal
         self.onTriggerRewrite = onTriggerRewrite
         self.onOpenSettings = onOpenSettings
+        self.onImportReferenceVoice = onImportReferenceVoice
     }
 
     public var body: some View {
@@ -77,25 +80,26 @@ public struct CueInspectorView: View {
 
                     Divider()
 
-                    // Voice Selection
+                    // Voice Selection (Phase 11 & 12)
                     VoicePickerView(
                         selectedProvider: $selectedProvider,
                         referenceVoice: referenceVoice,
-                        onOpenSettings: onOpenSettings
+                        onOpenSettings: onOpenSettings,
+                        onImportReferenceVoice: onImportReferenceVoice
                     )
 
                     Divider()
 
-                    // Duration Fit Section
+                    // Duration Fit Section (Phase 5)
                     DurationFitView(
                         availableDuration: cue.duration,
-                        generatedDuration: cue.overflowDelta.map { CMTimeAdd(cue.duration, $0) },
+                        generatedDuration: cue.generatedDuration ?? (cue.overflowDelta.map { CMTimeAdd(cue.duration, $0) } ?? (cue.audioWAVRelativePath != nil ? cue.duration : nil)),
                         state: cue.editState
                     )
 
-                    // Overflow actions (if gated)
+                    // Overflow actions (Phase 5: Rewrite, Force Fit, Split Cue, Discard Candidate)
                     if cue.editState == .overflowGated {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text("OVERFLOW RESOLUTION")
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundStyle(MacDubTheme.statusError)
@@ -104,23 +108,36 @@ public struct CueInspectorView: View {
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
 
-                            HStack(spacing: 8) {
-                                Button(action: {
-                                    onTriggerRewrite(.rewriteToFit(targetDuration: cue.duration), "Rewrite to Fit Duration")
-                                }) {
-                                    Label("Rewrite", systemImage: "wand.and.stars")
-                                }
-                                .buttonStyle(GlassButtonStyle(isProminent: true))
+                            Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 6) {
+                                GridRow {
+                                    Button(action: {
+                                        onTriggerRewrite(.rewriteToFit(targetDuration: cue.duration), "Rewrite to Fit Duration")
+                                    }) {
+                                        Label("Rewrite to Fit", systemImage: "wand.and.stars")
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .buttonStyle(GlassButtonStyle(isProminent: true))
 
-                                Button(action: onForceFit) {
-                                    Label("Force Fit", systemImage: "arrow.left.and.right.circle")
+                                    Button(action: onForceFit) {
+                                        Label("Force Fit", systemImage: "arrow.left.and.right.circle")
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .buttonStyle(GlassButtonStyle())
                                 }
-                                .buttonStyle(GlassButtonStyle())
 
-                                Button(action: onDiscardCandidate) {
-                                    Label("Discard", systemImage: "xmark.circle")
+                                GridRow {
+                                    Button(action: onSplitCue) {
+                                        Label("Split Cue", systemImage: "scissors")
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .buttonStyle(GlassButtonStyle())
+
+                                    Button(action: onDiscardCandidate) {
+                                        Label("Discard Candidate", systemImage: "xmark.circle")
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .buttonStyle(GlassButtonStyle())
                                 }
-                                .buttonStyle(GlassButtonStyle())
                             }
                         }
                         .padding(10)

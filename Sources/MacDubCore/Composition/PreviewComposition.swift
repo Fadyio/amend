@@ -27,7 +27,9 @@ public struct PreviewCompositionGenerator: Sendable {
             let transform = try await sourceVideoTrack.load(.preferredTransform)
             let trackTimeRange = try await sourceVideoTrack.load(.timeRange)
 
-            composition.naturalSize = naturalSize
+            let transformedRect = CGRect(origin: .zero, size: naturalSize).applying(transform)
+            let presentationSize = CGSize(width: abs(transformedRect.width), height: abs(transformedRect.height))
+            composition.naturalSize = (presentationSize.width > 0 && presentationSize.height > 0) ? presentationSize : naturalSize
             compVideoTrack.preferredTransform = transform
 
             let durationToInsert = min(totalDuration, trackTimeRange.duration)

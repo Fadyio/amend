@@ -17,6 +17,10 @@ public struct WordTiming: Sendable, Equatable, Codable {
     public var start: CMTime { timeRange.start }
     public var duration: CMTime { timeRange.duration }
     public var end: CMTime { timeRange.end }
+
+    public func contains(time: CMTime) -> Bool {
+        CMTimeCompare(time, start) >= 0 && CMTimeCompare(time, end) < 0
+    }
 }
 
 public protocol TranscriptionServing: Sendable {

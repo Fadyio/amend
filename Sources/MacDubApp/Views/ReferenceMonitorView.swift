@@ -8,15 +8,20 @@ public struct ReferenceMonitorView: View {
     public let currentTime: CMTime
     public let totalDuration: CMTime
     public let isPlaying: Bool
+    public let videoAspectRatio: CGFloat
     public let onTogglePlayPause: () -> Void
     public let onStepBackward: () -> Void
     public let onStepForward: () -> Void
+
+    @Binding public var isExpandedPopoverPresented: Bool
 
     public init(
         player: AVPlayer?,
         currentTime: CMTime,
         totalDuration: CMTime,
         isPlaying: Bool,
+        videoAspectRatio: CGFloat = 16.0 / 9.0,
+        isExpandedPopoverPresented: Binding<Bool> = .constant(false),
         onTogglePlayPause: @escaping () -> Void,
         onStepBackward: @escaping () -> Void,
         onStepForward: @escaping () -> Void
@@ -25,6 +30,8 @@ public struct ReferenceMonitorView: View {
         self.currentTime = currentTime
         self.totalDuration = totalDuration
         self.isPlaying = isPlaying
+        self.videoAspectRatio = videoAspectRatio > 0 ? videoAspectRatio : (16.0 / 9.0)
+        self._isExpandedPopoverPresented = isExpandedPopoverPresented
         self.onTogglePlayPause = onTogglePlayPause
         self.onStepBackward = onStepBackward
         self.onStepForward = onStepForward
@@ -60,6 +67,45 @@ public struct ReferenceMonitorView: View {
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
+
+                // Full-size Popover / Expand Button (Phase 8)
+                Button(action: { isExpandedPopoverPresented.toggle() }) {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 6)
+                }
+                .buttonStyle(.plain)
+                .help("Open expanded reference popover")
+                .popover(isPresented: $isExpandedPopoverPresented, arrowEdge: .bottom) {
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("Reference Monitor — Expanded")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Button("Done") {
+                                isExpandedPopoverPresented = false
+                            }
+                            .buttonStyle(GlassButtonStyle())
+                            .controlSize(.mini)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.top, 8)
+
+                        ZStack {
+                            Color.black
+                            if let player = player {
+                                VideoPlayerView(player: player)
+                            }
+                        }
+                        .aspectRatio(videoAspectRatio, contentMode: .fit)
+                        .frame(minWidth: 480, idealWidth: 640, maxWidth: 800, minHeight: 270, idealHeight: 360, maxHeight: 450)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
+                    .padding(8)
+                    .background(MacDubTheme.baseGraphite)
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -82,7 +128,7 @@ public struct ReferenceMonitorView: View {
                     }
                 }
             }
-            .aspectRatio(16/9, contentMode: .fit)
+            .aspectRatio(videoAspectRatio, contentMode: .fit)
             .frame(minHeight: 140, maxHeight: 280)
             .clipped()
 

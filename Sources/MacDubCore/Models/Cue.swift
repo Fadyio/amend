@@ -10,6 +10,8 @@ public struct Cue: Identifiable, Codable, Equatable, Sendable {
     public var candidateAudioWAVRelativePath: String? // Unapproved candidate audio (e.g. overflowGated)
     public var editState: CueEditState
     public var overflowDelta: CMTime? // Set when exceeding duration > 8%
+    public var words: [WordTiming]?
+    public var generatedDuration: CMTime?
 
     public init(
         id: UUID = UUID(),
@@ -19,7 +21,9 @@ public struct Cue: Identifiable, Codable, Equatable, Sendable {
         audioWAVRelativePath: String? = nil,
         candidateAudioWAVRelativePath: String? = nil,
         editState: CueEditState = .original,
-        overflowDelta: CMTime? = nil
+        overflowDelta: CMTime? = nil,
+        words: [WordTiming]? = nil,
+        generatedDuration: CMTime? = nil
     ) {
         self.id = id
         self.timeRange = timeRange
@@ -29,6 +33,8 @@ public struct Cue: Identifiable, Codable, Equatable, Sendable {
         self.candidateAudioWAVRelativePath = candidateAudioWAVRelativePath
         self.editState = editState
         self.overflowDelta = overflowDelta
+        self.words = words
+        self.generatedDuration = generatedDuration
     }
 
     public var start: CMTime { timeRange.start }
@@ -44,6 +50,8 @@ public struct Cue: Identifiable, Codable, Equatable, Sendable {
         case candidateAudioWAVRelativePath
         case editState
         case overflowDelta
+        case words
+        case generatedDuration
     }
 
     public init(from decoder: Decoder) throws {
@@ -56,6 +64,8 @@ public struct Cue: Identifiable, Codable, Equatable, Sendable {
         self.candidateAudioWAVRelativePath = try container.decodeIfPresent(String.self, forKey: .candidateAudioWAVRelativePath)
         self.editState = try container.decodeIfPresent(CueEditState.self, forKey: .editState) ?? .original
         self.overflowDelta = try container.decodeIfPresent(CMTime.self, forKey: .overflowDelta)
+        self.words = try container.decodeIfPresent([WordTiming].self, forKey: .words)
+        self.generatedDuration = try container.decodeIfPresent(CMTime.self, forKey: .generatedDuration)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -68,6 +78,8 @@ public struct Cue: Identifiable, Codable, Equatable, Sendable {
         try container.encodeIfPresent(candidateAudioWAVRelativePath, forKey: .candidateAudioWAVRelativePath)
         try container.encode(editState, forKey: .editState)
         try container.encodeIfPresent(overflowDelta, forKey: .overflowDelta)
+        try container.encodeIfPresent(words, forKey: .words)
+        try container.encodeIfPresent(generatedDuration, forKey: .generatedDuration)
     }
 }
 
@@ -82,7 +94,9 @@ extension Cue {
             audioWAVRelativePath: self.audioWAVRelativePath,
             candidateAudioWAVRelativePath: nil,
             editState: .edited,
-            overflowDelta: nil
+            overflowDelta: nil,
+            words: nil,
+            generatedDuration: self.generatedDuration
         )
     }
 
@@ -90,7 +104,8 @@ extension Cue {
     public func withUpdatedAudio(
         audioWAVRelativePath: String?,
         editState: CueEditState,
-        overflowDelta: CMTime? = nil
+        overflowDelta: CMTime? = nil,
+        generatedDuration: CMTime? = nil
     ) -> Cue {
         Cue(
             id: self.id,
@@ -100,14 +115,17 @@ extension Cue {
             audioWAVRelativePath: audioWAVRelativePath,
             candidateAudioWAVRelativePath: nil,
             editState: editState,
-            overflowDelta: overflowDelta
+            overflowDelta: overflowDelta,
+            words: self.words,
+            generatedDuration: generatedDuration ?? self.generatedDuration
         )
     }
 
     /// Creates a functional copy with pending overflowing candidate audio, preserving previous approved audio.
     public func withCandidateAudio(
         candidateAudioWAVRelativePath: String?,
-        overflowDelta: CMTime?
+        overflowDelta: CMTime?,
+        generatedDuration: CMTime? = nil
     ) -> Cue {
         Cue(
             id: self.id,
@@ -117,7 +135,9 @@ extension Cue {
             audioWAVRelativePath: self.audioWAVRelativePath, // Keep previous active replacement untouched
             candidateAudioWAVRelativePath: candidateAudioWAVRelativePath,
             editState: .overflowGated,
-            overflowDelta: overflowDelta
+            overflowDelta: overflowDelta,
+            words: self.words,
+            generatedDuration: generatedDuration ?? self.generatedDuration
         )
     }
 
@@ -139,7 +159,9 @@ extension Cue {
             audioWAVRelativePath: self.audioWAVRelativePath,
             candidateAudioWAVRelativePath: nil,
             editState: restoredState,
-            overflowDelta: nil
+            overflowDelta: nil,
+            words: self.words,
+            generatedDuration: restoredState == .synthesized ? self.generatedDuration : nil
         )
     }
 

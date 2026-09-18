@@ -22,8 +22,13 @@ public struct DurationFitView: View {
     }
 
     private var generatedSec: Double? {
-        guard let dur = generatedDuration, dur.isValid, !dur.isIndefinite else { return nil }
-        return CMTimeGetSeconds(dur)
+        if let dur = generatedDuration, dur.isValid, !dur.isIndefinite {
+            return CMTimeGetSeconds(dur)
+        }
+        if state == .synthesized || state == .forceFitted {
+            return availableSec
+        }
+        return nil
     }
 
     private var isOverflow: Bool {
