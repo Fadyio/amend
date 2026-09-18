@@ -1,7 +1,9 @@
 import Testing
 import Foundation
 import CoreMedia
+#if canImport(FoundationModels)
 import FoundationModels
+#endif
 @testable import MacDubCore
 
 private final class MockFoundationSession: FoundationLanguageModelSessionProtocol, @unchecked Sendable {
@@ -223,6 +225,7 @@ struct AppleFoundationGrammarTests {
             return
         }
 
+        #if canImport(FoundationModels)
         let model = SystemLanguageModel.default
         guard case .available = model.availability else {
             print("Skipping test_live_apple_foundation_model_inference: SystemLanguageModel is not available (\(model.availability))")
@@ -239,5 +242,8 @@ struct AppleFoundationGrammarTests {
         #expect(result.rewrittenText != input)
         #expect(!result.diff.isEmpty)
         print("Live Apple Foundation Models rewrite result: '\(result.rewrittenText)'")
+        #else
+        print("Skipping test_live_apple_foundation_model_inference: FoundationModels framework not present in host SDK")
+        #endif
     }
 }
