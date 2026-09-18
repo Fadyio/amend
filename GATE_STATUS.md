@@ -3,8 +3,8 @@
 ## Overview & Truthful Verification Ledger
 This ledger documents the verification status across all 17 phases and 14 quality gates of the MacDub project following the September 2026 audit and recovery. All automated tests run deterministically via `swift test --no-parallel` with zero synthetic fallback audio in production code and zero credential leaks.
 
-- **Total Test Suites**: 26
-- **Total Passing Tests (Deterministic)**: 264 / 264 (100% pass rate in deterministic test suite)
+- **Total Test Suites**: 27
+- **Total Passing Tests (Deterministic)**: 266 / 266 (100% pass rate in deterministic test suite)
 - **CI Status**: macOS CI workflow configured at `.github/workflows/ci.yml` (macos-15, non-parallel)
 - **Host Architecture**: Apple Silicon M1 (arm64, 8 GB RAM)
 
@@ -167,7 +167,7 @@ This ledger documents the verification status across all 17 phases and 14 qualit
 | Quality Gate | Description | Implementation File | Verified By / Test | Result |
 | :--- | :--- | :--- | :--- | :--- |
 | **Gate A** | `swift build` succeeds for MacDubCore and macdub executable | `Package.swift`, `Sources/MacDubCore/`, `Sources/MacDubApp/`, `Sources/macdub/` | Full SPM target compilation (`swift build`) | **IMPLEMENTED + VERIFIED** |
-| **Gate B** | All deterministic unit/integration tests pass | `Tests/MacDubCoreTests/` (26 test suites) | `swift test --no-parallel` (264/264 passed) | **IMPLEMENTED + VERIFIED** |
+| **Gate B** | All deterministic unit/integration tests pass | `Tests/MacDubCoreTests/` (27 test suites) | `swift test --no-parallel` (266/266 passed) | **IMPLEMENTED + VERIFIED** |
 | **Gate C** | Assembled app-level E2E journey passes | `Sources/MacDubApp/ViewModels/AppViewModel.swift` | `AssembledAppE2ETests.test_complete_sixteen_step_assembled_user_journey` | **IMPLEMENTED + VERIFIED** |
 | **Gate D** | Real selected-track routing is verified | `Sources/MacDubCore/Composition/AudioTrackExtractor.swift`, `Sources/MacDubCore/Transcription/CueGenerator.swift` | `AudioRoutingTests` (zero-crossing routing verification on Track B) | **IMPLEMENTED + VERIFIED** |
 | **Gate E** | Real Silero VAD is verified | `Sources/MacDubCore/Transcription/SilenceDetector.swift` | `TranscriptionVADTests` (compiled Core ML model on Neural Engine/CPU rejecting tones) | **IMPLEMENTED + VERIFIED** |

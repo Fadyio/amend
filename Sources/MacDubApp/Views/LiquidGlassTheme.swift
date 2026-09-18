@@ -42,11 +42,18 @@ public struct GlassPanelModifier: ViewModifier {
     public func body(content: Content) -> some View {
         content
             .background(.ultraThinMaterial)
-            .background(MacDubTheme.panelGraphite.opacity(0.55))
+            .background(MacDubTheme.panelGraphite.opacity(0.60))
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(MacDubTheme.glassBorder, lineWidth: 1)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.18), Color.white.opacity(0.04)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 1
+                    )
             )
     }
 }
@@ -61,13 +68,20 @@ public struct ElevatedGlassPanelModifier: ViewModifier {
     public func body(content: Content) -> some View {
         content
             .background(.thinMaterial)
-            .background(MacDubTheme.panelGraphite.opacity(0.70))
+            .background(MacDubTheme.panelGraphite.opacity(0.72))
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(MacDubTheme.glassBorder, lineWidth: 1)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.24), Color.white.opacity(0.06), Color.white.opacity(0.02)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 1
+                    )
             )
-            .shadow(color: Color.black.opacity(0.25), radius: 8, x: 0, y: 4)
+            .shadow(color: Color.black.opacity(0.35), radius: 10, x: 0, y: 5)
     }
 }
 
@@ -93,17 +107,22 @@ public struct SelectedGlassSurfaceModifier: ViewModifier {
                     ? MacDubTheme.accentMuted
                     : (isActive ? MacDubTheme.accentSubtle : Color.clear)
             )
-            .background(isSelected ? .ultraThinMaterial : .regularMaterial)
+            .background(isSelected ? AnyShapeStyle(.ultraThinMaterial) : (isActive ? AnyShapeStyle(.thinMaterial) : AnyShapeStyle(Color.clear)))
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(
                         isSelected
-                            ? MacDubTheme.glassBorderActive
-                            : (isActive ? Color.white.opacity(0.25) : Color.clear),
+                            ? LinearGradient(
+                                colors: [MacDubTheme.accent.opacity(0.90), MacDubTheme.accent.opacity(0.45)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            : (isActive ? LinearGradient(colors: [Color.white.opacity(0.25), Color.white.opacity(0.08)], startPoint: .top, endPoint: .bottom) : LinearGradient(colors: [Color.clear], startPoint: .top, endPoint: .bottom)),
                         lineWidth: isSelected ? 1.5 : 1.0
                     )
             )
+            .shadow(color: isSelected ? MacDubTheme.accent.opacity(0.18) : Color.clear, radius: 8, x: 0, y: 2)
     }
 }
 
@@ -215,10 +234,11 @@ public struct GlassButtonStyle: ButtonStyle {
                 RoundedRectangle(cornerRadius: MacDubTheme.cornerRadiusSmall, style: .continuous)
                     .stroke(
                         isProminent
-                            ? Color.white.opacity(0.25)
-                            : MacDubTheme.glassBorder,
+                            ? LinearGradient(colors: [Color.white.opacity(0.35), Color.white.opacity(0.10)], startPoint: .top, endPoint: .bottom)
+                            : LinearGradient(colors: [Color.white.opacity(0.18), Color.white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
                         lineWidth: 1
                     )
             )
+            .shadow(color: isProminent ? MacDubTheme.accent.opacity(0.25) : Color.clear, radius: 4, x: 0, y: 2)
     }
 }

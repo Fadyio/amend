@@ -124,21 +124,7 @@ public struct ScriptCueRow: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(
-            isSelected
-                ? MacDubTheme.accent.opacity(0.12)
-                : (isActive ? Color.white.opacity(0.06) : Color.clear)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: MacDubTheme.cornerRadiusMedium, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: MacDubTheme.cornerRadiusMedium, style: .continuous)
-                .stroke(
-                    isSelected
-                        ? MacDubTheme.accent.opacity(0.40)
-                        : (isActive ? Color.white.opacity(0.15) : Color.clear),
-                    lineWidth: 1
-                )
-        )
+        .selectedGlassSurface(isSelected: isSelected, isActive: isActive, cornerRadius: MacDubTheme.cornerRadiusMedium)
         .onChange(of: isSelected) { _, selected in
             if selected {
                 isFieldFocused = true

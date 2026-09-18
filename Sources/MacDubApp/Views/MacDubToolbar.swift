@@ -151,6 +151,22 @@ public struct MacDubToolbar: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .background(.ultraThinMaterial)
+        .overlay(
+            Rectangle()
+                .fill(LinearGradient(
+                    colors: [Color.white.opacity(0.14), Color.white.opacity(0.02)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                ))
+                .frame(height: 1),
+            alignment: .top
+        )
+        .overlay(
+            Rectangle()
+                .fill(Color.black.opacity(0.35))
+                .frame(height: 1),
+            alignment: .bottom
+        )
     }
 
     private var projectTitle: String {

@@ -246,6 +246,29 @@ public final class AppViewModel: ObservableObject {
         }
     }
 
+    public func transcribeRecording() {
+        guard let url = sourceMediaURL else { return }
+        Task {
+            do {
+                try await generateCuesAsync(sourceURL: url, totalDuration: totalDuration, narrationTrackID: CMPersistentTrackID(designatedNarrationID))
+                let asset = AVURLAsset(url: url)
+                let waveform = try? await waveformExtractor.extractWaveform(
+                    from: asset,
+                    trackID: CMPersistentTrackID(self.designatedNarrationID),
+                    cacheDirectory: nil,
+                    progress: nil
+                )
+                self.multiScaleWaveform = waveform
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = error.localizedDescription
+                    self.statusMessage = "Transcription failed: \(error.localizedDescription)"
+                    self.isProcessing = false
+                }
+            }
+        }
+    }
+
     // MARK: - Reference Voice Management (Blocker 1 & 5)
 
     public func setReferenceVoice(name: String, audioURL: URL) throws {

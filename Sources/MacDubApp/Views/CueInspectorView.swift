@@ -256,6 +256,17 @@ public struct CueInspectorView: View {
             .padding(14)
         }
         .background(.ultraThinMaterial)
+        .background(MacDubTheme.panelGraphite.opacity(0.40))
+        .overlay(
+            Rectangle()
+                .fill(LinearGradient(
+                    colors: [Color.white.opacity(0.12), Color.white.opacity(0.02)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                ))
+                .frame(width: 1),
+            alignment: .leading
+        )
     }
 
     private func formatTime(_ time: CMTime) -> String {

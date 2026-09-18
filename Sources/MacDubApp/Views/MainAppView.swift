@@ -72,6 +72,9 @@ public struct MainAppView: View {
                             selectedCueID: $appViewModel.selectedCueID,
                             currentTime: appViewModel.timelineViewModel.clock.currentTime,
                             editorViewModel: appViewModel.scriptEditorViewModel,
+                            isMediaLoaded: appViewModel.sourceMediaURL != nil || appViewModel.projectBundleURL != nil,
+                            isTranscribing: appViewModel.isProcessing,
+                            transcriptionStatus: appViewModel.statusMessage,
                             onSeek: { time in
                                 appViewModel.timelineViewModel.seek(to: time)
                             },
@@ -91,7 +94,10 @@ public struct MainAppView: View {
                             onRestoreOriginalCue: { id in
                                 appViewModel.restoreOriginalCue(id: id)
                             },
-                            onOpenMedia: openMediaFile
+                            onOpenMedia: openMediaFile,
+                            onTranscribeRecording: {
+                                appViewModel.transcribeRecording()
+                            }
                         )
                     }
                 }

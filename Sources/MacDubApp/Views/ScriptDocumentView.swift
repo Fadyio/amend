@@ -8,35 +8,47 @@ public struct ScriptDocumentView: View {
     public let currentTime: CMTime
     @ObservedObject public var editorViewModel: ScriptEditorViewModel
 
+    public let isMediaLoaded: Bool
+    public let isTranscribing: Bool
+    public let transcriptionStatus: String
     public let onSeek: (CMTime) -> Void
     public let onSynthesizeCue: (UUID) -> Void
     public let onForceFitCue: (UUID) -> Void
     public let onDiscardCandidate: (UUID) -> Void
     public let onRestoreOriginalCue: (UUID) -> Void
     public let onOpenMedia: () -> Void
+    public let onTranscribeRecording: () -> Void
 
     public init(
         cues: Binding<[Cue]>,
         selectedCueID: Binding<UUID?>,
         currentTime: CMTime,
         editorViewModel: ScriptEditorViewModel,
+        isMediaLoaded: Bool = true,
+        isTranscribing: Bool = false,
+        transcriptionStatus: String = "",
         onSeek: @escaping (CMTime) -> Void,
         onSynthesizeCue: @escaping (UUID) -> Void,
         onForceFitCue: @escaping (UUID) -> Void,
         onDiscardCandidate: @escaping (UUID) -> Void,
         onRestoreOriginalCue: @escaping (UUID) -> Void,
-        onOpenMedia: @escaping () -> Void
+        onOpenMedia: @escaping () -> Void,
+        onTranscribeRecording: @escaping () -> Void = {}
     ) {
         self._cues = cues
         self._selectedCueID = selectedCueID
         self.currentTime = currentTime
         self.editorViewModel = editorViewModel
+        self.isMediaLoaded = isMediaLoaded
+        self.isTranscribing = isTranscribing
+        self.transcriptionStatus = transcriptionStatus
         self.onSeek = onSeek
         self.onSynthesizeCue = onSynthesizeCue
         self.onForceFitCue = onForceFitCue
         self.onDiscardCandidate = onDiscardCandidate
         self.onRestoreOriginalCue = onRestoreOriginalCue
         self.onOpenMedia = onOpenMedia
+        self.onTranscribeRecording = onTranscribeRecording
     }
 
     private var selectedIndex: Int? {
@@ -141,26 +153,64 @@ public struct ScriptDocumentView: View {
 
     private var emptyDocumentView: some View {
         VStack(spacing: 16) {
-            Image(systemName: "waveform.badge.mic")
-                .font(.system(size: 44))
-                .foregroundStyle(MacDubTheme.accent.opacity(0.8))
+            if isTranscribing {
+                ProgressView()
+                    .scaleEffect(1.3)
+                    .controlSize(.regular)
 
-            VStack(spacing: 6) {
-                Text("MacDub")
-                    .font(.title2.bold())
-                    .foregroundStyle(.primary)
+                VStack(spacing: 6) {
+                    Text("Analyzing narration…")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
 
-                Text("Repair your hackathon narration\nwithout re-recording your demo.")
-                    .font(.subheadline)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
+                    Text(transcriptionStatus.isEmpty ? "Transcribing locally with Parakeet" : transcriptionStatus)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            } else if isMediaLoaded {
+                Image(systemName: "waveform.and.mic")
+                    .font(.system(size: 48, weight: .light))
+                    .foregroundStyle(MacDubTheme.accent)
+
+                VStack(spacing: 6) {
+                    Text("Ready to transcribe")
+                        .font(.title2.bold())
+                        .foregroundStyle(.primary)
+
+                    Text("Generate narration cues from this recording to start editing.")
+                        .font(.subheadline)
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.secondary)
+                }
+
+                Button(action: onTranscribeRecording) {
+                    Label("Transcribe Recording", systemImage: "sparkles")
+                        .frame(minWidth: 160)
+                }
+                .buttonStyle(GlassButtonStyle(isProminent: true))
+                .controlSize(.large)
+            } else {
+                Image(systemName: "waveform.badge.mic")
+                    .font(.system(size: 44))
+                    .foregroundStyle(MacDubTheme.accent.opacity(0.8))
+
+                VStack(spacing: 6) {
+                    Text("MacDub")
+                        .font(.title2.bold())
+                        .foregroundStyle(.primary)
+
+                    Text("Repair your hackathon narration\nwithout re-recording your demo.")
+                        .font(.subheadline)
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.secondary)
+                }
+
+                Button(action: onOpenMedia) {
+                    Label("Open Recording...", systemImage: "arrow.up.circle.fill")
+                }
+                .buttonStyle(GlassButtonStyle(isProminent: true))
+                .controlSize(.large)
             }
-
-            Button(action: onOpenMedia) {
-                Label("Open Recording...", systemImage: "arrow.up.circle.fill")
-            }
-            .buttonStyle(GlassButtonStyle(isProminent: true))
-            .controlSize(.large)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(32)
