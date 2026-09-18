@@ -26,22 +26,7 @@ jobs:
           uname -a
 
       - name: Build All Targets
-        run: |
-          SDK_VERSION=$(xcrun --show-sdk-version --sdk macosx | cut -d. -f1)
-          echo "Detected macOS SDK major version: $SDK_VERSION"
-          if [ "$SDK_VERSION" -ge 26 ]; then
-            swift build -v
-          else
-            echo "::warning::GitHub Actions hosted runner is running macOS SDK $SDK_VERSION (< 26.0). Building portable deterministic core targets."
-            swift build --target MacDubCore -v
-          fi
+        run: swift build -v
 
       - name: Run Deterministic Test Suite (Non-Parallel)
-        run: |
-          SDK_VERSION=$(xcrun --show-sdk-version --sdk macosx | cut -d. -f1)
-          if [ "$SDK_VERSION" -ge 26 ]; then
-            swift test --no-parallel -v
-          else
-            echo "::warning::Running deterministic MacDubCore test suites on SDK $SDK_VERSION."
-            swift test --filter MacDubCoreTests --no-parallel -v
-          fi
+        run: swift test --no-parallel -v
