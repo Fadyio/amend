@@ -187,8 +187,13 @@ struct VideoPlaybackRegressionTests {
     @Test("Phase 20 UI Screenshot Verification Generator")
     @MainActor
     func test_render_phase20_screenshots() async throws {
-        let screenshotsDir = URL(fileURLWithPath: "/Users/fady/Dev/macdub/docs/screenshots")
-        try FileManager.default.createDirectory(at: screenshotsDir, withIntermediateDirectories: true)
+        let projectRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent() // Suites
+            .deletingLastPathComponent() // MacDubCoreTests
+            .deletingLastPathComponent() // Tests
+            .deletingLastPathComponent() // Project Root
+        let screenshotsDir = projectRoot.appendingPathComponent("docs/screenshots")
+        try? FileManager.default.createDirectory(at: screenshotsDir, withIntermediateDirectories: true)
 
         let movieURL = URL(fileURLWithPath: "/tmp/macdub_demo/HackathonDemo.mov")
         if !FileManager.default.fileExists(atPath: movieURL.path) {
