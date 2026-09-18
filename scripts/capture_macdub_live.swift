@@ -48,7 +48,7 @@ guard let winID = targetWindowID else {
 
 // Activate application to ensure it's frontmost and fully rendered
 if let runningApp = NSRunningApplication(processIdentifier: process.processIdentifier) {
-    runningApp.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
+    runningApp.activate()
 }
 
 // Give AVPlayer, CALayer, and AppKit 4 seconds to decode and composite the video frame

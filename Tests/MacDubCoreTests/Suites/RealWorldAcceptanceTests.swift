@@ -45,7 +45,7 @@ struct RealWorldAcceptanceTests {
         generator.appliesPreferredTrackTransform = true
         generator.requestedTimeToleranceBefore = .zero
         generator.requestedTimeToleranceAfter = .zero
-        let cgImage = try generator.copyCGImage(at: .zero, actualTime: nil)
+        let (cgImage, _) = try await generator.image(at: .zero)
         #expect(cgImage.width > 0 && cgImage.height > 0, "First video frame must decode valid image pixels")
 
         // 2. Full AppViewModel import and explicit deliberate transcription creates real Cues
@@ -84,7 +84,7 @@ struct RealWorldAcceptanceTests {
         let targetX = appViewModel.timelineViewModel.converter.timeToX(scrubTarget)
         appViewModel.timelineViewModel.updateScrub(to: targetX)
         appViewModel.timelineViewModel.endScrubbing(resumePlayback: false)
-        let frameAt20 = try generator.copyCGImage(at: scrubTarget, actualTime: nil)
+        let (frameAt20, _) = try await generator.image(at: scrubTarget)
         #expect(frameAt20.width > 0 && frameAt20.height > 0, "Scrubbed time must decode valid video frame")
 
         // 6. Clicking a Cue seeks the video & Reference Monitor remains synchronized
