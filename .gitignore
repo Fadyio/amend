@@ -4,3 +4,4 @@
 Packages/FluidAudio/.build/
 Packages/FluidAudio/.swiftpm/
 *.xcuserstate
+dist/
