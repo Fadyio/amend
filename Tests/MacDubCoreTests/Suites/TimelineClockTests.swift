@@ -124,6 +124,29 @@ struct TimelineClockTests {
         #expect(abs(CMTimeGetSeconds(clock.currentTime) - CMTimeGetSeconds(expectedBackward)) < 1e-5)
     }
 
+    @Test("Seek forward and backward adjust playhead by seconds rather than frames")
+    func test_seek_forward_and_backward_seconds() async {
+        let duration = CMTime(seconds: 20.0, preferredTimescale: 600_000)
+        let clock = TimelineClock(initialTime: CMTime(seconds: 8.0, preferredTimescale: 600_000), duration: duration)
+
+        clock.seekForward(by: 5.0)
+        await Task.yield()
+        #expect(abs(CMTimeGetSeconds(clock.currentTime) - 13.0) < 1e-5)
+
+        clock.seekBackward(by: 5.0)
+        await Task.yield()
+        #expect(abs(CMTimeGetSeconds(clock.currentTime) - 8.0) < 1e-5)
+
+        // Clamping to boundaries
+        clock.seekBackward(by: 10.0)
+        await Task.yield()
+        #expect(CMTimeCompare(clock.currentTime, .zero) == 0)
+
+        clock.seekForward(by: 25.0)
+        await Task.yield()
+        #expect(CMTimeCompare(clock.currentTime, duration) == 0)
+    }
+
     @Test("Duration and negative time clamping protect boundaries")
     func test_clamping_behavior() async {
         let duration = CMTime(seconds: 5.0, preferredTimescale: 600_000)

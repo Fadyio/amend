@@ -112,10 +112,10 @@ public struct MainAppView: View {
                                 appViewModel.timelineViewModel.clock.togglePlayPause()
                             },
                             onStepBackward: {
-                                appViewModel.timelineViewModel.clock.stepBackward(by: 5)
+                                appViewModel.timelineViewModel.clock.seekBackward(by: 5.0)
                             },
                             onStepForward: {
-                                appViewModel.timelineViewModel.clock.stepForward(by: 5)
+                                appViewModel.timelineViewModel.clock.seekForward(by: 5.0)
                             }
                         )
                         .padding(.horizontal, 12)

@@ -37,6 +37,8 @@ public protocol TimelineClockProtocol: AnyObject {
     func seek(to time: CMTime, tolerance: CMTime) async
     func stepForward(by frameCount: Int, fps: Double)
     func stepBackward(by frameCount: Int, fps: Double)
+    func seekForward(by seconds: Double)
+    func seekBackward(by seconds: Double)
 }
 
 /// Production implementation of TimelineClock maintaining continuous CMTime without frame rounding.
@@ -267,6 +269,22 @@ public final class TimelineClock: NSObject, ObservableObject, TimelineClockProto
 
     public func stepBackward(by frameCount: Int, fps: Double) {
         stepBackward(by: frameCount, fps: Optional(fps))
+    }
+
+    public func seekForward(by seconds: Double = 5.0) {
+        let stepDuration = CMTime(seconds: seconds, preferredTimescale: Self.canonicalTimescale)
+        let newTime = CMTimeAdd(currentTime, stepDuration)
+        Task { @MainActor in
+            await seek(to: newTime, tolerance: .zero)
+        }
+    }
+
+    public func seekBackward(by seconds: Double = 5.0) {
+        let stepDuration = CMTime(seconds: seconds, preferredTimescale: Self.canonicalTimescale)
+        let newTime = CMTimeSubtract(currentTime, stepDuration)
+        Task { @MainActor in
+            await seek(to: newTime, tolerance: .zero)
+        }
     }
 
     private func clampToDuration(_ time: CMTime) -> CMTime {

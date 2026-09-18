@@ -13,6 +13,24 @@ struct MacDubMain: App {
         WindowGroup("macdub") {
             MainAppView(appViewModel: appViewModel)
                 .frame(minWidth: 900, minHeight: 600)
+                .onAppear {
+                    appDelegate.openURLHandler = { url in
+                        if url.pathExtension.lowercased() == "voicefix" {
+                            try? appViewModel.loadProject(from: url)
+                        } else if ["mov", "mp4", "m4v"].contains(url.pathExtension.lowercased()) {
+                            appViewModel.importMedia(from: url)
+                        }
+                    }
+                    let args = CommandLine.arguments.dropFirst()
+                    if let filePath = args.first(where: { !$0.hasPrefix("-") }) {
+                        let url = URL(fileURLWithPath: filePath)
+                        if url.pathExtension.lowercased() == "voicefix" {
+                            try? appViewModel.loadProject(from: url)
+                        } else if ["mov", "mp4", "m4v"].contains(url.pathExtension.lowercased()) {
+                            appViewModel.importMedia(from: url)
+                        }
+                    }
+                }
         }
         .windowStyle(.titleBar)
         .commands {
@@ -150,12 +168,21 @@ struct MacDubMain: App {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    var openURLHandler: ((URL) -> Void)?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func application(_ sender: NSApplication, openFile filename: String) -> Bool {
+        let url = URL(fileURLWithPath: filename)
+        openURLHandler?(url)
+        return true
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
     }
 }
+
