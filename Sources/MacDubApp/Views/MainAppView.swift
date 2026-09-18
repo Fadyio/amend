@@ -118,7 +118,8 @@ public struct MainAppView: View {
                                 appViewModel.timelineViewModel.clock.stepForward(by: 5)
                             }
                         )
-                        .padding(12)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
 
                         Divider()
 

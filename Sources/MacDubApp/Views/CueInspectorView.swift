@@ -59,7 +59,7 @@ public struct CueInspectorView: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 10) {
                 if let cue = cue, let index = cueIndex {
                     // Header / Cue identification
                     HStack(alignment: .firstTextBaseline) {

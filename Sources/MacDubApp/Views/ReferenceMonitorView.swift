@@ -129,7 +129,7 @@ public struct ReferenceMonitorView: View {
                 }
             }
             .aspectRatio(videoAspectRatio, contentMode: .fit)
-            .frame(minHeight: 140, maxHeight: 280)
+            .frame(minHeight: 110, maxHeight: 180)
             .clipped()
 
             // Mini Transport Bar

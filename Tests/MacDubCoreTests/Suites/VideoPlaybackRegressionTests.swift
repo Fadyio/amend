@@ -198,52 +198,122 @@ struct VideoPlaybackRegressionTests {
         let appVM = AppViewModel()
         try await appVM.importMediaAsync(from: movieURL)
 
+        // Realistic demo cues representing hackathon demo screen narration
+        let sampleCues: [Cue] = [
+            Cue(
+                id: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
+                timeRange: CMTimeRange(
+                    start: CMTime(seconds: 0.5, preferredTimescale: 600),
+                    duration: CMTime(seconds: 4.2, preferredTimescale: 600)
+                ),
+                text: "Welcome to MacDub. Today we are repairing the hackathon demo narration without re-recording any screen video.",
+                originalText: "Welcome to MacDub. Today we are repairing the hackathon demo narration without re-recording any screen video.",
+                editState: .original,
+                words: [
+                    WordTiming(word: "Welcome", timeRange: CMTimeRange(start: CMTime(seconds: 0.5, preferredTimescale: 600), duration: CMTime(seconds: 0.35, preferredTimescale: 600))),
+                    WordTiming(word: "to", timeRange: CMTimeRange(start: CMTime(seconds: 0.85, preferredTimescale: 600), duration: CMTime(seconds: 0.2, preferredTimescale: 600))),
+                    WordTiming(word: "MacDub.", timeRange: CMTimeRange(start: CMTime(seconds: 1.05, preferredTimescale: 600), duration: CMTime(seconds: 0.5, preferredTimescale: 600))),
+                    WordTiming(word: "Today", timeRange: CMTimeRange(start: CMTime(seconds: 1.6, preferredTimescale: 600), duration: CMTime(seconds: 0.3, preferredTimescale: 600))),
+                    WordTiming(word: "we", timeRange: CMTimeRange(start: CMTime(seconds: 1.9, preferredTimescale: 600), duration: CMTime(seconds: 0.2, preferredTimescale: 600))),
+                    WordTiming(word: "are", timeRange: CMTimeRange(start: CMTime(seconds: 2.1, preferredTimescale: 600), duration: CMTime(seconds: 0.2, preferredTimescale: 600))),
+                    WordTiming(word: "repairing", timeRange: CMTimeRange(start: CMTime(seconds: 2.3, preferredTimescale: 600), duration: CMTime(seconds: 0.5, preferredTimescale: 600))),
+                    WordTiming(word: "the", timeRange: CMTimeRange(start: CMTime(seconds: 2.8, preferredTimescale: 600), duration: CMTime(seconds: 0.2, preferredTimescale: 600))),
+                    WordTiming(word: "hackathon", timeRange: CMTimeRange(start: CMTime(seconds: 3.0, preferredTimescale: 600), duration: CMTime(seconds: 0.5, preferredTimescale: 600))),
+                    WordTiming(word: "demo", timeRange: CMTimeRange(start: CMTime(seconds: 3.5, preferredTimescale: 600), duration: CMTime(seconds: 0.35, preferredTimescale: 600))),
+                    WordTiming(word: "narration.", timeRange: CMTimeRange(start: CMTime(seconds: 3.85, preferredTimescale: 600), duration: CMTime(seconds: 0.85, preferredTimescale: 600)))
+                ]
+            ),
+            Cue(
+                id: UUID(uuidString: "22222222-2222-2222-2222-222222222222")!,
+                timeRange: CMTimeRange(
+                    start: CMTime(seconds: 5.0, preferredTimescale: 600),
+                    duration: CMTime(seconds: 2.8, preferredTimescale: 600)
+                ),
+                text: "Debugging and prompting became the biggest bottleneck as we explored the model integration.",
+                originalText: "Debugging and prompting became the biggest bottleneck as we explored the model integration.",
+                editState: .edited,
+                words: [
+                    WordTiming(word: "Debugging", timeRange: CMTimeRange(start: CMTime(seconds: 5.0, preferredTimescale: 600), duration: CMTime(seconds: 0.5, preferredTimescale: 600))),
+                    WordTiming(word: "and", timeRange: CMTimeRange(start: CMTime(seconds: 5.5, preferredTimescale: 600), duration: CMTime(seconds: 0.2, preferredTimescale: 600))),
+                    WordTiming(word: "prompting", timeRange: CMTimeRange(start: CMTime(seconds: 5.7, preferredTimescale: 600), duration: CMTime(seconds: 0.5, preferredTimescale: 600))),
+                    WordTiming(word: "became", timeRange: CMTimeRange(start: CMTime(seconds: 6.2, preferredTimescale: 600), duration: CMTime(seconds: 0.4, preferredTimescale: 600))),
+                    WordTiming(word: "the", timeRange: CMTimeRange(start: CMTime(seconds: 6.6, preferredTimescale: 600), duration: CMTime(seconds: 0.2, preferredTimescale: 600))),
+                    WordTiming(word: "biggest", timeRange: CMTimeRange(start: CMTime(seconds: 6.8, preferredTimescale: 600), duration: CMTime(seconds: 0.4, preferredTimescale: 600))),
+                    WordTiming(word: "bottleneck", timeRange: CMTimeRange(start: CMTime(seconds: 7.2, preferredTimescale: 600), duration: CMTime(seconds: 0.6, preferredTimescale: 600)))
+                ]
+            ),
+            Cue(
+                id: UUID(uuidString: "33333333-3333-3333-3333-333333333333")!,
+                timeRange: CMTimeRange(
+                    start: CMTime(seconds: 8.0, preferredTimescale: 600),
+                    duration: CMTime(seconds: 1.8, preferredTimescale: 600)
+                ),
+                text: "With transcript-first audio replacement, our voice dub matches screen timing perfectly.",
+                originalText: "With transcript-first audio replacement, our voice dub matches screen timing perfectly.",
+                editState: .original
+            )
+        ]
+        appVM.cues = sampleCues
+        appVM.timelineViewModel.setCues(sampleCues, totalDuration: appVM.totalDuration)
+
+        @MainActor
+        func captureView<V: View>(_ view: V, size: CGSize = CGSize(width: 1440, height: 900)) -> Data? {
+            let hostingView = NSHostingView(rootView: view)
+            hostingView.frame = NSRect(origin: .zero, size: size)
+
+            let window = NSWindow(
+                contentRect: NSRect(origin: .zero, size: size),
+                styleMask: [.borderless],
+                backing: .buffered,
+                defer: false
+            )
+            window.isOpaque = true
+            window.backgroundColor = NSColor(red: 0.08, green: 0.08, blue: 0.10, alpha: 1.0)
+            window.contentView = hostingView
+            window.layoutIfNeeded()
+            hostingView.layoutSubtreeIfNeeded()
+
+            guard let rep = hostingView.bitmapImageRepForCachingDisplay(in: hostingView.bounds) else {
+                return nil
+            }
+            hostingView.cacheDisplay(in: hostingView.bounds, to: rep)
+            return rep.representation(using: .png, properties: [:])
+        }
+
         // 1. Initial Project Loaded State
         appVM.selectedCueID = nil
         let view1 = MainAppView(appViewModel: appVM).frame(width: 1440, height: 900)
-        let r1 = ImageRenderer(content: view1)
-        r1.scale = 2.0
-        if let img = r1.nsImage, let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff), let png = rep.representation(using: .png, properties: [:]) {
+        if let png = captureView(view1) {
             try png.write(to: screenshotsDir.appendingPathComponent("1_project_loaded_state.png"))
         }
 
         // 2. Selected Cue Editing State
-        if !appVM.cues.isEmpty {
-            appVM.selectedCueID = appVM.cues[0].id
-            appVM.timelineViewModel.selectCue(appVM.cues[0])
-        }
+        appVM.selectedCueID = appVM.cues[0].id
+        appVM.timelineViewModel.selectCue(appVM.cues[0])
         let view2 = MainAppView(appViewModel: appVM).frame(width: 1440, height: 900)
-        let r2 = ImageRenderer(content: view2)
-        r2.scale = 2.0
-        if let img = r2.nsImage, let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff), let png = rep.representation(using: .png, properties: [:]) {
+        if let png = captureView(view2) {
             try png.write(to: screenshotsDir.appendingPathComponent("2_cue_editing_state.png"))
         }
 
-        // 3. Synthesis / Duration State (showing duration fit, overflow, or synthesis status)
-        if appVM.cues.count >= 2 {
-            appVM.cues[1] = appVM.cues[1].withUpdatedAudio(
-                audioWAVRelativePath: "audio/cues/cue_synth_2.wav",
-                editState: .overflowGated,
-                overflowDelta: CMTime(seconds: 1.42, preferredTimescale: 600)
-            )
-            appVM.selectedCueID = appVM.cues[1].id
-        }
+        // 3. Synthesis / Duration State (showing duration fit, overflow, and candidate actions)
+        appVM.referenceVoice = ReferenceVoice(name: "Fady — Local", audioRelativePath: "audio/reference_voice.wav")
+        appVM.cues[1] = appVM.cues[1].withUpdatedAudio(
+            audioWAVRelativePath: "audio/cues/cue_synth_2.wav",
+            editState: .overflowGated,
+            overflowDelta: CMTime(seconds: 1.42, preferredTimescale: 600)
+        )
+        appVM.selectedCueID = appVM.cues[1].id
+        appVM.timelineViewModel.selectCue(appVM.cues[1])
         let view3 = MainAppView(appViewModel: appVM).frame(width: 1440, height: 900)
-        let r3 = ImageRenderer(content: view3)
-        r3.scale = 2.0
-        if let img = r3.nsImage, let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff), let png = rep.representation(using: .png, properties: [:]) {
+        if let png = captureView(view3) {
             try png.write(to: screenshotsDir.appendingPathComponent("3_synthesis_duration_state.png"))
         }
 
-        // 4. Timeline + Video Preview State (active playback/scrubbing preview)
+        // 4. Timeline + Video Preview State (active playback/scrubbing preview with active word highlight)
         await appVM.timelineViewModel.clock.seek(to: CMTime(seconds: 2.2, preferredTimescale: 600_000))
-        if !appVM.cues.isEmpty {
-            appVM.selectedCueID = appVM.cues[0].id
-        }
+        appVM.selectedCueID = appVM.cues[0].id
         let view4 = MainAppView(appViewModel: appVM).frame(width: 1440, height: 900)
-        let r4 = ImageRenderer(content: view4)
-        r4.scale = 2.0
-        if let img = r4.nsImage, let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff), let png = rep.representation(using: .png, properties: [:]) {
+        if let png = captureView(view4) {
             try png.write(to: screenshotsDir.appendingPathComponent("4_timeline_video_preview_state.png"))
         }
 
