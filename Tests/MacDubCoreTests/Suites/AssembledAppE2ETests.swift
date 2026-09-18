@@ -438,7 +438,63 @@ struct AssembledAppE2ETests {
         let sourceAsset = AVURLAsset(url: sourceURL)
         let extractor = AudioTrackExtractor()
 
-        // 7. Analytically verify that the exported Narration interval differs from the original Narration interval
+        // 7. Deterministically classify exported audio tracks without assuming array ordering
+        let untouchedTimeRange = CMTimeRange(start: .zero, duration: CMTime(seconds: 0.4, preferredTimescale: 600))
+        let originalUntouchedPCM = try await extractor.extractPCMBuffer(
+            from: sourceAsset,
+            trackID: asset.audioTrackIDs[0],
+            timeRange: untouchedTimeRange,
+            targetSampleRate: 16000.0,
+            targetChannels: 1
+        )
+        let sourcePassthroughPCM = try await extractor.extractPCMBuffer(
+            from: sourceAsset,
+            trackID: asset.audioTrackIDs[1],
+            targetSampleRate: 16000.0
+        )
+
+        var resolvedPassthroughTrack: AVAssetTrack?
+        var resolvedNarrationTrack: AVAssetTrack?
+
+        for track in exportedTracks {
+            let candidateFullPCM = try await extractor.extractPCMBuffer(
+                from: exportedAsset,
+                trackID: track.trackID,
+                targetSampleRate: 16000.0
+            )
+            let passDiff = computeMeanAbsoluteDifference(bufferA: candidateFullPCM, bufferB: sourcePassthroughPCM)
+            let candidateCrossings = countZeroCrossings(in: candidateFullPCM, startSec: 1.0, durationSec: 1.0)
+
+            // Passthrough track exhibits continuous 220Hz tone (~440 zero-crossings/sec) and bit/sample identity with source
+            if passDiff < 0.001 && candidateCrossings >= 400 && candidateCrossings <= 480 {
+                #expect(resolvedPassthroughTrack == nil, "Deterministically detected duplicate passthrough track")
+                resolvedPassthroughTrack = track
+            } else {
+                // Narration track candidate: untouched interval outside Cue must match original narration source
+                let candidateUntouchedPCM = try await extractor.extractPCMBuffer(
+                    from: exportedAsset,
+                    trackID: track.trackID,
+                    timeRange: untouchedTimeRange,
+                    targetSampleRate: 16000.0,
+                    targetChannels: 1
+                )
+                let untouchedDiff = computeMeanAbsoluteDifference(bufferA: originalUntouchedPCM, bufferB: candidateUntouchedPCM)
+                if untouchedDiff < 0.001 {
+                    #expect(resolvedNarrationTrack == nil, "Deterministically detected duplicate narration track")
+                    resolvedNarrationTrack = track
+                }
+            }
+        }
+
+        // Verify both tracks were deterministically identified and no unintended track was substituted
+        guard let passthroughTrack = resolvedPassthroughTrack,
+              let narrationTrack = resolvedNarrationTrack else {
+            #expect(Bool(false), "Failed to deterministically identify Narration and Passthrough tracks from exported audio tracks")
+            return
+        }
+        #expect(passthroughTrack.trackID != narrationTrack.trackID, "Narration and Passthrough tracks must be distinct audio tracks")
+
+        // 8. Analytically verify that the exported Narration interval differs from the original Narration interval
         let cueTimeRange = appViewModel.cues[0].timeRange
         let originalCuePCM = try await extractor.extractPCMBuffer(
             from: sourceAsset,
@@ -449,7 +505,7 @@ struct AssembledAppE2ETests {
         )
         let exportedNarrationPCM = try await extractor.extractPCMBuffer(
             from: exportedAsset,
-            trackID: exportedTracks[1].trackID,
+            trackID: narrationTrack.trackID,
             timeRange: cueTimeRange,
             targetSampleRate: 16000.0,
             targetChannels: 1
@@ -459,18 +515,10 @@ struct AssembledAppE2ETests {
         let cueDiff = computeMeanAbsoluteDifference(bufferA: originalCuePCM, bufferB: exportedNarrationPCM)
         #expect(cueDiff > 0.005, "Exported Narration in cue slot must analytically differ from original due to PocketTTS replacement (got diff: \(cueDiff))")
 
-        // 8. Verify untouched Narration outside that Cue remains original
-        let untouchedTimeRange = CMTimeRange(start: .zero, duration: CMTime(seconds: 0.4, preferredTimescale: 600))
-        let originalUntouchedPCM = try await extractor.extractPCMBuffer(
-            from: sourceAsset,
-            trackID: asset.audioTrackIDs[0],
-            timeRange: untouchedTimeRange,
-            targetSampleRate: 16000.0,
-            targetChannels: 1
-        )
+        // 9. Verify untouched Narration outside that Cue remains original
         let exportedUntouchedPCM = try await extractor.extractPCMBuffer(
             from: exportedAsset,
-            trackID: exportedTracks[1].trackID,
+            trackID: narrationTrack.trackID,
             timeRange: untouchedTimeRange,
             targetSampleRate: 16000.0,
             targetChannels: 1
@@ -478,15 +526,10 @@ struct AssembledAppE2ETests {
         let untouchedDiff = computeMeanAbsoluteDifference(bufferA: originalUntouchedPCM, bufferB: exportedUntouchedPCM)
         #expect(untouchedDiff < 0.001, "Untouched narration interval outside cue must match original source audio (got diff: \(untouchedDiff))")
 
-        // 9. Verify the Passthrough Track remains preserved
+        // 10. Verify the Passthrough Track remains preserved
         let exportedPassthroughPCM = try await extractor.extractPCMBuffer(
             from: exportedAsset,
-            trackID: exportedTracks[0].trackID,
-            targetSampleRate: 16000.0
-        )
-        let sourcePassthroughPCM = try await extractor.extractPCMBuffer(
-            from: sourceAsset,
-            trackID: asset.audioTrackIDs[1],
+            trackID: passthroughTrack.trackID,
             targetSampleRate: 16000.0
         )
         #expect(exportedPassthroughPCM.frameLength > 0)
@@ -495,7 +538,7 @@ struct AssembledAppE2ETests {
         let passDiff = computeMeanAbsoluteDifference(bufferA: exportedPassthroughPCM, bufferB: sourcePassthroughPCM)
         #expect(passDiff < 0.001, "Exported passthrough track samples must match source passthrough track (got diff: \(passDiff))")
 
-        // 10. Verify video compressed-sample identity remains unchanged
+        // 11. Verify video compressed-sample identity remains unchanged
         #expect(!exportResult.wasVideoReencoded, "Video bitstream must not be re-encoded")
         #expect(exportResult.videoSampleCount > 0, "Video sample buffers must be preserved")
         let sourceVideoTracks = try await sourceAsset.loadTracks(withMediaType: .video)
