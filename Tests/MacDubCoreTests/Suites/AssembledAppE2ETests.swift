@@ -115,6 +115,7 @@ struct AssembledAppE2ETests {
         // Step 5: Confirm track configuration & Generate speech cues
         // -------------------------------------------------------------------------
         try await appViewModel.confirmTrackPickerAsync()
+        try await appViewModel.generateCuesAsync(sourceURL: sourceURL, totalDuration: appViewModel.totalDuration, narrationTrackID: narrationTrackID)
 
         #expect(!appViewModel.showTrackPicker)
         #expect(appViewModel.cues.count == 3, "Expected 3 detected speech cues in Track 1")
@@ -297,6 +298,7 @@ struct AssembledAppE2ETests {
         #expect(appViewModel.showTrackPicker == false)
         #expect(appViewModel.designatedNarrationID == Int(asset.audioTrackIDs[0]))
         #expect(appViewModel.passthroughTrackIDs.isEmpty)
+        try await appViewModel.generateCuesAsync(sourceURL: sourceURL, totalDuration: appViewModel.totalDuration)
         #expect(appViewModel.cues.count == 3)
     }
 
@@ -317,6 +319,7 @@ struct AssembledAppE2ETests {
         let appViewModel = AppViewModel(cueGenerator: cueGenerator)
 
         try await appViewModel.importMediaAsync(from: sourceURL)
+        try await appViewModel.generateCuesAsync(sourceURL: sourceURL, totalDuration: appViewModel.totalDuration)
         #expect(appViewModel.cues.count == 3)
 
         let cueToSplit = appViewModel.cues[0]
@@ -378,6 +381,7 @@ struct AssembledAppE2ETests {
         appViewModel.designatedNarrationID = Int(asset.audioTrackIDs[0])
         appViewModel.passthroughTrackIDs = [Int(asset.audioTrackIDs[1])]
         try await appViewModel.confirmTrackPickerAsync()
+        try await appViewModel.generateCuesAsync(sourceURL: sourceURL, totalDuration: appViewModel.totalDuration, narrationTrackID: asset.audioTrackIDs[0])
 
         // Verify VAD & ASR produced non-empty speech cues
         #expect(!appViewModel.cues.isEmpty, "VAD and ASR must detect and produce at least 1 speech cue from human speech fixture")

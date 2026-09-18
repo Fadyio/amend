@@ -156,7 +156,7 @@ swift test --filter StorageAPFSTests
 ```
 
 ### Environment Prerequisites
-- **macOS Version**: macOS 14.0 (Sonoma) or newer.
+- **macOS Version**: macOS 26.0 or newer.
 - **Architecture**: Apple Silicon (arm64).
-- **Toolchain**: Swift 6.0+ with SwiftPM.
+- **Toolchain**: Swift 6.2+ with SwiftPM.
 - **Security**: macOS Keychain available for test credentials.

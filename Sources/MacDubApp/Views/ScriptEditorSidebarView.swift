@@ -31,7 +31,7 @@ public final class ScriptEditorViewModel: ObservableObject {
         self.providerSetter = set
     }
 
-    public init(grammarProvider: GrammarProvider = GeminiGrammarProvider()) {
+    public init(grammarProvider: GrammarProvider = AdaptiveGrammarProvider()) {
         self.grammarProvider = grammarProvider
     }
 

@@ -1,12 +1,18 @@
 # Quality Gate Status & Verification Ledger
 
 ## Overview & Truthful Verification Ledger
-This ledger documents the verification status across all 17 phases and 14 quality gates of the MacDub project following the September 2026 audit and recovery. All automated tests run deterministically via `swift test --no-parallel` with zero synthetic fallback audio in production code and zero credential leaks.
+This ledger documents the verification status across all phases and quality gates of the MacDub project following the macOS 26+ native modernization. All automated tests run deterministically via `swift test --no-parallel` with zero synthetic fallback audio in production code and zero credential leaks.
 
-- **Total Test Suites**: 27
-- **Total Passing Tests (Deterministic)**: 266 / 266 (100% pass rate in deterministic test suite)
-- **CI Status**: macOS CI workflow configured at `.github/workflows/ci.yml` (macos-15, non-parallel)
-- **Host Architecture**: Apple Silicon M1 (arm64, 8 GB RAM)
+- **Minimum Deployment Target**: macOS 26.0 (Swift 6.2 tools version)
+- **UI Architecture**: macOS 26 Liquid Glass (`glassEffect`, `GlassEffectContainer`), calm solid transcript readability, no legacy fake materials
+- **Total Test Suites**: 28
+- **CI & Test Architecture**:
+  1. **Deterministic CI Suite** (`swift test --no-parallel`): Runs fully automated on any runner/machine without requiring neural models or real media.
+  2. **Local Neural Acceptance Suite** (`MACDUB_RUN_LOCAL_AI_TESTS=1`): Executes real Core ML Silero VAD and on-device PocketTTS voice cloning on Apple Silicon M1.
+  3. **Local Apple Foundation Models Suite** (`MACDUB_RUN_APPLE_MODEL_TESTS=1`): Executes live on-device Apple Intelligence grammar rewriting via `FoundationModels` framework.
+  4. **Local Real-Media Acceptance Suite** (`MACDUB_RUN_REAL_MEDIA_TESTS=1`): Validates live AVFoundation video decoding, timeline scrubbing, and deliberate transcription against user recording.
+  5. **Cloud-Provider Live Verification**: Verified against official schemas via hermetic URL mock protocols; live traffic requires user-supplied Keychain keys.
+- **Host Architecture**: Apple Silicon M1 (arm64, 8 GB RAM, macOS 26.6.2)
 
 ---
 
@@ -19,6 +25,7 @@ This ledger documents the verification status across all 17 phases and 14 qualit
 | **Selected Narration Routing** | **VERIFIED** | AudioTrackExtractor extracts by CMPersistentTrackID; verified in `AudioRoutingTests` & `AssembledAppE2ETests`. |
 | **Silero VAD** | **VERIFIED** | Compiled Core ML Silero VAD v6.0.0 model executes on Apple Silicon Neural Engine in `TranscriptionVADTests`. |
 | **Parakeet ASR** | **REAL 8 GB M1 WORKFLOW EXECUTED SUCCESSFULLY** | Initialized in `TranscriptionService`; executed end-to-end on Apple Silicon M1 in `AssembledAppE2ETests` (transcribed Kathleen audio with `exciting`, `time`, `week`, `thursday`). |
+| **Deliberate Transcription Workflow** | **VERIFIED** | Media import extracts waveform and configures tracks immediately without auto-running Parakeet; transcription requires explicit user trigger. |
 | **Project Bundle Persistence** | **VERIFIED** | `.voicefix` package saves/loads media reference, tracks, cues, candidate WAVs, Reference Voice, and provider IDs. |
 | **Single Source of Truth** | **VERIFIED** | `AppViewModel.selectedProviderType` is the single authoritative provider state; script editor uses proxy binding. |
 | **Preview Composition** | **VERIFIED** | Untouched video & passthrough audio, original narration outside cues, approved replacement audio in cues. |
@@ -31,12 +38,13 @@ This ledger documents the verification status across all 17 phases and 14 qualit
 | **PocketTTS Voice Cloning Acceptance** | **REAL 8 GB M1 WORKFLOW EXECUTED SUCCESSFULLY** | Executed live on Apple Silicon M1 (`MACDUB_RUN_LOCAL_AI_TESTS=1 swift test --filter PocketTTSAcceptanceTests` passed in 1179.8s). |
 | **Speech Fixture & Provenance** | **VERIFIED** | Authentic human speech under CC0 1.0 Universal (`rhasspy/dataset-voice-kathleen`, `arctic_a0366`, 5.072s 24kHz mono WAV) documented in `Fixtures/README.md`; resolved via `TestReferenceVoiceResolver`. |
 | **Reference Voice State Semantics** | **VERIFIED** | Truthful states: `.unconfigured` -> `.configured` (on import) -> `.loading` (synthesizing) -> `.ready` / `.failed`. |
-| **Apple Foundation Models Grammar** | **DEFERRED — RUNTIME REQUIREMENT** | DEFERRED — Apple Foundation Models framework requires macOS 26+; MacDub currently supports macOS 14+, so Gemini remains the active grammar backend for v1. |
+| **Apple Foundation Models Grammar** | **REAL ON-DEVICE WORKFLOW EXECUTED SUCCESSFULLY** | Implemented in `AppleFoundationGrammarProvider` via native `FoundationModels` framework; verified on-device with structured generation schema and diff computation (`MACDUB_RUN_APPLE_MODEL_TESTS=1` passed in 19.38s). |
+| **Liquid Glass Architecture** | **VERIFIED** | macOS 26 native `glassEffect(.regular)` and `GlassEffectContainer` for toolbars, inspectors, and floating controls; legacy fake materials removed. |
 | **Gemini Grammar** | **LIVE CREDENTIAL VERIFICATION REQUIRED** | Updated to `gemini-2.5-flash` with `x-goog-api-key` header (zero URL keys). Hermetic mock transport contract verified via `TestURLProtocol`; live call pending user key. |
 | **Gemini TTS REST & Missing-MIME Handling** | **LIVE CREDENTIAL VERIFICATION REQUIRED** | Verified against official `POST /v1beta/interactions` schema. Explicit WAV, MP3, M4A, raw PCM/L16, and RIFF magic byte payloads decoded safely; missing MIME treated as raw 16-bit PCM (24kHz mono) wrapped in valid RIFF WAV; malformed PCM and unsupported MIME rejected explicitly. Hermetic mock transport contract verified via `TestURLProtocol`; live call pending user key. |
 | **ElevenLabs Backend & Workflow** | **LIVE CREDENTIAL VERIFICATION REQUIRED** | Default model `eleven_multilingual_v2`, instant voice cloning (`/v1/voices/add`) with dynamic MIME detection. Hermetic mock transport contract verified via `TestURLProtocol`; live call pending user key. |
 | **Resemble Backend** | **EXISTING VOICE UUID ONLY — LIVE CREDENTIAL REQUIRED** | Resemble provider is manual-ID only (`Resemble — Existing Voice UUID`), not Reference Voice cloning. Executes synchronous synthesis via `POST https://f.cluster.resemble.ai/synthesize` with Bearer auth and `voice_uuid`. Hermetic mock transport contract verified via `TestURLProtocol`; live call pending user key. |
-| **Provider Settings** | **VERIFIED** | Test Connection tests authentic credentials with proper headers; truthful state display and canonical WAV conversion. |
+| **Provider Settings** | **VERIFIED** | Test Connection tests authentic credentials with proper headers; truthful state display and canonical WAV conversion; displays real-time Apple Intelligence on-device status card. |
 | **Export Format Enforcement** | **VERIFIED** | QuickTime Movie (.mov) strictly enforced; invalid containers (.mp4) fail cleanly with actionable errors. |
 | **Boundary Crossfades & Loudness Matching** | **VERIFIED** | 15ms equal-power boundary fades; ITU-R BS.1770 / EBU R128 loudness matched to surrounding original narration. |
 | **Frame Stepping & Transport Seeking** | **VERIFIED** | Frame stepping (`stepForward/Backward(by:fps:)`) adapts dynamically to source FPS (24, 30, 60); Reference Monitor transport implements true ±5-second seeking (`seekForward/Backward(by: 5.0)`). |
@@ -167,7 +175,7 @@ This ledger documents the verification status across all 17 phases and 14 qualit
 | Quality Gate | Description | Implementation File | Verified By / Test | Result |
 | :--- | :--- | :--- | :--- | :--- |
 | **Gate A** | `swift build` succeeds for MacDubCore and macdub executable | `Package.swift`, `Sources/MacDubCore/`, `Sources/MacDubApp/`, `Sources/macdub/` | Full SPM target compilation (`swift build`) | **IMPLEMENTED + VERIFIED** |
-| **Gate B** | All deterministic unit/integration tests pass | `Tests/MacDubCoreTests/` (27 test suites) | `swift test --no-parallel` (266/266 passed) | **IMPLEMENTED + VERIFIED** |
+| **Gate B** | All deterministic unit/integration tests pass | `Tests/MacDubCoreTests/` (28 test suites) | `swift test --no-parallel` (276/276 passed) | **IMPLEMENTED + VERIFIED** |
 | **Gate C** | Assembled app-level E2E journey passes | `Sources/MacDubApp/ViewModels/AppViewModel.swift` | `AssembledAppE2ETests.test_complete_sixteen_step_assembled_user_journey` | **IMPLEMENTED + VERIFIED** |
 | **Gate D** | Real selected-track routing is verified | `Sources/MacDubCore/Composition/AudioTrackExtractor.swift`, `Sources/MacDubCore/Transcription/CueGenerator.swift` | `AudioRoutingTests` (zero-crossing routing verification on Track B) | **IMPLEMENTED + VERIFIED** |
 | **Gate E** | Real Silero VAD is verified | `Sources/MacDubCore/Transcription/SilenceDetector.swift` | `TranscriptionVADTests` (compiled Core ML model on Neural Engine/CPU rejecting tones) | **IMPLEMENTED + VERIFIED** |
@@ -180,3 +188,5 @@ This ledger documents the verification status across all 17 phases and 14 qualit
 | **Gate L** | Live Gemini Grammar & TTS tests pass with real user-supplied Keychain credential | `Sources/MacDubCore/Synthesis/VoiceSynthesizer.swift` (`GeminiTTSProvider`), `GrammarRewriter.swift` | Registered mock transport & negative auth rejection verified; live call pending user key | **IMPLEMENTED — LIVE CREDENTIAL VERIFICATION REQUIRED** |
 | **Gate M** | Live ElevenLabs test passes when configured | `Sources/MacDubCore/Synthesis/VoiceSynthesizer.swift` (`ElevenLabsProvider`) | Registered mock transport, clone & synth contract verified; live call pending user key | **IMPLEMENTED — LIVE CREDENTIAL VERIFICATION REQUIRED** |
 | **Gate N** | Live Resemble test passes only when configured and account capabilities permit it | `Sources/MacDubCore/Synthesis/VoiceSynthesizer.swift` (`ResembleProvider`) | Registered mock transport & /synthesize contract verified; live call pending user key | **IMPLEMENTED — LIVE CREDENTIAL VERIFICATION REQUIRED** |
+| **Gate O** | Apple Foundation Models on-device structured grammar rewrite succeeds | `Sources/MacDubCore/Synthesis/AppleFoundationGrammarProvider.swift` | `AppleFoundationGrammarTests` (deterministic mocks + opt-in real on-device model execution) | **IMPLEMENTED + VERIFIED (REAL ON-DEVICE WORKFLOW EXECUTED SUCCESSFULLY)** |
+| **Gate P** | macOS 26 Liquid Glass UI styling and container controls | `Sources/MacDubApp/Views/LiquidGlassTheme.swift`, `MacDubToolbar.swift`, `CueInspectorView.swift`, etc. | Verified via packaged app launch and UI snapshot rendering | **IMPLEMENTED + VERIFIED** |

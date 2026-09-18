@@ -370,7 +370,14 @@ struct VideoPlaybackRegressionTests {
         try await appVM.importMediaAsync(from: mediaURL)
         #expect(!appVM.hasUnsavedChanges, "Freshly imported media should not be marked dirty")
 
-        guard !appVM.cues.isEmpty else { return }
+        let cue = Cue(
+            id: UUID(),
+            timeRange: CMTimeRange(start: CMTime(seconds: 0.5, preferredTimescale: 600), duration: CMTime(seconds: 2.0, preferredTimescale: 600)),
+            text: "Initial narration text",
+            editState: .original
+        )
+        appVM.cues = [cue]
+        appVM.timelineViewModel.setCues(appVM.cues, totalDuration: appVM.totalDuration)
         let firstCue = appVM.cues[0]
 
         // 1. Text edit marks dirty

@@ -31,41 +31,16 @@ public struct MainAppView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            // Native Liquid Glass Top Toolbar
-            MacDubToolbar(
-                sourceURL: appViewModel.sourceMediaURL,
-                projectBundleURL: appViewModel.projectBundleURL,
-                isProcessing: appViewModel.isProcessing,
-                statusMessage: appViewModel.statusMessage,
-                hasUnsavedChanges: appViewModel.hasUnsavedChanges,
-                selectedProvider: appViewModel.selectedProviderType,
-                isInspectorVisible: appViewModel.isInspectorVisible,
-                onOpenMedia: openMediaFile,
-                onOpenProject: openProjectFile,
-                onSaveProject: saveProjectFile,
-                onExport: { appViewModel.prepareExport() },
-                onOpenSettings: { appViewModel.showProviderSettings = true },
-                onToggleInspector: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        appViewModel.isInspectorVisible.toggle()
-                    }
-                }
-            )
-
-            Divider()
-
             // Main Information Architecture:
             // SCRIPT DOCUMENT (Primary Left) | REFERENCE MONITOR + CUE INSPECTOR (Right)
             HSplitView {
                 // Left Column: Script / Narration Document (Primary Workspace)
                 ZStack {
-                    if appViewModel.sourceMediaURL == nil {
+                    if appViewModel.sourceMediaURL == nil && appViewModel.projectBundleURL == nil {
                         EmptyProjectView(
                             onOpenMedia: openMediaFile,
                             onOpenProject: openProjectFile
                         )
-                    } else if appViewModel.isProcessing && appViewModel.cues.isEmpty {
-                        TranscribingStateView(statusMessage: appViewModel.statusMessage)
                     } else {
                         ScriptDocumentView(
                             cues: $appViewModel.cues,
@@ -186,7 +161,6 @@ public struct MainAppView: View {
                         )
                     }
                     .frame(minWidth: 320, idealWidth: 360, maxWidth: 440)
-                    .background(.ultraThinMaterial)
                 }
             }
 
@@ -201,6 +175,27 @@ public struct MainAppView: View {
             )
         }
         .background(MacDubTheme.baseGraphite)
+        .toolbar {
+            MacDubToolbarContent(
+                sourceURL: appViewModel.sourceMediaURL,
+                projectBundleURL: appViewModel.projectBundleURL,
+                isProcessing: appViewModel.isProcessing,
+                statusMessage: appViewModel.statusMessage,
+                hasUnsavedChanges: appViewModel.hasUnsavedChanges,
+                selectedProvider: appViewModel.selectedProviderType,
+                isInspectorVisible: appViewModel.isInspectorVisible,
+                onOpenMedia: openMediaFile,
+                onOpenProject: openProjectFile,
+                onSaveProject: saveProjectFile,
+                onExport: { appViewModel.prepareExport() },
+                onOpenSettings: { appViewModel.showProviderSettings = true },
+                onToggleInspector: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        appViewModel.isInspectorVisible.toggle()
+                    }
+                }
+            )
+        }
         .sheet(isPresented: $appViewModel.showTrackPicker) {
             TrackPickerView(
                 audioTracks: appViewModel.detectedAudioTracks,
@@ -234,6 +229,16 @@ public struct MainAppView: View {
         } message: {
             Text(appViewModel.errorMessage ?? "")
         }
+    }
+
+    private var projectTitle: String {
+        if let bundle = appViewModel.projectBundleURL {
+            return bundle.deletingPathExtension().lastPathComponent
+        }
+        if let source = appViewModel.sourceMediaURL {
+            return source.lastPathComponent
+        }
+        return "Untitled Project"
     }
 
     private func openMediaFile() {

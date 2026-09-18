@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 import Foundation
 import PackageDescription
 
@@ -19,7 +19,7 @@ if FileManager.default.fileExists(atPath: cltTestingMacrosPath) {
 let package = Package(
     name: "macdub",
     platforms: [
-        .macOS(.v14)
+        .macOS(.v26)
     ],
     products: [
         .library(name: "MacDubCore", targets: ["MacDubCore"]),

@@ -78,7 +78,7 @@ public struct ScriptDocumentView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(.ultraThinMaterial)
+            .glassEffect(.regular)
 
             Divider()
 

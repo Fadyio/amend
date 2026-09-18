@@ -163,7 +163,7 @@ public final class GeminiGrammarProvider: GrammarProvider, @unchecked Sendable {
         }
 
         let rewritten = try parseGeminiResponse(data)
-        let diff = computeWordDiff(original: text, rewritten: rewritten)
+        let diff = WordDiffUtility.computeWordDiff(original: text, rewritten: rewritten)
         return GrammarRewriteResult(originalText: text, rewrittenText: rewritten, diff: diff)
     }
 
@@ -219,6 +219,12 @@ public final class GeminiGrammarProvider: GrammarProvider, @unchecked Sendable {
     }
 
     internal func computeWordDiff(original: String, rewritten: String) -> [TextDiffChunk] {
+        WordDiffUtility.computeWordDiff(original: original, rewritten: rewritten)
+    }
+}
+
+public enum WordDiffUtility {
+    public static func computeWordDiff(original: String, rewritten: String) -> [TextDiffChunk] {
         let origWords = original.split(separator: " ", omittingEmptySubsequences: false).map(String.init)
         let rewWords = rewritten.split(separator: " ", omittingEmptySubsequences: false).map(String.init)
 
@@ -243,3 +249,4 @@ public final class GeminiGrammarProvider: GrammarProvider, @unchecked Sendable {
         return chunks
     }
 }
+

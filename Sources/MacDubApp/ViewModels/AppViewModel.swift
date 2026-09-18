@@ -164,7 +164,8 @@ public final class AppViewModel: ObservableObject {
                 self.passthroughTrackIDs = []
                 self.isSingleTrackAdvisory = true
                 self.showTrackPicker = false
-                try await generateCuesAsync(sourceURL: url, totalDuration: dur, narrationTrackID: CMPersistentTrackID(track.id))
+                self.isProcessing = false
+                self.statusMessage = "Ready to transcribe"
 
             case .multiTrack(let tracks, let defaultMapping):
                 self.detectedAudioTracks = tracks
@@ -181,7 +182,7 @@ public final class AppViewModel: ObservableObject {
                 self.statusMessage = "Error"
             }
 
-            // Extract Waveform for designated narration track
+            // Extract Waveform for designated narration track immediately so user has visual feedback
             let waveform = try? await waveformExtractor.extractWaveform(
                 from: asset,
                 trackID: CMPersistentTrackID(self.designatedNarrationID),
@@ -213,8 +214,9 @@ public final class AppViewModel: ObservableObject {
 
     public func confirmTrackPickerAsync() async throws {
         showTrackPicker = false
+        self.isProcessing = false
+        self.statusMessage = "Ready to transcribe"
         guard let url = sourceMediaURL else { return }
-        try await generateCuesAsync(sourceURL: url, totalDuration: totalDuration, narrationTrackID: CMPersistentTrackID(designatedNarrationID))
 
         let asset = AVURLAsset(url: url)
         let waveform = try? await waveformExtractor.extractWaveform(

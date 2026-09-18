@@ -284,6 +284,9 @@ public struct ProviderSettingsView: View {
                     // Reference Voice Section (Blocker 1 & 5)
                     referenceVoiceSection
 
+                    // Apple Intelligence (Foundation Models)
+                    appleIntelligenceSection
+
                     // PocketTTS Local Model Card
                     pocketTTSSection
 
@@ -403,6 +406,42 @@ public struct ProviderSettingsView: View {
                     Text(status)
                         .font(.caption)
                         .foregroundStyle(status.contains("failed") ? .red : .blue)
+                }
+            }
+            .padding(4)
+        }
+    }
+
+    // MARK: - Apple Intelligence Section
+    private var appleIntelligenceSection: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "apple.intelligence")
+                        .foregroundStyle(.blue)
+                    Text("Apple Intelligence (Foundation Models)")
+                        .font(.subheadline.bold())
+                    Spacer()
+                    let avail = AppleIntelligenceAvailability.currentAvailability()
+                    Text(avail.description)
+                        .font(.caption2.bold())
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(avail.isAvailable ? Color.green.opacity(0.12) : Color.orange.opacity(0.12))
+                        .foregroundStyle(avail.isAvailable ? Color.green : Color.orange)
+                        .clipShape(Capsule())
+                }
+
+                Text("Primary local engine for Fix Grammar, Make Natural, and Rewrite to Fit. Executes on-device on Apple Silicon Neural Engine with zero cloud dependencies or API keys.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 6) {
+                    Image(systemName: AppleIntelligenceAvailability.currentAvailability().isAvailable ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                        .foregroundStyle(AppleIntelligenceAvailability.currentAvailability().isAvailable ? .green : .orange)
+                    Text(AppleIntelligenceAvailability.currentAvailability().isAvailable ? "On-device Foundation Models active & ready" : "Fallback to configured cloud grammar backend")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
             .padding(4)

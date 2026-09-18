@@ -1,6 +1,11 @@
 # MacDub
 
-Native macOS speech dubbing, voice cloning, and timeline editing on Apple Silicon.
+Native macOS speech dubbing, voice cloning, and timeline editing designed exclusively for macOS 26+ on Apple Silicon.
+
+## System Requirements
+- **Operating System:** macOS 26.0 or later
+- **Architecture:** Apple Silicon (M-series)
+- **Frameworks:** Apple Foundation Models (`FoundationModels`), Core ML, AVFoundation, SwiftUI Liquid Glass (`glassEffect`, `GlassEffectContainer`)
 
 ## Run MacDub
 
@@ -36,7 +41,7 @@ make install INSTALL_DIR=/Applications
 
 ## Project Documents
 
-MacDub uses `.voicefix` Project Bundles (registered with macOS as document type `com.fady.macdub.voicefix`). Project bundles can be opened and saved from within the app via **File → Open Project...** (`Cmd+Shift+O`) and **File → Save Project...** (`Cmd+S`). Note: Double-click opening of individual project files from Finder into a running session is reserved for a future update and is not yet wired to application delegate file open events.
+MacDub uses `.voicefix` Project Bundles (registered with macOS as document type `com.fady.macdub.voicefix`). Project bundles can be opened and saved from within the app via **File → Open Project...** (`Cmd+Shift+O`) and **File → Save Project...** (`Cmd+S`), or opened directly from Finder.
 
 ## Build Automation
 

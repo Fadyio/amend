@@ -12,8 +12,8 @@ concurrency:
 
 jobs:
   build-and-test:
-    name: Build & Deterministic Test Suite
-    runs-on: macos-15
+    # Minimum deployment target is macOS 26.0 (Swift 6.2 tools)
+    runs-on: macos-15 # Update to macos-26 or macos-latest with macOS 26 SDK when provisioned by GitHub Actions
 
     steps:
       - name: Checkout Repository

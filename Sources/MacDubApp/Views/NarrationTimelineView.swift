@@ -130,48 +130,52 @@ public struct NarrationTimelineView: View {
 
                 Spacer()
 
-                // Magnetic Snapping Toggle
-                Button(action: {
-                    viewModel.isSnappingEnabled.toggle()
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "magnet")
-                            .font(.system(size: 11))
-                        Text("Snap")
-                            .font(.system(size: 11))
+                GlassEffectContainer {
+                    HStack(spacing: 12) {
+                        // Magnetic Snapping Toggle
+                        Button(action: {
+                            viewModel.isSnappingEnabled.toggle()
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "magnet")
+                                    .font(.system(size: 11))
+                                Text("Snap")
+                                    .font(.system(size: 11))
+                            }
+                            .foregroundStyle(viewModel.isSnappingEnabled ? MacDubTheme.accent : .secondary)
+                        }
+                        .buttonStyle(GlassButtonStyle())
+                        .help("Toggle Playhead Magnetic Snapping")
+
+                        Divider()
+                            .frame(height: 14)
+
+                        // Zoom Controls
+                        HStack(spacing: 6) {
+                            Image(systemName: "minus.magnifyingglass")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+
+                            Slider(
+                                value: Binding<Double>(
+                                    get: { viewModel.pixelsPerSecond },
+                                    set: { viewModel.applyZoom(newPPS: $0, anchorViewportX: viewModel.viewportWidth / 2.0) }
+                                ),
+                                in: 10.0...1000.0
+                            )
+                            .frame(width: 110)
+                            .controlSize(.mini)
+
+                            Image(systemName: "plus.magnifyingglass")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    .foregroundStyle(viewModel.isSnappingEnabled ? MacDubTheme.accent : .secondary)
-                }
-                .buttonStyle(.plain)
-                .help("Toggle Playhead Magnetic Snapping")
-
-                Divider()
-                    .frame(height: 14)
-
-                // Zoom Controls
-                HStack(spacing: 6) {
-                    Image(systemName: "minus.magnifyingglass")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-
-                    Slider(
-                        value: Binding<Double>(
-                            get: { viewModel.pixelsPerSecond },
-                            set: { viewModel.applyZoom(newPPS: $0, anchorViewportX: viewModel.viewportWidth / 2.0) }
-                        ),
-                        in: 10.0...1000.0
-                    )
-                    .frame(width: 110)
-                    .controlSize(.mini)
-
-                    Image(systemName: "plus.magnifyingglass")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
                 }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 6)
-            .background(.ultraThinMaterial)
+            .glassEffect(.regular)
         }
     }
 }

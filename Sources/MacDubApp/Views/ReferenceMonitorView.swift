@@ -109,7 +109,6 @@ public struct ReferenceMonitorView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(.ultraThinMaterial)
 
             // Video Display Well
             ZStack {
@@ -134,31 +133,34 @@ public struct ReferenceMonitorView: View {
 
             // Mini Transport Bar
             HStack(spacing: 12) {
-                // -5s Step
-                Button(action: onStepBackward) {
-                    Image(systemName: "gobackward.5")
-                        .font(.system(size: 12))
-                }
-                .buttonStyle(.plain)
-                .help("Step back 5 seconds")
+                GlassEffectContainer {
+                    HStack(spacing: 8) {
+                        // -5s Step
+                        Button(action: onStepBackward) {
+                            Image(systemName: "gobackward.5")
+                                .font(.system(size: 12))
+                        }
+                        .buttonStyle(GlassButtonStyle())
+                        .help("Step back 5 seconds")
 
-                // Play / Pause
-                Button(action: onTogglePlayPause) {
-                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(MacDubTheme.accent)
-                        .frame(width: 24, height: 24)
-                }
-                .buttonStyle(.plain)
-                .help("Toggle playback (Space)")
+                        // Play / Pause
+                        Button(action: onTogglePlayPause) {
+                            Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                                .frame(width: 20, height: 20)
+                        }
+                        .buttonStyle(GlassButtonStyle(isProminent: true))
+                        .help("Toggle playback (Space)")
 
-                // +5s Step
-                Button(action: onStepForward) {
-                    Image(systemName: "goforward.5")
-                        .font(.system(size: 12))
+                        // +5s Step
+                        Button(action: onStepForward) {
+                            Image(systemName: "goforward.5")
+                                .font(.system(size: 12))
+                        }
+                        .buttonStyle(GlassButtonStyle())
+                        .help("Step forward 5 seconds")
+                    }
                 }
-                .buttonStyle(.plain)
-                .help("Step forward 5 seconds")
 
                 Spacer()
 
@@ -168,7 +170,6 @@ public struct ReferenceMonitorView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(.ultraThinMaterial)
         }
         .elevatedGlassPanel(cornerRadius: MacDubTheme.cornerRadiusLarge)
     }

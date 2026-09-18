@@ -108,35 +108,37 @@ public struct CueInspectorView: View {
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
 
-                            Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 6) {
-                                GridRow {
-                                    Button(action: {
-                                        onTriggerRewrite(.rewriteToFit(targetDuration: cue.duration), "Rewrite to Fit Duration")
-                                    }) {
-                                        Label("Rewrite to Fit", systemImage: "wand.and.stars")
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
-                                    .buttonStyle(GlassButtonStyle(isProminent: true))
+                            GlassEffectContainer {
+                                Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 6) {
+                                    GridRow {
+                                        Button(action: {
+                                            onTriggerRewrite(.rewriteToFit(targetDuration: cue.duration), "Rewrite to Fit Duration")
+                                        }) {
+                                            Label("Rewrite to Fit", systemImage: "wand.and.stars")
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                        }
+                                        .buttonStyle(GlassButtonStyle(isProminent: true))
 
-                                    Button(action: onForceFit) {
-                                        Label("Force Fit", systemImage: "arrow.left.and.right.circle")
-                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                        Button(action: onForceFit) {
+                                            Label("Force Fit", systemImage: "arrow.left.and.right.circle")
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                        }
+                                        .buttonStyle(GlassButtonStyle())
                                     }
-                                    .buttonStyle(GlassButtonStyle())
-                                }
 
-                                GridRow {
-                                    Button(action: onSplitCue) {
-                                        Label("Split Cue", systemImage: "scissors")
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
-                                    .buttonStyle(GlassButtonStyle())
+                                    GridRow {
+                                        Button(action: onSplitCue) {
+                                            Label("Split Cue", systemImage: "scissors")
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                        }
+                                        .buttonStyle(GlassButtonStyle())
 
-                                    Button(action: onDiscardCandidate) {
-                                        Label("Discard Candidate", systemImage: "xmark.circle")
-                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                        Button(action: onDiscardCandidate) {
+                                            Label("Discard Candidate", systemImage: "xmark.circle")
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                        }
+                                        .buttonStyle(GlassButtonStyle())
                                     }
-                                    .buttonStyle(GlassButtonStyle())
                                 }
                             }
                         }
@@ -152,43 +154,45 @@ public struct CueInspectorView: View {
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.secondary)
 
-                        Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 6) {
-                            GridRow {
-                                Button(action: {
-                                    onTriggerRewrite(.fixGrammar, "Fix Grammar")
-                                }) {
-                                    Label("Fix Grammar", systemImage: "checkmark.bubble")
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                                .buttonStyle(GlassButtonStyle())
-                                .disabled(isRewriting)
-
-                                Button(action: {
-                                    onTriggerRewrite(.makeNatural, "Make Natural")
-                                }) {
-                                    Label("Make Natural", systemImage: "sparkles")
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                                .buttonStyle(GlassButtonStyle())
-                                .disabled(isRewriting)
-                            }
-
-                            GridRow {
-                                Button(action: {
-                                    onTriggerRewrite(.rewriteToFit(targetDuration: cue.duration), "Rewrite to Fit")
-                                }) {
-                                    Label("Rewrite to Fit", systemImage: "arrow.down.right.and.arrow.up.left")
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                                .buttonStyle(GlassButtonStyle())
-                                .disabled(isRewriting)
-
-                                if cue.editState != .original {
-                                    Button(action: onRestoreOriginal) {
-                                        Label("Restore Original", systemImage: "arrow.uturn.backward")
+                        GlassEffectContainer {
+                            Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 6) {
+                                GridRow {
+                                    Button(action: {
+                                        onTriggerRewrite(.fixGrammar, "Fix Grammar")
+                                    }) {
+                                        Label("Fix Grammar", systemImage: "checkmark.bubble")
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                     }
                                     .buttonStyle(GlassButtonStyle())
+                                    .disabled(isRewriting)
+
+                                    Button(action: {
+                                        onTriggerRewrite(.makeNatural, "Make Natural")
+                                    }) {
+                                        Label("Make Natural", systemImage: "sparkles")
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .buttonStyle(GlassButtonStyle())
+                                    .disabled(isRewriting)
+                                }
+
+                                GridRow {
+                                    Button(action: {
+                                        onTriggerRewrite(.rewriteToFit(targetDuration: cue.duration), "Rewrite to Fit")
+                                    }) {
+                                        Label("Rewrite to Fit", systemImage: "arrow.down.right.and.arrow.up.left")
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .buttonStyle(GlassButtonStyle())
+                                    .disabled(isRewriting)
+
+                                    if cue.editState != .original {
+                                        Button(action: onRestoreOriginal) {
+                                            Label("Restore Original", systemImage: "arrow.uturn.backward")
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                        }
+                                        .buttonStyle(GlassButtonStyle())
+                                    }
                                 }
                             }
                         }
@@ -202,33 +206,35 @@ public struct CueInspectorView: View {
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.secondary)
 
-                        HStack(spacing: 8) {
-                            Button(action: onSynthesize) {
-                                HStack(spacing: 6) {
-                                    if isSynthesizing {
-                                        ProgressView()
-                                            .controlSize(.mini)
-                                    } else {
-                                        Image(systemName: cue.editState == .synthesized ? "arrow.clockwise" : "waveform.badge.plus")
+                        GlassEffectContainer {
+                            HStack(spacing: 8) {
+                                Button(action: onSynthesize) {
+                                    HStack(spacing: 6) {
+                                        if isSynthesizing {
+                                            ProgressView()
+                                                .controlSize(.mini)
+                                        } else {
+                                            Image(systemName: cue.editState == .synthesized ? "arrow.clockwise" : "waveform.badge.plus")
+                                        }
+                                        Text(cue.editState == .synthesized ? "Regenerate" : "Generate Voice")
                                     }
-                                    Text(cue.editState == .synthesized ? "Regenerate" : "Generate Voice")
                                 }
-                            }
-                            .buttonStyle(GlassButtonStyle(isProminent: true))
-                            .disabled(isSynthesizing)
-                            .keyboardShortcut(.return, modifiers: .command)
+                                .buttonStyle(GlassButtonStyle(isProminent: true))
+                                .disabled(isSynthesizing)
+                                .keyboardShortcut(.return, modifiers: .command)
 
-                            if cue.editState == .synthesized {
-                                Button(action: onPreviewAudio) {
-                                    Label("Preview", systemImage: "speaker.wave.2")
+                                if cue.editState == .synthesized {
+                                    Button(action: onPreviewAudio) {
+                                        Label("Preview", systemImage: "speaker.wave.2")
+                                    }
+                                    .buttonStyle(GlassButtonStyle())
+                                }
+
+                                Button(action: onSplitCue) {
+                                    Label("Split Cue", systemImage: "scissors")
                                 }
                                 .buttonStyle(GlassButtonStyle())
                             }
-
-                            Button(action: onSplitCue) {
-                                Label("Split Cue", systemImage: "scissors")
-                            }
-                            .buttonStyle(GlassButtonStyle())
                         }
                     }
 
@@ -255,18 +261,7 @@ public struct CueInspectorView: View {
             }
             .padding(14)
         }
-        .background(.ultraThinMaterial)
-        .background(MacDubTheme.panelGraphite.opacity(0.40))
-        .overlay(
-            Rectangle()
-                .fill(LinearGradient(
-                    colors: [Color.white.opacity(0.12), Color.white.opacity(0.02)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                ))
-                .frame(width: 1),
-            alignment: .leading
-        )
+        .glassEffect(.regular)
     }
 
     private func formatTime(_ time: CMTime) -> String {

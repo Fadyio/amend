@@ -10,7 +10,7 @@ struct MacDubMain: App {
     @StateObject private var appViewModel = AppViewModel()
 
     var body: some Scene {
-        WindowGroup("macdub") {
+        WindowGroup {
             MainAppView(appViewModel: appViewModel)
                 .frame(minWidth: 900, minHeight: 600)
                 .onAppear {
@@ -32,7 +32,7 @@ struct MacDubMain: App {
                     }
                 }
         }
-        .windowStyle(.titleBar)
+        .windowToolbarStyle(.unified)
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("Open Media...") {

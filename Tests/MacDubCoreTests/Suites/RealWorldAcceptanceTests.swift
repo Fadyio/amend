@@ -10,14 +10,19 @@ import CoreGraphics
 @Suite("Real-World Media Acceptance Tests")
 struct RealWorldAcceptanceTests {
 
-    let realMediaURL = URL(fileURLWithPath: "/tmp/InteractionKit_ScreenRecording.mov")
-
     @Test("Verify real media acceptance workflow, synchronization, and bundle persistence")
     @MainActor
     func test_real_media_acceptance_journey() async throws {
-        // Only run when local real media exists on target developer host
+        // Only run when explicitly enabled and real media exists
+        guard ProcessInfo.processInfo.environment["MACDUB_RUN_REAL_MEDIA_TESTS"] == "1" else {
+            print("Skipping RealWorldAcceptanceTests: MACDUB_RUN_REAL_MEDIA_TESTS != 1")
+            return
+        }
+
+        let mediaPath = ProcessInfo.processInfo.environment["MACDUB_REAL_MEDIA"] ?? "/tmp/InteractionKit_ScreenRecording.mov"
+        let realMediaURL = URL(fileURLWithPath: mediaPath)
         guard FileManager.default.fileExists(atPath: realMediaURL.path) else {
-            print("Skipping RealWorldAcceptanceTests: /tmp/InteractionKit_ScreenRecording.mov not present on host")
+            print("Skipping RealWorldAcceptanceTests: Media file at \(mediaPath) not found on host")
             return
         }
 
@@ -43,10 +48,11 @@ struct RealWorldAcceptanceTests {
         let cgImage = try generator.copyCGImage(at: .zero, actualTime: nil)
         #expect(cgImage.width > 0 && cgImage.height > 0, "First video frame must decode valid image pixels")
 
-        // 2. Full AppViewModel import and transcription creates real Cues
+        // 2. Full AppViewModel import and explicit deliberate transcription creates real Cues
         let appViewModel = AppViewModel()
         try await appViewModel.importMediaAsync(from: realMediaURL)
         #expect(appViewModel.sourceMediaURL != nil, "Source media URL must be set")
+        try await appViewModel.generateCuesAsync(sourceURL: realMediaURL, totalDuration: appViewModel.totalDuration)
         #expect(appViewModel.cues.count > 0, "Transcription must detect and generate real cues from recording narration")
 
         // 3. Play / Pause works
@@ -103,7 +109,12 @@ struct RealWorldAcceptanceTests {
         #expect(abs(CMTimeGetSeconds(reloadedViewModel.totalDuration) - CMTimeGetSeconds(appViewModel.totalDuration)) < 0.01, "Reloaded duration must match")
 
         // 8. Launch packaged dist/MacDub.app with the saved bundle and capture genuine screenshot
-        let appURL = URL(fileURLWithPath: "/Users/fady/Dev/macdub/dist/MacDub.app/Contents/MacOS/MacDub")
+        let projectRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appURL = projectRoot.appendingPathComponent("dist/MacDub.app/Contents/MacOS/MacDub")
         if FileManager.default.fileExists(atPath: appURL.path) {
             let appProcess = Process()
             appProcess.executableURL = appURL
@@ -132,7 +143,7 @@ struct RealWorldAcceptanceTests {
 
             if let winID = targetWindowID {
                 try? await Task.sleep(nanoseconds: 3_500_000_000)
-                let screenshotPath = "/Users/fady/Dev/macdub/docs/screenshots/real_world_acceptance.png"
+                let screenshotPath = projectRoot.appendingPathComponent("docs/screenshots/real_world_acceptance.png").path
                 let capture = Process()
                 capture.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
                 capture.arguments = ["-o", "-l\(winID)", screenshotPath]
