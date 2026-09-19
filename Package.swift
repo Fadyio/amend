@@ -2,6 +2,9 @@
 import Foundation
 import PackageDescription
 
+// MacDubCoreTests uses Swift 5 mode because mock URL protocols and async test harness fixtures
+// capture mutable test recording state across concurrent boundaries. MacDubCore, MacDubApp,
+// and macdub production targets strictly compile in Swift 6 language mode (.swiftLanguageMode(.v6)).
 var testSwiftSettings: [SwiftSetting] = [
     .swiftLanguageMode(.v5)
 ]
