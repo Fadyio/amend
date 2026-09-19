@@ -1,4 +1,4 @@
-name: macOS CI
+name: Amend macOS CI
 
 on:
   push:
@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   build-and-test:
-    name: Build and Test macOS 26+ Native App
+    name: Build and Test Amend macOS 26+ Native App
     runs-on: macos-26
 
     steps:
@@ -31,7 +31,7 @@ jobs:
           SDK_MAJOR=$(xcrun --show-sdk-version --sdk macosx | cut -d. -f1)
           echo "Detected macOS SDK major version: $SDK_MAJOR"
           if [ "$SDK_MAJOR" -lt 26 ]; then
-            echo "::error::MacDub requires the macOS 26 SDK or newer (detected SDK $SDK_MAJOR)"
+            echo "::error::Amend requires the macOS 26 SDK or newer (detected SDK $SDK_MAJOR)"
             exit 1
           fi
 

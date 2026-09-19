@@ -1,7 +1,7 @@
-# MacDub Makefile
+# Amend Makefile
 SHELL := /bin/bash
 INSTALL_DIR ?= $(HOME)/Applications
-APP_NAME := MacDub
+APP_NAME := Amend
 DIST_DIR := dist
 APP_BUNDLE := $(DIST_DIR)/$(APP_NAME).app
 DMG_PATH := $(DIST_DIR)/$(APP_NAME).dmg
@@ -11,13 +11,13 @@ DMG_PATH := $(DIST_DIR)/$(APP_NAME).dmg
 all: app
 
 help:
-	@echo "MacDub Build & Packaging Automation"
+	@echo "Amend Build & Packaging Automation"
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Targets:"
 	@echo "  help      Show this help message"
-	@echo "  run       Launch MacDub in development mode (swift run macdub)"
+	@echo "  run       Launch Amend in development mode (swift run Amend)"
 	@echo "  build     Compile release executable (swift build -c release)"
 	@echo "  test      Run test suite (swift test --no-parallel)"
 	@echo "  app       Package release build into double-clickable $(APP_BUNDLE)"
@@ -27,10 +27,10 @@ help:
 	@echo "  clean     Remove dist/ output and SwiftPM build artifacts"
 
 run:
-	swift run macdub
+	swift run Amend
 
 build:
-	swift build -c release --product macdub
+	swift build -c release --product Amend
 
 test:
 	swift test --no-parallel

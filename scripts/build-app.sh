@@ -5,15 +5,15 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-echo "==> Packaging MacDub.app from ${REPO_ROOT}"
+echo "==> Packaging Amend.app from ${REPO_ROOT}"
 
-# 2. Build macdub in release configuration
-echo "==> Building release executable (swift build -c release --product macdub)..."
-swift build -c release --product macdub --package-path "${REPO_ROOT}"
+# 2. Build Amend in release configuration
+echo "==> Building release executable (swift build -c release --product Amend)..."
+swift build -c release --product Amend --package-path "${REPO_ROOT}"
 
 # 3. Determine the actual SwiftPM release binary directory
 RELEASE_BIN_DIR="$(swift build -c release --package-path "${REPO_ROOT}" --show-bin-path)"
-EXECUTABLE_SRC="${RELEASE_BIN_DIR}/macdub"
+EXECUTABLE_SRC="${RELEASE_BIN_DIR}/Amend"
 
 if [[ ! -x "${EXECUTABLE_SRC}" ]]; then
     echo "ERROR: Built executable not found or not executable at: ${EXECUTABLE_SRC}" >&2
@@ -22,7 +22,7 @@ fi
 
 # 4. Create bundle directory layout
 DIST_DIR="${REPO_ROOT}/dist"
-APP_DIR="${DIST_DIR}/MacDub.app"
+APP_DIR="${DIST_DIR}/Amend.app"
 CONTENTS_DIR="${APP_DIR}/Contents"
 MACOS_DIR="${CONTENTS_DIR}/MacOS"
 RESOURCES_DIR="${CONTENTS_DIR}/Resources"
@@ -32,9 +32,9 @@ rm -rf "${APP_DIR}"
 mkdir -p "${MACOS_DIR}" "${RESOURCES_DIR}"
 
 # 5. Copy executable into bundle
-echo "==> Installing executable into Contents/MacOS/MacDub..."
-cp "${EXECUTABLE_SRC}" "${MACOS_DIR}/MacDub"
-chmod +x "${MACOS_DIR}/MacDub"
+echo "==> Installing executable into Contents/MacOS/Amend..."
+cp "${EXECUTABLE_SRC}" "${MACOS_DIR}/Amend"
+chmod +x "${MACOS_DIR}/Amend"
 
 # 6. Copy Info.plist
 PLIST_SRC="${REPO_ROOT}/Packaging/Info.plist"
@@ -67,8 +67,8 @@ fi
 echo "==> Validating Info.plist..."
 plutil -lint "${CONTENTS_DIR}/Info.plist"
 
-if [[ ! -x "${MACOS_DIR}/MacDub" ]]; then
-    echo "ERROR: Packaged executable missing or not executable at ${MACOS_DIR}/MacDub" >&2
+if [[ ! -x "${MACOS_DIR}/Amend" ]]; then
+    echo "ERROR: Packaged executable missing or not executable at ${MACOS_DIR}/Amend" >&2
     exit 1
 fi
 
