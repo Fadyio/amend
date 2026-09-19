@@ -201,32 +201,3 @@ public struct GlassButtonStyle: ButtonStyle {
             .opacity(configuration.isPressed ? 0.82 : 1.0)
     }
 }
-
-// MARK: - Compile-Time SDK Compatibility Shims for CI Runners (< macOS 26 SDK)
-#if !canImport(FoundationModels)
-public struct Glass: Sendable {
-    public static let regular = Glass()
-    public static let clear = Glass()
-    public func tint(_ color: Color) -> Glass { self }
-    public func interactive() -> Glass { self }
-}
-
-public struct GlassEffectContainer<Content: View>: View {
-    @ViewBuilder public let content: () -> Content
-    public init(@ViewBuilder content: @escaping () -> Content) {
-        self.content = content
-    }
-    public var body: some View {
-        content()
-    }
-}
-
-public extension View {
-    func glassEffect(_ glass: Glass = .regular) -> some View {
-        self
-    }
-    func glassEffect<S: Shape>(_ glass: Glass, in shape: S) -> some View {
-        self
-    }
-}
-#endif

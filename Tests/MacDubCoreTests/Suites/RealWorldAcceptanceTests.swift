@@ -10,19 +10,20 @@ import CoreGraphics
 @Suite("Real-World Media Acceptance Tests")
 struct RealWorldAcceptanceTests {
 
-    @Test("Verify real media acceptance workflow, synchronization, and bundle persistence")
+    @Test(
+        "Verify real media acceptance workflow, synchronization, and bundle persistence",
+        .enabled(if: ProcessInfo.processInfo.environment["MACDUB_RUN_REAL_MEDIA_TESTS"] == "1")
+    )
     @MainActor
     func test_real_media_acceptance_journey() async throws {
-        // Only run when explicitly enabled and real media exists
-        guard ProcessInfo.processInfo.environment["MACDUB_RUN_REAL_MEDIA_TESTS"] == "1" else {
-            print("Skipping RealWorldAcceptanceTests: MACDUB_RUN_REAL_MEDIA_TESTS != 1")
+        guard let mediaPath = ProcessInfo.processInfo.environment["MACDUB_REAL_MEDIA"], !mediaPath.isEmpty else {
+            Issue.record("MACDUB_REAL_MEDIA environment variable is not set. MACDUB_RUN_REAL_MEDIA_TESTS=1 requires MACDUB_REAL_MEDIA=\"/path/to/file.mov\".")
             return
         }
 
-        let mediaPath = ProcessInfo.processInfo.environment["MACDUB_REAL_MEDIA"] ?? "/tmp/InteractionKit_ScreenRecording.mov"
         let realMediaURL = URL(fileURLWithPath: mediaPath)
         guard FileManager.default.fileExists(atPath: realMediaURL.path) else {
-            print("Skipping RealWorldAcceptanceTests: Media file at \(mediaPath) not found on host")
+            Issue.record("Real media file missing at '\(mediaPath)'. MACDUB_RUN_REAL_MEDIA_TESTS=1 requires an existing media file.")
             return
         }
 

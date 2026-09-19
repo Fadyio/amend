@@ -12,18 +12,28 @@ concurrency:
 
 jobs:
   build-and-test:
-    # Minimum deployment target is macOS 26.0 (Swift 6.2 tools)
-    runs-on: macos-15 # Update to macos-26 or macos-latest with macOS 26 SDK when provisioned by GitHub Actions
+    name: Build and Test macOS 26+ Native App
+    runs-on: macos-26
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Inspect Swift Version & Environment
+      - name: Inspect Toolchain & Validate macOS 26+ SDK
         run: |
+          echo "=== System Versions ==="
+          sw_vers
+          xcodebuild -version || true
           swift --version
-          xcodebuild -version
-          uname -a
+          xcrun --show-sdk-version --sdk macosx
+          xcrun --show-sdk-path --sdk macosx
+
+          SDK_MAJOR=$(xcrun --show-sdk-version --sdk macosx | cut -d. -f1)
+          echo "Detected macOS SDK major version: $SDK_MAJOR"
+          if [ "$SDK_MAJOR" -lt 26 ]; then
+            echo "::error::MacDub requires the macOS 26 SDK or newer (detected SDK $SDK_MAJOR)"
+            exit 1
+          fi
 
       - name: Build All Targets
         run: swift build -v

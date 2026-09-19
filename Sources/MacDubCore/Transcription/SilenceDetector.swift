@@ -1,6 +1,6 @@
 import Foundation
 import CoreMedia
-import AVFoundation
+@preconcurrency import AVFoundation
 import Accelerate
 import FluidAudio
 

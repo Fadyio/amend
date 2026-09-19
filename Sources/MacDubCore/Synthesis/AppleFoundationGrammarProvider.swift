@@ -1,8 +1,6 @@
 import Foundation
 import CoreMedia
-#if canImport(FoundationModels)
 import FoundationModels
-#endif
 
 public enum AppleIntelligenceAvailability: Equatable, Sendable {
     case available
@@ -31,7 +29,6 @@ public enum AppleIntelligenceAvailability: Equatable, Sendable {
     }
 
     public static func currentAvailability() -> AppleIntelligenceAvailability {
-        #if canImport(FoundationModels)
         let model = SystemLanguageModel.default
         switch model.availability {
         case .available:
@@ -48,9 +45,6 @@ public enum AppleIntelligenceAvailability: Equatable, Sendable {
                 return .unavailable("Unknown system state")
             }
         }
-        #else
-        return .unavailable("FoundationModels framework not present in host SDK")
-        #endif
     }
 }
 
@@ -74,7 +68,6 @@ public final class SystemFoundationLanguageModelSession: FoundationLanguageModel
     public init() {}
 
     public func rewrite(prompt: String, action: GrammarAction) async throws -> StructuredRewriteOutput {
-        #if canImport(FoundationModels)
         let instructions = makeInstructions(for: action)
         let session = LanguageModelSession(instructions: instructions)
 
@@ -119,9 +112,6 @@ public final class SystemFoundationLanguageModelSession: FoundationLanguageModel
         }
 
         return StructuredRewriteOutput(rewrittenText: text, changeSummary: summary, estimatedWordCount: count)
-        #else
-        throw GrammarError.providerUnavailable("FoundationModels framework not available in host SDK")
-        #endif
     }
 
     private func makeInstructions(for action: GrammarAction) -> String {

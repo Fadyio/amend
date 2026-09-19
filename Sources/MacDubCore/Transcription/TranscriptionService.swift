@@ -1,6 +1,6 @@
 import Foundation
 import CoreMedia
-import AVFoundation
+@preconcurrency import AVFoundation
 import FluidAudio
 
 public struct WordTiming: Sendable, Equatable, Codable {

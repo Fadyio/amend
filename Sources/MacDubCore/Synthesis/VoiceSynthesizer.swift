@@ -178,7 +178,7 @@ public enum NetworkSessionFactory {
 }
 
 public final class TestURLProtocol: URLProtocol, @unchecked Sendable {
-    public static var testHandlers: [String: @Sendable (URLRequest) -> (HTTPURLResponse, Data)?] = [:]
+    nonisolated(unsafe) public static var testHandlers: [String: @Sendable (URLRequest) -> (HTTPURLResponse, Data)?] = [:]
     private static let lock = NSLock()
 
     public static func registerHandler(for prefix: String, handler: @escaping @Sendable (URLRequest) -> (HTTPURLResponse, Data)?) {

@@ -41,7 +41,7 @@ let package = Package(
                 .product(name: "FluidAudio", package: "FluidAudio")
             ],
             swiftSettings: [
-                .swiftLanguageMode(.v5)
+                .swiftLanguageMode(.v6)
             ]
         ),
         .target(
@@ -50,7 +50,7 @@ let package = Package(
                 "MacDubCore"
             ],
             swiftSettings: [
-                .swiftLanguageMode(.v5)
+                .swiftLanguageMode(.v6)
             ]
         ),
         .executableTarget(
@@ -60,7 +60,7 @@ let package = Package(
                 "MacDubApp"
             ],
             swiftSettings: [
-                .swiftLanguageMode(.v5)
+                .swiftLanguageMode(.v6)
             ]
         ),
         .testTarget(
@@ -77,5 +77,5 @@ let package = Package(
             swiftSettings: testSwiftSettings
         )
     ],
-    swiftLanguageModes: [.v5]
+    swiftLanguageModes: [.v6]
 )

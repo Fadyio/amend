@@ -86,7 +86,7 @@ public final class TimelineClock: NSObject, ObservableObject, TimelineClockProto
         super.init()
     }
 
-    deinit {
+    isolated deinit {
         if let token = timeObserverToken, let player = player {
             player.removeTimeObserver(token)
         }

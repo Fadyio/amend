@@ -336,16 +336,14 @@ struct AssembledAppE2ETests {
         #expect(cueB.timeRange.end == cueToSplit.timeRange.end)
     }
 
-    @Test("Live-Model End-to-End Acceptance Journey: Parakeet ASR + Silero VAD + PocketTTS Cloning (Opt-in)")
+    @Test(
+        "Live-Model End-to-End Acceptance Journey: Parakeet ASR + Silero VAD + PocketTTS Cloning (Opt-in)",
+        .enabled(if: ProcessInfo.processInfo.environment["MACDUB_RUN_LOCAL_AI_TESTS"] == "1")
+    )
     @MainActor
     func test_live_model_end_to_end_journey() async throws {
-        guard ProcessInfo.processInfo.environment["MACDUB_RUN_LOCAL_AI_TESTS"] == "1" else {
-            print("[NOTICE] Live model end-to-end journey skipped. Run with MACDUB_RUN_LOCAL_AI_TESTS=1 on Apple Silicon Mac to execute full neural pipeline.")
-            return
-        }
-
         guard let humanSpeechURL = TestReferenceVoiceResolver.resolveReferenceVoiceURL(filePath: #filePath) else {
-            #expect(Bool(false), "Authentic human speech fixture human_speech_reference.wav could not be resolved from repository or MACDUB_TEST_REFERENCE_VOICE")
+            Issue.record("Authentic human speech fixture human_speech_reference.wav could not be resolved from repository or MACDUB_TEST_REFERENCE_VOICE")
             return
         }
 
