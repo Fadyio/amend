@@ -2,9 +2,9 @@
 import Foundation
 import PackageDescription
 
-// MacDubCoreTests uses Swift 5 mode because mock URL protocols and async test harness fixtures
-// capture mutable test recording state across concurrent boundaries. MacDubCore, MacDubApp,
-// and macdub production targets strictly compile in Swift 6 language mode (.swiftLanguageMode(.v6)).
+// AmendCoreTests uses Swift 5 mode because mock URL protocols and async test harness fixtures
+// capture mutable test recording state across concurrent boundaries. AmendCore, AmendApp,
+// and Amend production targets strictly compile in Swift 6 language mode (.swiftLanguageMode(.v6)).
 var testSwiftSettings: [SwiftSetting] = [
     .swiftLanguageMode(.v5)
 ]
@@ -20,14 +20,14 @@ if FileManager.default.fileExists(atPath: cltTestingMacrosPath) {
 }
 
 let package = Package(
-    name: "macdub",
+    name: "Amend",
     platforms: [
         .macOS("26.0")
     ],
     products: [
-        .library(name: "MacDubCore", targets: ["MacDubCore"]),
-        .library(name: "MacDubApp", targets: ["MacDubApp"]),
-        .executable(name: "macdub", targets: ["macdub"])
+        .library(name: "AmendCore", targets: ["AmendCore"]),
+        .library(name: "AmendApp", targets: ["AmendApp"]),
+        .executable(name: "Amend", targets: ["Amend"])
     ],
     dependencies: [
         .package(url: "https://github.com/dmrschmidt/DSWaveformImage.git", from: "14.5.0"),
@@ -36,7 +36,7 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "MacDubCore",
+            name: "AmendCore",
             dependencies: [
                 .product(name: "DSWaveformImage", package: "DSWaveformImage"),
                 .product(name: "SwiftTimecodeCore", package: "swift-timecode"),
@@ -48,29 +48,29 @@ let package = Package(
             ]
         ),
         .target(
-            name: "MacDubApp",
+            name: "AmendApp",
             dependencies: [
-                "MacDubCore"
+                "AmendCore"
             ],
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]
         ),
         .executableTarget(
-            name: "macdub",
+            name: "Amend",
             dependencies: [
-                "MacDubCore",
-                "MacDubApp"
+                "AmendCore",
+                "AmendApp"
             ],
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]
         ),
         .testTarget(
-            name: "MacDubCoreTests",
+            name: "AmendCoreTests",
             dependencies: [
-                "MacDubCore",
-                "MacDubApp",
+                "AmendCore",
+                "AmendApp",
                 .product(name: "FluidAudio", package: "FluidAudio")
             ],
             resources: [

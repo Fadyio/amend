@@ -1,12 +1,12 @@
 import Foundation
 import CoreMedia
-import MacDubCore
-import MacDubApp
+import AmendCore
+import AmendApp
 
 @main
 struct GenerateSample {
     static func main() async throws {
-        let sampleDir = URL(fileURLWithPath: "/tmp/macdub_demo")
+        let sampleDir = URL(fileURLWithPath: "/tmp/amend_demo")
         try? FileManager.default.removeItem(at: sampleDir)
         try FileManager.default.createDirectory(at: sampleDir, withIntermediateDirectories: true)
 
