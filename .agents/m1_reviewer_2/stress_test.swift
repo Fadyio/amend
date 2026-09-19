@@ -1,6 +1,6 @@
 import Foundation
 import CoreMedia
-import MacDubCore
+import AmendCore
 
 var passedCount = 0
 var failedCount = 0
@@ -15,7 +15,7 @@ func assertTest(_ condition: Bool, _ message: String) {
     }
 }
 
-print("=== MACDUB ADVERSARIAL STRESS TEST SUITE ===")
+print("=== AMEND ADVERSARIAL STRESS TEST SUITE ===")
 
 // MARK: - 1. CMTime & CMTimeRange Precision
 print("\n--- Suite 1: CMTime+Codable Rational Precision & Boundary Invariants ---")
@@ -85,7 +85,7 @@ let userPathJSON = """
     "mac_path": "/Users/developer/recordings/test.mp4",
     "linux_path": "/home/ubuntu/recordings/test.mp4",
     "safe_system_path": "/System/Library/Fonts/Helvetica.ttc",
-    "safe_app_path": "/Applications/MacDub.app/Contents/MacOS/macdub"
+    "safe_app_path": "/Applications/Amend.app/Contents/MacOS/amend"
 }
 """.data(using: .utf8)!
 
@@ -147,7 +147,7 @@ do {
 
 // MARK: - 3. KeychainVault Concurrency & Character Sets
 print("\n--- Suite 3: KeychainVault Rapid Updates, Character Sets & Invariants ---")
-let testVaultID = "com.macdub.tests.adversarial.\(UUID().uuidString)"
+let testVaultID = "com.fady.amend.tests.adversarial.\(UUID().uuidString)"
 let testVault = KeychainVault(serviceIdentifier: testVaultID)
 
 defer {
@@ -184,13 +184,13 @@ assertTest(updateSuccess, "Rapid sequential updates to KeychainVault succeed wit
 
 // MARK: - 4. ProjectBundle Directory Scaffolding & Atomic Writes
 print("\n--- Suite 4: ProjectBundle Directory Scaffolding & Atomicity ---")
-let tempBase = FileManager.default.temporaryDirectory.appendingPathComponent("MacDubAdvTest_\(UUID().uuidString)")
+let tempBase = FileManager.default.temporaryDirectory.appendingPathComponent("AmendAdvTest_\(UUID().uuidString)")
 try FileManager.default.createDirectory(at: tempBase, withIntermediateDirectories: true)
 defer {
     try? FileManager.default.removeItem(at: tempBase)
 }
 
-let bundlePath = tempBase.appendingPathComponent("AutoExtensionTest") // No .voicefix suffix
+let bundlePath = tempBase.appendingPathComponent("AutoExtensionTest") // No .amend suffix
 let meta = ProjectMetadata(
     name: "AutoExtensionTest",
     sourceStorageMode: .cloned(relativePath: "source.mp4"),
@@ -200,7 +200,7 @@ let meta = ProjectMetadata(
 
 do {
     let b = try ProjectBundle.create(at: bundlePath, metadata: meta)
-    assertTest(b.rootURL.pathExtension == "voicefix", "ProjectBundle.create automatically appends .voicefix extension if omitted")
+    assertTest(b.rootURL.pathExtension == "amend", "ProjectBundle.create automatically appends .amend extension if omitted")
     assertTest(FileManager.default.fileExists(atPath: b.projectJSONURL.path), "project.json exists at bundle root")
     assertTest(FileManager.default.fileExists(atPath: b.cuesAudioDirectoryURL.path), "audio/cues subdirectory scaffolded")
     assertTest(FileManager.default.fileExists(atPath: b.waveformsDirectoryURL.path), "waveforms subdirectory scaffolded")

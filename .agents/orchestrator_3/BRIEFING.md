@@ -1,18 +1,18 @@
 # BRIEFING — 2026-09-16T13:46:20Z
 
 ## Mission
-Orchestrate the development of macdub, a native macOS application for transcript-based speech editing, narration replacement, and voice cloning preserving immutable timeline synchronization.
+Orchestrate the development of amend, a native macOS application for transcript-based speech editing, narration replacement, and voice cloning preserving immutable timeline synchronization.
 
 ## 🔒 My Identity
 - Archetype: teamwork_preview_orchestrator
 - Roles: orchestrator, user_liaison, human_reporter, successor
-- Working directory: /Users/fady/Dev/macdub/.agents/orchestrator_3
+- Working directory: /Users/fady/Dev/amend/.agents/orchestrator_3
 - Original parent: parent
 - Original parent conversation ID: c12bc566-59fe-45d9-9332-56af06d70e7e
 
 ## 🔒 My Workflow
 - **Pattern**: Project
-- **Scope document**: /Users/fady/Dev/macdub/.agents/orchestrator_3/PROJECT.md
+- **Scope document**: /Users/fady/Dev/amend/.agents/orchestrator_3/PROJECT.md
 1. **Decompose**: Decomposed into 6 core milestones + parallel E2E testing track + Final verification.
 2. **Dispatch & Execute**: Direct iteration loop: Explorer -> Worker -> Reviewer -> Challenger -> Auditor -> Gate.
 3. **On failure**: Retry -> Replace -> Skip -> Redistribute -> Redesign -> Escalate.
@@ -63,7 +63,7 @@ Orchestrate the development of macdub, a native macOS application for transcript
 - Safety timer: none
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md — Authoritative User Request
-- /Users/fady/Dev/macdub/.agents/orchestrator_3/PROJECT.md — Project Blueprint & Milestones
-- /Users/fady/Dev/macdub/.agents/orchestrator_3/progress.md — Progress and Liveness Checkpoints
-- /Users/fady/Dev/macdub/.agents/orchestrator_3/GATE_STATUS.md — Milestone Verification Gate Records
+- /Users/fady/Dev/amend/ORIGINAL_REQUEST.md — Authoritative User Request
+- /Users/fady/Dev/amend/.agents/orchestrator_3/PROJECT.md — Project Blueprint & Milestones
+- /Users/fady/Dev/amend/.agents/orchestrator_3/progress.md — Progress and Liveness Checkpoints
+- /Users/fady/Dev/amend/.agents/orchestrator_3/GATE_STATUS.md — Milestone Verification Gate Records

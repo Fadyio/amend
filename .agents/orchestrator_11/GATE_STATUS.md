@@ -1,4 +1,4 @@
-# Gate Status — macdub
+# Gate Status — amend
 
 ## Gate — Milestone 1: Core Foundation, Storage & Security (Iteration 1)
 | Agent | Role | Verdict | Source |

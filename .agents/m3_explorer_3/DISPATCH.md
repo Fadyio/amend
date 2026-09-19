@@ -4,10 +4,10 @@
 Explore, design, and architect the Interactive Cue Track, Zoom Engine (`pixelsPerSecond`), Active Cue Highlighting, and ViewModel integration for Milestone 3.
 
 ## Inputs
-- Authoritative User Request: `/Users/fady/Dev/macdub/ORIGINAL_REQUEST.md` (MUST READ FIRST)
-- Project Blueprint: `/Users/fady/Dev/macdub/.agents/orchestrator_8/PROJECT.md`
+- Authoritative User Request: `/Users/fady/Dev/amend/ORIGINAL_REQUEST.md` (MUST READ FIRST)
+- Project Blueprint: `/Users/fady/Dev/amend/.agents/orchestrator_8/PROJECT.md`
 - ADRs: `docs/adr/0001-fixed-sync-invariant.md`
-- Existing codebase in `Sources/MacDubCore/` and `Sources/macdub/`
+- Existing codebase in `Sources/AmendCore/` and `Sources/amend/`
 
 ## Key Questions & Scope
 1. How should the coordinate system map between continuous `CMTime` and horizontal screen pixels across variable zoom levels (`pixelsPerSecond: Double`, e.g. 50.0 to 500.0 px/s)?
@@ -16,7 +16,7 @@ Explore, design, and architect the Interactive Cue Track, Zoom Engine (`pixelsPe
 4. How should the ViewModel (`ProjectViewModel`) bind `TimelineClock`, `Cue` collection, and player state together cleanly?
 
 ## Output Requirements
-Deliver handoff report at `/Users/fady/Dev/macdub/.agents/m3_explorer_3/handoff.md` with:
+Deliver handoff report at `/Users/fady/Dev/amend/.agents/m3_explorer_3/handoff.md` with:
 - Coordinate mapping equations and zoom math.
 - View & ViewModel architecture for `TimelineView`, `CueTrackView`, `ProjectViewModel`.
 - Unit test strategy and UI integration plan.
@@ -24,11 +24,11 @@ Notify caller with send_message upon completion.
 
 ## 2026-09-16T21:08:19Z
 You are m3_explorer_3, an exploration agent investigating Timeline Presentation, Cue Tracking & UI Binding for Milestone 3.
-Your working directory is: /Users/fady/Dev/macdub/.agents/m3_explorer_3
-Read your dispatch instructions at: /Users/fady/Dev/macdub/.agents/m3_explorer_3/DISPATCH.md
-Read the authoritative user request at: /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md (MANDATORY: read this first)
-Read the project blueprint at: /Users/fady/Dev/macdub/.agents/orchestrator_8/PROJECT.md
+Your working directory is: /Users/fady/Dev/amend/.agents/m3_explorer_3
+Read your dispatch instructions at: /Users/fady/Dev/amend/.agents/m3_explorer_3/DISPATCH.md
+Read the authoritative user request at: /Users/fady/Dev/amend/ORIGINAL_REQUEST.md (MANDATORY: read this first)
+Read the project blueprint at: /Users/fady/Dev/amend/.agents/orchestrator_8/PROJECT.md
 
 Investigate and architect interactive cue track presentation, pixelsPerSecond zoom scaling, seeking, and ProjectViewModel binding.
-Deliver your handoff report to /Users/fady/Dev/macdub/.agents/m3_explorer_3/handoff.md and notify your parent upon completion.
+Deliver your handoff report to /Users/fady/Dev/amend/.agents/m3_explorer_3/handoff.md and notify your parent upon completion.
 

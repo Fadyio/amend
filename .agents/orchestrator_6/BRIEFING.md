@@ -1,18 +1,18 @@
 # BRIEFING — 2026-09-16T21:28:00Z
 
 ## Mission
-Orchestrate the end-to-end greenfield development of macdub (native macOS 14.0+ screen recording speech editing, narration replacement, and voice cloning app) following the Project Pattern across all milestones (M1–M6, parallel E2E test suites, and final hardening).
+Orchestrate the end-to-end greenfield development of amend (native macOS 14.0+ screen recording speech editing, narration replacement, and voice cloning app) following the Project Pattern across all milestones (M1–M6, parallel E2E test suites, and final hardening).
 
 ## 🔒 My Identity
 - Archetype: teamwork_preview_orchestrator
 - Roles: orchestrator, user_liaison, human_reporter, successor
-- Working directory: /Users/fady/Dev/macdub/.agents/orchestrator_6
+- Working directory: /Users/fady/Dev/amend/.agents/orchestrator_6
 - Original parent: parent
 - Original parent conversation ID: 919256c3-7033-4106-9baf-9aa9b52a5512
 
 ## 🔒 My Workflow
 - **Pattern**: Project Pattern (Dual Track: Implementation Track + E2E Testing Track)
-- **Scope document**: /Users/fady/Dev/macdub/.agents/orchestrator_6/PROJECT.md
+- **Scope document**: /Users/fady/Dev/amend/.agents/orchestrator_6/PROJECT.md
 1. **Decompose**: Decomposed into 6 implementation milestones + 1 E2E testing track + final E2E pass & hardening milestone.
 2. **Dispatch & Execute**:
    - Milestone 1: Finalized gate evaluation. Status: DONE.
@@ -73,10 +73,10 @@ Orchestrate the end-to-end greenfield development of macdub (native macOS 14.0+ 
 - Safety timer: none
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md — Authoritative User Request
-- /Users/fady/Dev/macdub/.agents/orchestrator_6/PROJECT.md — Project Blueprint & Feature Breakdown
-- /Users/fady/Dev/macdub/.agents/orchestrator_6/progress.md — Progress Log & Heartbeat
-- /Users/fady/Dev/macdub/.agents/orchestrator_6/GATE_STATUS.md — Gate Verdict Records
-- /Users/fady/Dev/macdub/TEST_INFRA.md — E2E Test Infrastructure & Fixture Blueprint
-- /Users/fady/Dev/macdub/.agents/m2_explorer_1/handoff.md — M2 Composition Architecture Specifications
-- /Users/fady/Dev/macdub/.agents/m1_auditor_6/handoff.md — M1 Forensic Audit Verification Report
+- /Users/fady/Dev/amend/ORIGINAL_REQUEST.md — Authoritative User Request
+- /Users/fady/Dev/amend/.agents/orchestrator_6/PROJECT.md — Project Blueprint & Feature Breakdown
+- /Users/fady/Dev/amend/.agents/orchestrator_6/progress.md — Progress Log & Heartbeat
+- /Users/fady/Dev/amend/.agents/orchestrator_6/GATE_STATUS.md — Gate Verdict Records
+- /Users/fady/Dev/amend/TEST_INFRA.md — E2E Test Infrastructure & Fixture Blueprint
+- /Users/fady/Dev/amend/.agents/m2_explorer_1/handoff.md — M2 Composition Architecture Specifications
+- /Users/fady/Dev/amend/.agents/m1_auditor_6/handoff.md — M1 Forensic Audit Verification Report

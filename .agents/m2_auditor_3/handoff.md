@@ -11,7 +11,7 @@
 - **Hardcoded Output Detection**: PASS — 0 hardcoded test results, 0 embedded output strings, 0 mock returns found across all 7 Milestone 2 source files.
 - **Facade & Mock Implementation Detection**: PASS — All functions implement real algorithmic logic (Accelerate `vDSP`, ITU-R BS.1770-4 K-weighting biquad IIR filters, exact rational `CMTime` arithmetic, AVFoundation async track loading).
 - **Pre-populated Artifact Detection**: PASS — 0 pre-populated logs, result files, or verification artifacts exist in the repository.
-- **Independent Build**: PASS — `swift build` succeeded with exit code 0 in 1.26 seconds with 0 errors and 0 warnings in `MacDubCore`.
+- **Independent Build**: PASS — `swift build` succeeded with exit code 0 in 1.26 seconds with 0 errors and 0 warnings in `AmendCore`.
 - **Independent Test Execution**: PASS — 89/89 tests passed across 7 Milestone 2 suites in 0.114 seconds (`AudioRoutingTests`, `SyncInvariantTests`, `CueSplitterTests`, `BoundaryCrossfaderTests`, `LoudnessNormalizerTests`, `DSPAdversarialTests`, `SyncInvariantAdversarialTests`).
 - **Baseline Regression Check**: PASS — 7/7 tests passed in `StorageAPFSTests` in 0.017 seconds.
 - **Mathematical & Algorithmic Authenticity**: PASS — Mathematical verification confirmed exact equal-power trigonometric energy conservation ($\cos^2\theta + \sin^2\theta \equiv 1.0$), BS.1770-4 K-weighting Direct Form II Transposed biquad filtering at 48kHz and 44.1kHz with $-0.691$ LU offset, and rational zero-gap/zero-overlap boundary splitting.
@@ -30,39 +30,39 @@
 ### 1.2 Source File Inspection Findings
 Direct line-by-line inspection of all 7 Milestone 2 source files:
 
-1. `Sources/MacDubCore/Models/AudioTrackInfo.swift` (Lines 1–41):
+1. `Sources/AmendCore/Models/AudioTrackInfo.swift` (Lines 1–41):
    - Pure Swift model struct (`Identifiable, Codable, Equatable, Sendable`) encapsulating track ID, FourCharCode format, channel count, sample rate, bit depth, duration, time range, language, and data rate.
    - 0 mock stubs, 0 hardcoded constants.
 
-2. `Sources/MacDubCore/Models/Cue.swift` (Lines 1–104):
+2. `Sources/AmendCore/Models/Cue.swift` (Lines 1–104):
    - Lines 68–103: `withUpdatedText` and `withUpdatedAudio` instantiate new `Cue` instances strictly preserving `self.timeRange` (immutable `let`).
    - Lines 100–102: `contains(time: CMTime)` performs strict rational comparison `CMTimeCompare(time, timeRange.start) >= 0 && CMTimeCompare(time, timeRange.end) < 0`.
    - 0 facade methods, 0 hardcoded returns.
 
-3. `Sources/MacDubCore/Composition/AudioTrackInspector.swift` (Lines 1–176):
+3. `Sources/AmendCore/Composition/AudioTrackInspector.swift` (Lines 1–176):
    - Lines 58–128: Genuinely queries AVFoundation via `asset.loadTracks(withMediaType: .audio)`. For each track, asynchronously loads `.timeRange`, `.formatDescriptions`, `.extendedLanguageTag`, `.estimatedDataRate`.
    - Lines 88–98: Genuinely extracts `CMAudioFormatDescriptionGetStreamBasicDescription(audioDesc)?.pointee` to retrieve format FourCharCode, channels per frame, sample rate, and bit depth.
    - Lines 115–127: Single track returns `.singleTrack` with advisory mapping; multi-track returns `.multiTrack` with default narration/passthrough assignment.
    - Lines 130–158: `validate(mapping:against:)` rigorously enforces narration ID presence, passthrough ID presence, non-intersection between narration and passthrough, absence of duplicate passthrough IDs, and single-track advisory consistency.
 
-4. `Sources/MacDubCore/Composition/SyncInvariantEngine.swift` (Lines 1–145):
+4. `Sources/AmendCore/Composition/SyncInvariantEngine.swift` (Lines 1–145):
    - Lines 39–80: `updateCueText` and `updateCueAudio` replace the target cue while guaranteeing slot `timeRange` immutability, followed by mandatory invocation of `assertSyncInvariant`.
    - Lines 83–111: `assertSyncInvariant` compares `before` and `after` cues using `CMTimeCompare`. Every non-target cue must have identical `id`, identical `start`, identical `duration`, identical `text`, identical `audioWAVRelativePath`, and identical `editState`.
    - Lines 114–144: `validateTimelineContinuity` verifies positive duration (`CMTimeCompare(duration, .zero) > 0`), chronological monotonic ordering, non-overlap (`CMTimeCompare(current.start, prev.end) >= 0`), and total project duration bounds.
 
-5. `Sources/MacDubCore/Composition/CueSplitter.swift` (Lines 1–124):
+5. `Sources/AmendCore/Composition/CueSplitter.swift` (Lines 1–124):
    - Lines 41–44: Ensures $t \in (t_{start}, t_{end})$ via `CMTimeCompare`.
    - Lines 46–48: Computes rational durations `durationA = CMTimeSubtract(splitTime, start)` and `durationB = CMTimeSubtract(end, splitTime)`.
    - Lines 50–55: Enforces `minimumDuration` threshold (default 10ms) on both sub-cues.
    - Lines 57–58: Constructs contiguous sub-ranges `CMTimeRange(start: start, duration: durationA)` and `CMTimeRange(start: splitTime, duration: durationB)`.
    - Lines 104–122: In-place timeline array replacement preserves all other cues at their exact relative indices.
 
-6. `Sources/MacDubCore/Composition/BoundaryCrossfader.swift` (Lines 1–155):
+6. `Sources/AmendCore/Composition/BoundaryCrossfader.swift` (Lines 1–155):
    - Lines 31–82: `applyBoundaryFades`: computes `fadeLength = Int((windowDuration * sampleRate).rounded())`, clamped to `frameCount / 2`. Denominator normalized by $(fadeLength - 1)$, ensuring sample 0 evaluates to $0.0$ on fade-in and sample $(fadeLength - 1)$ evaluates to $0.0$ on fade-out.
    - Lines 58–64: Equal-power curve computes $\theta = \frac{\pi}{2} \cdot \frac{i}{\text{denom}}$, factor $= \sin(\theta)$ for fade-in and factor $= \cos(\theta)$ for fade-out.
    - Lines 85–153: `crossfade(bufferA:bufferB:windowDuration:curve:)`: computes $totalLength = lenA + lenB - fadeLength$. Copies unmixed prefix of A via `memcpy`, applies equal-power crossfade $(ptrA \cdot \cos\theta) + (ptrB \cdot \sin\theta)$, and copies remainder of B via `memcpy`.
 
-7. `Sources/MacDubCore/Composition/LoudnessNormalizer.swift` (Lines 1–191):
+7. `Sources/AmendCore/Composition/LoudnessNormalizer.swift` (Lines 1–191):
    - Lines 28–47: `measureRMS` computes RMS across all channels via Accelerate `vDSP_rmsqv`, takes root of average channel mean squares, clamps floor to $1\times 10^{-9}$, and computes $20 \log_{10}(\text{RMS})$.
    - Lines 49–76: `measureLUFS` applies ITU-R BS.1770-4 K-weighting to each channel, computes sum of squares via Accelerate `vDSP_svesq`, divides by frame count, clamps energy to $1\times 10^{-12}$, and calculates loudness as $-0.691 + 10 \log_{10}(\text{energy})$.
    - Lines 79–95: `measurePeak` calculates maximum absolute magnitude across all channels via Accelerate `vDSP_maxmgv`.
@@ -85,7 +85,7 @@ Direct line-by-line inspection of all 7 Milestone 2 source files:
    Building for debugging...
    Build complete! (1.26 secs)
    ```
-   Exit code: 0. 0 errors, 0 warnings in `MacDubCore`.
+   Exit code: 0. 0 errors, 0 warnings in `AmendCore`.
 
 3. **Milestone 2 Test Execution**:
    ```bash
@@ -147,7 +147,7 @@ Milestone 2 (Audio Routing & Fixed-Slot Composition Engine) is 100% genuine, aut
 
 ## 5. Verification Method
 
-To independently verify these findings, run the following commands from the repository root (`/Users/fady/Dev/macdub`):
+To independently verify these findings, run the following commands from the repository root (`/Users/fady/Dev/amend`):
 
 ```bash
 # 1. Clean build

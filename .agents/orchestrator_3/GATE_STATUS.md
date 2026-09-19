@@ -1,4 +1,4 @@
-# Gate Status — macdub (orchestrator_3)
+# Gate Status — amend (orchestrator_3)
 
 ## Milestone 1: Core Foundation, Storage & Security
 Iteration 1: IN_PROGRESS

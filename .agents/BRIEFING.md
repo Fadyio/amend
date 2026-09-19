@@ -1,11 +1,11 @@
 # BRIEFING — 2026-09-17T01:36:00Z
 
 ## Mission
-Sentinel monitoring and lifecycle orchestration for macdub native macOS speech editing application.
+Sentinel monitoring and lifecycle orchestration for amend native macOS speech editing application.
 
 ## 🔒 My Identity
 - Archetype: sentinel
-- Working directory: /Users/fady/Dev/macdub/.agents
+- Working directory: /Users/fady/Dev/amend/.agents
 - Orchestrator: 08480e50-392c-4539-97ce-12098b2246ac
 - Victory Auditor: [to be spawned on victory claim]
 - Active Orchestrator: 03c55f89-8cd5-4742-8180-80969002bbb6 (orchestrator_4)
@@ -23,7 +23,7 @@ Sentinel monitoring and lifecycle orchestration for macdub native macOS speech e
 - Must not write code, analyze problems, or make any technical decisions. Keep context ultra-light.
 
 ## User Context
-- **Last user request**: Native macOS application (macdub) for developer and hackathon screen recordings with transcript-based speech editing, narration replacement, and voice cloning preserving immutable video timeline.
+- **Last user request**: Native macOS application (amend) for developer and hackathon screen recordings with transcript-based speech editing, narration replacement, and voice cloning preserving immutable video timeline.
 - **Pending clarifications**: none
 - **Delivered results**:
   - Milestone 1: Core Foundation, Storage & Security (PASSED GATE, CLEAN audit)
@@ -45,10 +45,10 @@ Sentinel monitoring and lifecycle orchestration for macdub native macOS speech e
 - **Retry count**: 0
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md — Authoritative record of user request
-- /Users/fady/Dev/macdub/.agents/ORIGINAL_REQUEST.md — Mirror of authoritative user request
-- /Users/fady/Dev/macdub/TEST_INFRA.md — E2E Test Infrastructure & 4-Tier Hierarchy
-- /Users/fady/Dev/macdub/.agents/orchestrator_11/PROJECT.md — Project Blueprint
-- /Users/fady/Dev/macdub/.agents/orchestrator_11/GATE_STATUS.md — Gate Verification Status (M1: PASS, M2: PASS)
-- /Users/fady/Dev/macdub/.agents/orchestrator_11/progress.md — Active Orchestrator Progress Log
-- /Users/fady/Dev/macdub/.agents/m2_auditor_3/handoff.md — Milestone 2 Forensic Audit Report (CLEAN)
+- /Users/fady/Dev/amend/ORIGINAL_REQUEST.md — Authoritative record of user request
+- /Users/fady/Dev/amend/.agents/ORIGINAL_REQUEST.md — Mirror of authoritative user request
+- /Users/fady/Dev/amend/TEST_INFRA.md — E2E Test Infrastructure & 4-Tier Hierarchy
+- /Users/fady/Dev/amend/.agents/orchestrator_11/PROJECT.md — Project Blueprint
+- /Users/fady/Dev/amend/.agents/orchestrator_11/GATE_STATUS.md — Gate Verification Status (M1: PASS, M2: PASS)
+- /Users/fady/Dev/amend/.agents/orchestrator_11/progress.md — Active Orchestrator Progress Log
+- /Users/fady/Dev/amend/.agents/m2_auditor_3/handoff.md — Milestone 2 Forensic Audit Report (CLEAN)

@@ -6,7 +6,7 @@ Investigate, design, and architect the Async Video Filmstrip Generator and Audio
 ## 🔒 My Identity
 - Archetype: Teamwork explorer
 - Roles: Exploration, Architecture, Synthesis
-- Working directory: /Users/fady/Dev/macdub/.agents/m3_explorer_2
+- Working directory: /Users/fady/Dev/amend/.agents/m3_explorer_2
 - Original parent: dddb455d-722d-48b2-bdde-0a7e35f53727
 - Milestone: Milestone 3
 
@@ -14,7 +14,7 @@ Investigate, design, and architect the Async Video Filmstrip Generator and Audio
 - Read-only investigation — do NOT implement production code
 - Adhere strictly to 8GB unified memory budget constraints and APFS project bundle architecture
 - Ground all designs in DSWaveformImage / AVFoundation / CoreAudio realities
-- Deliver 5-component handoff report to /Users/fady/Dev/macdub/.agents/m3_explorer_2/handoff.md
+- Deliver 5-component handoff report to /Users/fady/Dev/amend/.agents/m3_explorer_2/handoff.md
 
 ## Current Parent
 - Conversation ID: dddb455d-722d-48b2-bdde-0a7e35f53727
@@ -29,5 +29,5 @@ Investigate, design, and architect the Async Video Filmstrip Generator and Audio
 - Starting systematic investigation of ORIGINAL_REQUEST.md, PROJECT.md, ADRs, Package.swift, and DSWaveformImage.
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/.agents/m3_explorer_2/DISPATCH.md — Task assignment
-- /Users/fady/Dev/macdub/.agents/m3_explorer_2/handoff.md — Handoff report (pending)
+- /Users/fady/Dev/amend/.agents/m3_explorer_2/DISPATCH.md — Task assignment
+- /Users/fady/Dev/amend/.agents/m3_explorer_2/handoff.md — Handoff report (pending)

@@ -6,7 +6,7 @@ Forensic integrity audit of Milestone 2 (Audio Routing & Fixed-Slot Composition 
 ## 🔒 My Identity
 - Archetype: forensic_auditor
 - Roles: critic, specialist, auditor
-- Working directory: /Users/fady/Dev/macdub/.agents/m2_auditor_2
+- Working directory: /Users/fady/Dev/amend/.agents/m2_auditor_2
 - Original parent: dddb455d-722d-48b2-bdde-0a7e35f53727
 - Target: Milestone 2 (Audio Routing & Fixed-Slot Composition Engine)
 
@@ -23,14 +23,14 @@ Forensic integrity audit of Milestone 2 (Audio Routing & Fixed-Slot Composition 
 
 ## Audit Scope
 - **Work product**: Milestone 2 codebase:
-  - `Sources/MacDubCore/Models/AudioTrackInfo.swift`
-  - `Sources/MacDubCore/Models/Cue.swift`
-  - `Sources/MacDubCore/Composition/AudioTrackInspector.swift`
-  - `Sources/MacDubCore/Composition/SyncInvariantEngine.swift`
-  - `Sources/MacDubCore/Composition/CueSplitter.swift`
-  - `Sources/MacDubCore/Composition/BoundaryCrossfader.swift`
-  - `Sources/MacDubCore/Composition/LoudnessNormalizer.swift`
-  - Unit tests in `Tests/MacDubCoreTests/`
+  - `Sources/AmendCore/Models/AudioTrackInfo.swift`
+  - `Sources/AmendCore/Models/Cue.swift`
+  - `Sources/AmendCore/Composition/AudioTrackInspector.swift`
+  - `Sources/AmendCore/Composition/SyncInvariantEngine.swift`
+  - `Sources/AmendCore/Composition/CueSplitter.swift`
+  - `Sources/AmendCore/Composition/BoundaryCrossfader.swift`
+  - `Sources/AmendCore/Composition/LoudnessNormalizer.swift`
+  - Unit tests in `Tests/AmendCoreTests/`
 - **Profile loaded**: General Project
 - **Audit type**: forensic integrity check
 

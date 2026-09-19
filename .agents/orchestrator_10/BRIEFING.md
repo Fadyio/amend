@@ -1,18 +1,18 @@
 # BRIEFING — 2026-09-17T01:18:15Z
 
 ## Mission
-Drive project macdub to completion across all milestones (M1–M6, E2E tiers 1–4, and final verification), advancing Milestone 3 (Timeline Engine & Visual Presentation) implementation, maintaining zero drift, strict fixed-slot invariants, and 100% test pass.
+Drive project amend to completion across all milestones (M1–M6, E2E tiers 1–4, and final verification), advancing Milestone 3 (Timeline Engine & Visual Presentation) implementation, maintaining zero drift, strict fixed-slot invariants, and 100% test pass.
 
 ## 🔒 My Identity
 - Archetype: teamwork_preview_orchestrator
 - Roles: orchestrator, user_liaison, human_reporter, successor
-- Working directory: /Users/fady/Dev/macdub/.agents/orchestrator_10
+- Working directory: /Users/fady/Dev/amend/.agents/orchestrator_10
 - Original parent: Sentinel / Top-Level Orchestration
 - Original parent conversation ID: d6c717bd-8fa1-4366-9301-9e7d2b1c2226
 
 ## 🔒 My Workflow
 - **Pattern**: Project Pattern (Dual Track: Implementation Track + Parallel E2E Testing Track)
-- **Scope document**: /Users/fady/Dev/macdub/.agents/orchestrator_10/PROJECT.md
+- **Scope document**: /Users/fady/Dev/amend/.agents/orchestrator_10/PROJECT.md
 1. **Decompose**:
    - Milestones M1–M6 decomposed per module boundaries (Storage, Composition, Timeline, ASR/Models, Duration Fitting/TTS, Compressed Export, Final Acceptance).
 2. **Dispatch & Execute**:
@@ -71,8 +71,8 @@ Drive project macdub to completion across all milestones (M1–M6, E2E tiers 1�
 - Safety timer: none
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md — Authoritative user requirements
-- /Users/fady/Dev/macdub/.agents/orchestrator_10/PROJECT.md — Global project blueprint & architecture
-- /Users/fady/Dev/macdub/.agents/orchestrator_10/GATE_STATUS.md — Milestone gate evaluation records
-- /Users/fady/Dev/macdub/.agents/orchestrator_10/progress.md — Liveness & status tracking
-- /Users/fady/Dev/macdub/TEST_INFRA.md — E2E test track specification
+- /Users/fady/Dev/amend/ORIGINAL_REQUEST.md — Authoritative user requirements
+- /Users/fady/Dev/amend/.agents/orchestrator_10/PROJECT.md — Global project blueprint & architecture
+- /Users/fady/Dev/amend/.agents/orchestrator_10/GATE_STATUS.md — Milestone gate evaluation records
+- /Users/fady/Dev/amend/.agents/orchestrator_10/progress.md — Liveness & status tracking
+- /Users/fady/Dev/amend/TEST_INFRA.md — E2E test track specification

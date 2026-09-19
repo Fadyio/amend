@@ -1,12 +1,12 @@
 # BRIEFING — 2026-09-16T17:01:00Z
 
 ## Mission
-Adversarial empirical testing and stress testing of Milestone 1 (Core Foundation, Storage & Security) of macdub to find bugs, precision loss, crashes, or data corruption.
+Adversarial empirical testing and stress testing of Milestone 1 (Core Foundation, Storage & Security) of amend to find bugs, precision loss, crashes, or data corruption.
 
 ## 🔒 My Identity
 - Archetype: empirical_challenger
 - Roles: critic, specialist
-- Working directory: /Users/fady/Dev/macdub/.agents/m1_challenger_1
+- Working directory: /Users/fady/Dev/amend/.agents/m1_challenger_1
 - Original parent: f4d33157-8c85-4175-941d-68dd087b5235 (orchestrator_5)
 - Milestone: Milestone 1 (Core Foundation, Storage & Security)
 - Instance: 1 of 1
@@ -24,8 +24,8 @@ Adversarial empirical testing and stress testing of Milestone 1 (Core Foundation
 - Updated: 2026-09-16T17:01:00Z
 
 ## Review Scope
-- **Files to review**: Sources/MacDubCore/ (Models, Storage), Sources/macdub/main.swift, Tests/MacDubCoreTests/Suites/
-- **Interface contracts**: /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md and /Users/fady/Dev/macdub/.agents/orchestrator_5/PROJECT.md
+- **Files to review**: Sources/AmendCore/ (Models, Storage), Sources/amend/main.swift, Tests/AmendCoreTests/Suites/
+- **Interface contracts**: /Users/fady/Dev/amend/ORIGINAL_REQUEST.md and /Users/fady/Dev/amend/.agents/orchestrator_5/PROJECT.md
 - **Review criteria**: correctness, safety, CMTime precision, data roundtrips, leak detection, keychain isolation
 
 ## Key Decisions Made

@@ -1,18 +1,18 @@
 # BRIEFING — 2026-09-16T12:53:00Z
 
 ## Mission
-Investigate and design the exact SPM Package.swift manifest and target structure for macdub (Milestone 1).
+Investigate and design the exact SPM Package.swift manifest and target structure for amend (Milestone 1).
 
 ## 🔒 My Identity
 - Archetype: explorer
 - Roles: investigation, synthesis
-- Working directory: /Users/fady/Dev/macdub/.agents/m1_explorer_1
+- Working directory: /Users/fady/Dev/amend/.agents/m1_explorer_1
 - Original parent: 7ec3ddce-95f5-49a5-a77f-54809810b3da
 - Milestone: Milestone 1: Core Foundation, Storage & Security
 
 ## 🔒 Key Constraints
 - Read-only investigation — do NOT implement or write source code directly
-- Output recommendations to /Users/fady/Dev/macdub/.agents/m1_explorer_1/handoff.md
+- Output recommendations to /Users/fady/Dev/amend/.agents/m1_explorer_1/handoff.md
 - Maintain progress.md in working directory
 - Communicate completion via send_message to caller (parent: 7ec3ddce-95f5-49a5-a77f-54809810b3da)
 
@@ -29,7 +29,7 @@ Investigate and design the exact SPM Package.swift manifest and target structure
 - Initialized investigation into Package.swift manifest design
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/.agents/m1_explorer_1/progress.md — Progress heartbeat and liveness
-- /Users/fady/Dev/macdub/.agents/m1_explorer_1/DISPATCH.md — Task dispatch record
-- /Users/fady/Dev/macdub/.agents/m1_explorer_1/BRIEFING.md — Working memory and situational awareness
-- /Users/fady/Dev/macdub/.agents/m1_explorer_1/handoff.md — Final recommendations handoff report
+- /Users/fady/Dev/amend/.agents/m1_explorer_1/progress.md — Progress heartbeat and liveness
+- /Users/fady/Dev/amend/.agents/m1_explorer_1/DISPATCH.md — Task dispatch record
+- /Users/fady/Dev/amend/.agents/m1_explorer_1/BRIEFING.md — Working memory and situational awareness
+- /Users/fady/Dev/amend/.agents/m1_explorer_1/handoff.md — Final recommendations handoff report

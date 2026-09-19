@@ -4,17 +4,17 @@
 Perform forensic integrity verification of Milestone 2 (Audio Routing & Fixed-Slot Composition Engine) to verify genuine implementation free of hardcoded results, mock facades, or shortcuts.
 
 ## Inputs
-- Authoritative User Request: `/Users/fady/Dev/macdub/ORIGINAL_REQUEST.md` (MUST READ FIRST)
-- Project Blueprint: `/Users/fady/Dev/macdub/.agents/orchestrator_8/PROJECT.md`
-- Worker Handoff: `/Users/fady/Dev/macdub/.agents/m2_worker_2/handoff.md`
+- Authoritative User Request: `/Users/fady/Dev/amend/ORIGINAL_REQUEST.md` (MUST READ FIRST)
+- Project Blueprint: `/Users/fady/Dev/amend/.agents/orchestrator_8/PROJECT.md`
+- Worker Handoff: `/Users/fady/Dev/amend/.agents/m2_worker_2/handoff.md`
 - Source files:
-  - `Sources/MacDubCore/Models/AudioTrackInfo.swift`
-  - `Sources/MacDubCore/Models/Cue.swift`
-  - `Sources/MacDubCore/Composition/AudioTrackInspector.swift`
-  - `Sources/MacDubCore/Composition/SyncInvariantEngine.swift`
-  - `Sources/MacDubCore/Composition/CueSplitter.swift`
-  - `Sources/MacDubCore/Composition/BoundaryCrossfader.swift`
-  - `Sources/MacDubCore/Composition/LoudnessNormalizer.swift`
+  - `Sources/AmendCore/Models/AudioTrackInfo.swift`
+  - `Sources/AmendCore/Models/Cue.swift`
+  - `Sources/AmendCore/Composition/AudioTrackInspector.swift`
+  - `Sources/AmendCore/Composition/SyncInvariantEngine.swift`
+  - `Sources/AmendCore/Composition/CueSplitter.swift`
+  - `Sources/AmendCore/Composition/BoundaryCrossfader.swift`
+  - `Sources/AmendCore/Composition/LoudnessNormalizer.swift`
 
 ## Prior Findings from m2_auditor_2
 - Source code analysis of `BoundaryCrossfader.swift` and `LoudnessNormalizer.swift` showed genuine Accelerate `vDSP` and ITU-R BS.1770-4 K-weighting two-stage IIR filtering.
@@ -25,19 +25,19 @@ Perform forensic integrity verification of Milestone 2 (Audio Routing & Fixed-Sl
 2. Run `swift build` and run the Milestone 2 test suites:
    `swift test --filter "BoundaryCrossfaderTests|LoudnessNormalizerTests|AudioRoutingTests|SyncInvariantTests|CueSplitterTests|DSPAdversarialTests|SyncInvariantAdversarialTests"`
 3. Verify that all calculations are genuine, dynamic, and mathematically authentic.
-4. Deliver handoff report at `/Users/fady/Dev/macdub/.agents/m2_auditor_3/handoff.md` with binary verdict: CLEAN or INTEGRITY VIOLATION.
+4. Deliver handoff report at `/Users/fady/Dev/amend/.agents/m2_auditor_3/handoff.md` with binary verdict: CLEAN or INTEGRITY VIOLATION.
 5. Notify caller with send_message upon completion.
 
 ## 2026-09-16T20:43:13Z
 You are m2_auditor_3, a forensic integrity auditor verifying Milestone 2 (Audio Routing & Fixed-Slot Composition Engine).
-Your working directory is: /Users/fady/Dev/macdub/.agents/m2_auditor_3
-Read your dispatch instructions at: /Users/fady/Dev/macdub/.agents/m2_auditor_3/DISPATCH.md
-Read the authoritative user request at: /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md (MANDATORY: read this first)
-Read the project blueprint at: /Users/fady/Dev/macdub/.agents/orchestrator_8/PROJECT.md
-Read the worker handoff at: /Users/fady/Dev/macdub/.agents/m2_worker_2/handoff.md
+Your working directory is: /Users/fady/Dev/amend/.agents/m2_auditor_3
+Read your dispatch instructions at: /Users/fady/Dev/amend/.agents/m2_auditor_3/DISPATCH.md
+Read the authoritative user request at: /Users/fady/Dev/amend/ORIGINAL_REQUEST.md (MANDATORY: read this first)
+Read the project blueprint at: /Users/fady/Dev/amend/.agents/orchestrator_8/PROJECT.md
+Read the worker handoff at: /Users/fady/Dev/amend/.agents/m2_worker_2/handoff.md
 
 Conduct a rigorous forensic integrity audit to verify whether all implementations are 100% genuine and free of hardcoded results, mock facades, or shortcuts.
-Write your handoff report to /Users/fady/Dev/macdub/.agents/m2_auditor_3/handoff.md with binary verdict CLEAN or INTEGRITY VIOLATION.
+Write your handoff report to /Users/fady/Dev/amend/.agents/m2_auditor_3/handoff.md with binary verdict CLEAN or INTEGRITY VIOLATION.
 Send a message to your parent upon completion.
 
 ## 2026-09-16T21:02:45Z

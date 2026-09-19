@@ -1,18 +1,18 @@
 # BRIEFING — 2026-09-16T22:41:30Z
 
 ## Mission
-Project Orchestration for macdub: build multi-milestone native macOS video narration replacement app. Advance Milestone 2 (Audio Routing & Fixed-Slot Composition Engine), coordinate E2E testing track, and drive project to completion.
+Project Orchestration for amend: build multi-milestone native macOS video narration replacement app. Advance Milestone 2 (Audio Routing & Fixed-Slot Composition Engine), coordinate E2E testing track, and drive project to completion.
 
 ## 🔒 My Identity
 - Archetype: orchestrator
 - Roles: orchestrator, user_liaison, human_reporter, successor
-- Working directory: /Users/fady/Dev/macdub/.agents/orchestrator_7
+- Working directory: /Users/fady/Dev/amend/.agents/orchestrator_7
 - Original parent: Sentinel
 - Original parent conversation ID: 919256c3-7033-4106-9baf-9aa9b52a5512
 
 ## 🔒 My Workflow
 - **Pattern**: Project
-- **Scope document**: /Users/fady/Dev/macdub/.agents/orchestrator_7/PROJECT.md
+- **Scope document**: /Users/fady/Dev/amend/.agents/orchestrator_7/PROJECT.md
 1. **Decompose**: Decomposed into 6 milestones + parallel E2E testing track + final verification.
 2. **Dispatch & Execute**:
    - Milestone 1: DONE (CLEAN audit, 17/17 tests passing)
@@ -74,8 +74,8 @@ Project Orchestration for macdub: build multi-milestone native macOS video narra
 - Heartbeat cron: task-34 (*/10 * * * *)
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md — Authoritative User Request
-- /Users/fady/Dev/macdub/.agents/orchestrator_7/PROJECT.md — Project Blueprint
-- /Users/fady/Dev/macdub/.agents/orchestrator_7/GATE_STATUS.md — Gate Verdict Records
-- /Users/fady/Dev/macdub/.agents/m2_explorer_1/handoff.md — M2 Architecture & Math Proofs
-- /Users/fady/Dev/macdub/.agents/m2_worker_2/handoff.md — M2 Implementation Report
+- /Users/fady/Dev/amend/ORIGINAL_REQUEST.md — Authoritative User Request
+- /Users/fady/Dev/amend/.agents/orchestrator_7/PROJECT.md — Project Blueprint
+- /Users/fady/Dev/amend/.agents/orchestrator_7/GATE_STATUS.md — Gate Verdict Records
+- /Users/fady/Dev/amend/.agents/m2_explorer_1/handoff.md — M2 Architecture & Math Proofs
+- /Users/fady/Dev/amend/.agents/m2_worker_2/handoff.md — M2 Implementation Report

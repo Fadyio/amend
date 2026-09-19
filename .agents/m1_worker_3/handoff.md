@@ -14,11 +14,11 @@
 ### Initial Build Observations
 - Running `swift build` failed with:
   ```
-  /Users/fady/Dev/macdub/.build/checkouts/DSWaveformImage/Sources/DSWaveformImageViews/SwiftUI/WaveformView.swift:14:24: error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+  /Users/fady/Dev/amend/.build/checkouts/DSWaveformImage/Sources/DSWaveformImageViews/SwiftUI/WaveformView.swift:14:24: error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
   ```
 - Running `swift test` under XCTest failed with:
   ```
-  error: /Users/fady/Dev/macdub/Tests/MacDubCoreTests/Suites/SecuritySuiteTests.swift:1:8 unable to resolve module dependency: 'XCTest'
+  error: /Users/fady/Dev/amend/Tests/AmendCoreTests/Suites/SecuritySuiteTests.swift:1:8 unable to resolve module dependency: 'XCTest'
   ```
   `XCTest.framework` is not bundled in Apple Command Line Tools on macOS 15/16; only `Testing.framework` (`/Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework`) and `libTestingMacros.dylib` (`/Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib`) are provided for native Swift packages.
 
@@ -73,16 +73,16 @@
 
 1. **Dependency Resolution**:
    - `DSWaveformImageViews` and `SwiftTimecodeUI` are SwiftUI UI component packages designed for Xcode GUI targets that use SwiftUI `@State` macro expansions. Under Apple Command Line Tools, host plugin `SwiftUIMacros` is not provided.
-   - Core model and audio logic in `MacDubCore` and the CLI binary `macdub` only require non-UI products: `DSWaveformImage`, `SwiftTimecodeCore`, and `SwiftTimecodeAV`.
-   - Modifying `Package.swift` to prune `DSWaveformImageViews` and `SwiftTimecodeUI` allows `MacDubCore` and `macdub` to compile cleanly with 0 errors.
+   - Core model and audio logic in `AmendCore` and the CLI binary `amend` only require non-UI products: `DSWaveformImage`, `SwiftTimecodeCore`, and `SwiftTimecodeAV`.
+   - Modifying `Package.swift` to prune `DSWaveformImageViews` and `SwiftTimecodeUI` allows `AmendCore` and `amend` to compile cleanly with 0 errors.
 
 2. **Swift Testing Migration**:
    - Under macOS Command Line Tools without `Xcode.app`, `XCTest.framework` is unavailable, but Apple's official `Testing.framework` is present in `/Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework`.
    - The corresponding compiler macro plugin `libTestingMacros.dylib` is located at `/Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib`.
-   - By adding `-load-plugin-library /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib` to `MacDubCoreTests` swiftSettings in `Package.swift`, and migrating test suites from `XCTest` to Swift Testing (`import Testing`, `@Suite`, `@Test`, `#expect`), all unit tests execute natively under standard `swift test`.
+   - By adding `-load-plugin-library /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib` to `AmendCoreTests` swiftSettings in `Package.swift`, and migrating test suites from `XCTest` to Swift Testing (`import Testing`, `@Suite`, `@Test`, `#expect`), all unit tests execute natively under standard `swift test`.
 
 3. **Storage & Security Implementation Verification**:
-   - `APFSCloner`: Directly validates destination volume cloning capability via `URLResourceValues.volumeSupportsFileCloning` and verifies matching volumes via `volumeIdentifier`. Clones media via `FileManager.default.copyItem` into `.voicefix/source.<ext>`.
+   - `APFSCloner`: Directly validates destination volume cloning capability via `URLResourceValues.volumeSupportsFileCloning` and verifies matching volumes via `volumeIdentifier`. Clones media via `FileManager.default.copyItem` into `.amend/source.<ext>`.
    - `BookmarkManager`: Creates security-scoped bookmarks (with fallback for CLI testing) and resolves them, validating stale flags and updating stale tokens.
    - `ProjectBundleSerializer`: Correctly creates package directories (`audio/cues`, `waveforms`, `thumbnails`), encodes `project.json` atomically with ISO8601 dates and pretty sorting, and resolves source media URLs across both `.cloned` and `.externalBookmark` modes.
    - `KeychainVault`: Uses macOS Security framework with `kSecClassGenericPassword`, supporting `SecItemAdd`, `SecItemUpdate` on duplicate item, `SecItemCopyMatching`, and `SecItemDelete`. Empty keys are rejected with `invalidInput`.
@@ -110,7 +110,7 @@ Milestone 1 (Core Foundation, Storage & Security) is complete and verified:
 
 To independently verify:
 ```bash
-cd /Users/fady/Dev/macdub
+cd /Users/fady/Dev/amend
 swift build
 swift test
 swift test --filter StorageAPFSTests

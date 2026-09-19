@@ -6,9 +6,9 @@ Perform a rigorous forensic integrity audit on Milestone 1 work products to veri
 ## 🔒 My Identity
 - Archetype: forensic_auditor
 - Roles: critic, specialist, auditor
-- Working directory: /Users/fady/Dev/macdub/.agents/m1_auditor_6
+- Working directory: /Users/fady/Dev/amend/.agents/m1_auditor_6
 - Original parent: 4d531adf-45c7-4a43-8701-f7617acd84e7
-- Target: Milestone 1 (Models, Storage, Entry Point, MacDubCoreTests Suites)
+- Target: Milestone 1 (Models, Storage, Entry Point, AmendCoreTests Suites)
 
 ## 🔒 Key Constraints
 - Audit-only — do NOT modify implementation code
@@ -20,7 +20,7 @@ Perform a rigorous forensic integrity audit on Milestone 1 work products to veri
 - Updated: 2026-09-16T18:23:00Z
 
 ## Audit Scope
-- **Work product**: Milestone 1 (Sources/MacDubCore/Models/, Sources/MacDubCore/Storage/, Sources/macdub/main.swift, Tests/MacDubCoreTests/Suites/)
+- **Work product**: Milestone 1 (Sources/AmendCore/Models/, Sources/AmendCore/Storage/, Sources/amend/main.swift, Tests/AmendCoreTests/Suites/)
 - **Profile loaded**: General Project (Development Mode per ORIGINAL_REQUEST.md line 11)
 - **Audit type**: forensic integrity check
 
@@ -43,10 +43,10 @@ Perform a rigorous forensic integrity audit on Milestone 1 work products to veri
 - Confirmed zero hardcoding, zero facade implementations, and genuine system calls.
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/.agents/m1_auditor_6/DISPATCH.md — Dispatch instructions
-- /Users/fady/Dev/macdub/.agents/m1_auditor_6/BRIEFING.md — Situational awareness
-- /Users/fady/Dev/macdub/.agents/m1_auditor_6/progress.md — Liveness & progress tracking
-- /Users/fady/Dev/macdub/.agents/m1_auditor_6/handoff.md — Final forensic audit report
+- /Users/fady/Dev/amend/.agents/m1_auditor_6/DISPATCH.md — Dispatch instructions
+- /Users/fady/Dev/amend/.agents/m1_auditor_6/BRIEFING.md — Situational awareness
+- /Users/fady/Dev/amend/.agents/m1_auditor_6/progress.md — Liveness & progress tracking
+- /Users/fady/Dev/amend/.agents/m1_auditor_6/handoff.md — Final forensic audit report
 
 ## Attack Surface
 - **Hypotheses tested**:

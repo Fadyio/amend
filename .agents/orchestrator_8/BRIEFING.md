@@ -1,18 +1,18 @@
 # BRIEFING — 2026-09-17T00:09:15Z
 
 ## Mission
-Orchestrate macdub project execution to completion: Milestone 2 PASSED; executing Milestone 3 (Timeline Engine & Visual Presentation), progressing through M4–M6, completing E2E testing tiers, passing final adversarial hardening, and reporting completion to Sentinel.
+Orchestrate amend project execution to completion: Milestone 2 PASSED; executing Milestone 3 (Timeline Engine & Visual Presentation), progressing through M4–M6, completing E2E testing tiers, passing final adversarial hardening, and reporting completion to Sentinel.
 
 ## 🔒 My Identity
 - Archetype: orchestrator
 - Roles: orchestrator, user_liaison, human_reporter, successor
-- Working directory: /Users/fady/Dev/macdub/.agents/orchestrator_8
+- Working directory: /Users/fady/Dev/amend/.agents/orchestrator_8
 - Original parent: parent
 - Original parent conversation ID: d6c717bd-8fa1-4366-9301-9e7d2b1c2226
 
 ## 🔒 My Workflow
 - **Pattern**: Project
-- **Scope document**: /Users/fady/Dev/macdub/.agents/orchestrator_8/PROJECT.md
+- **Scope document**: /Users/fady/Dev/amend/.agents/orchestrator_8/PROJECT.md
 1. **Decompose**: Decomposed into 6 milestones (M1-M6) + M_FINAL + E2E_TRACK
 2. **Dispatch & Execute**:
    - Direct iteration loop: Explorer (3) -> Worker (1) -> Reviewer (2) -> Challenger (2) -> Auditor (1) -> Gate.
@@ -70,9 +70,9 @@ Orchestrate macdub project execution to completion: Milestone 2 PASSED; executin
 - Safety timer: none
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md — Authoritative User Request
-- /Users/fady/Dev/macdub/.agents/orchestrator_8/PROJECT.md — Project Blueprint
-- /Users/fady/Dev/macdub/.agents/m2_worker_2/handoff.md — M2 Implementation Handoff
-- /Users/fady/Dev/macdub/.agents/m2_auditor_3/handoff.md — M2 Forensic Auditor Handoff
-- /Users/fady/Dev/macdub/.agents/orchestrator_8/GATE_STATUS.md — Gate Verification Status
-- /Users/fady/Dev/macdub/.agents/orchestrator_8/progress.md — Progress Tracking
+- /Users/fady/Dev/amend/ORIGINAL_REQUEST.md — Authoritative User Request
+- /Users/fady/Dev/amend/.agents/orchestrator_8/PROJECT.md — Project Blueprint
+- /Users/fady/Dev/amend/.agents/m2_worker_2/handoff.md — M2 Implementation Handoff
+- /Users/fady/Dev/amend/.agents/m2_auditor_3/handoff.md — M2 Forensic Auditor Handoff
+- /Users/fady/Dev/amend/.agents/orchestrator_8/GATE_STATUS.md — Gate Verification Status
+- /Users/fady/Dev/amend/.agents/orchestrator_8/progress.md — Progress Tracking

@@ -1,12 +1,12 @@
 # BRIEFING — 2026-09-16T17:00:00Z
 
 ## Mission
-Forensic integrity audit of Milestone 1 (Core Foundation, Storage & Security) of macdub.
+Forensic integrity audit of Milestone 1 (Core Foundation, Storage & Security) of amend.
 
 ## 🔒 My Identity
 - Archetype: forensic_auditor
 - Roles: [critic, specialist, auditor]
-- Working directory: /Users/fady/Dev/macdub/.agents/m1_auditor_1
+- Working directory: /Users/fady/Dev/amend/.agents/m1_auditor_1
 - Original parent: f4d33157-8c85-4175-941d-68dd087b5235
 - Target: Milestone 1 (Core Foundation, Storage & Security)
 
@@ -21,7 +21,7 @@ Forensic integrity audit of Milestone 1 (Core Foundation, Storage & Security) of
 - Updated: 2026-09-16T17:00:00Z
 
 ## Audit Scope
-- **Work product**: Milestone 1 implementation (Package.swift, Sources/MacDubCore/Models/*, Sources/MacDubCore/Storage/*, Sources/macdub/main.swift, Tests/MacDubCoreTests/Suites/StorageAPFSTests.swift, Tests/MacDubCoreTests/Suites/SecuritySuiteTests.swift)
+- **Work product**: Milestone 1 implementation (Package.swift, Sources/AmendCore/Models/*, Sources/AmendCore/Storage/*, Sources/amend/main.swift, Tests/AmendCoreTests/Suites/StorageAPFSTests.swift, Tests/AmendCoreTests/Suites/SecuritySuiteTests.swift)
 - **Profile loaded**: General Project
 - **Audit type**: forensic integrity check
 
@@ -43,7 +43,7 @@ None loaded.
 - Initialized audit briefing for Milestone 1.
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/.agents/m1_auditor_1/DISPATCH.md — Initial dispatch log
-- /Users/fady/Dev/macdub/.agents/m1_auditor_1/BRIEFING.md — Persistent context & memory
-- /Users/fady/Dev/macdub/.agents/m1_auditor_1/progress.md — Liveness & heartbeat
-- /Users/fady/Dev/macdub/.agents/m1_auditor_1/handoff.md — Forensic audit report
+- /Users/fady/Dev/amend/.agents/m1_auditor_1/DISPATCH.md — Initial dispatch log
+- /Users/fady/Dev/amend/.agents/m1_auditor_1/BRIEFING.md — Persistent context & memory
+- /Users/fady/Dev/amend/.agents/m1_auditor_1/progress.md — Liveness & heartbeat
+- /Users/fady/Dev/amend/.agents/m1_auditor_1/handoff.md — Forensic audit report

@@ -1,12 +1,12 @@
 ## 2026-09-16T21:14:50Z
 
-You are m3_explorer_1_gen2, an Explorer agent for Milestone 3 (Timeline Engine & Visual Presentation) of project macdub.
-Your working directory is: /Users/fady/Dev/macdub/.agents/m3_explorer_1_gen2
+You are m3_explorer_1_gen2, an Explorer agent for Milestone 3 (Timeline Engine & Visual Presentation) of project amend.
+Your working directory is: /Users/fady/Dev/amend/.agents/m3_explorer_1_gen2
 Create your working directory if needed, and initialize your BRIEFING.md and progress.md.
 
 Read the authoritative requirements and project blueprint:
-- ORIGINAL_REQUEST.md: /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md
-- PROJECT.md: /Users/fady/Dev/macdub/.agents/orchestrator_9/PROJECT.md
+- ORIGINAL_REQUEST.md: /Users/fady/Dev/amend/ORIGINAL_REQUEST.md
+- PROJECT.md: /Users/fady/Dev/amend/.agents/orchestrator_9/PROJECT.md
 
 Investigate the following areas in depth:
 1. TimelineClock architecture:
@@ -24,11 +24,11 @@ Investigate the following areas in depth:
    - Mathematical conversion between pixel distance threshold and CMTime tolerance at given pixelsPerSecond.
    - Snapping hysteresis / release mechanics.
 4. Current codebase status:
-   - Inspect Package.swift and Sources/MacDubCore/Timeline to see existing files and interfaces.
+   - Inspect Package.swift and Sources/AmendCore/Timeline to see existing files and interfaces.
    - Check dependencies (SwiftTimecode / TimecodeKit) or pure Swift implementations.
 5. Provide concrete Swift API signatures, data structures, and a comprehensive verification test plan.
 
 Document your findings and recommendations in:
-/Users/fady/Dev/macdub/.agents/m3_explorer_1_gen2/handoff.md
+/Users/fady/Dev/amend/.agents/m3_explorer_1_gen2/handoff.md
 
 When done, send a message to your parent orchestrator (conv ID: b34c3ff6-40fb-40eb-9abe-6faa574a682f). Do not implement source code; this is an exploration and architectural planning task.

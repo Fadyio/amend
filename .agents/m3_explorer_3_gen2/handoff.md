@@ -4,7 +4,7 @@
 **Milestone**: M3 (Timeline Engine & Visual Presentation)  
 **Parent Conversation ID**: `b34c3ff6-40fb-40eb-9abe-6faa574a682f`  
 **Date**: 2026-09-17T00:22:00Z  
-**Target Repository**: `macdub` (`Sources/MacDubCore/Timeline/`, `Sources/macdub/`)
+**Target Repository**: `amend` (`Sources/AmendCore/Timeline/`, `Sources/amend/`)
 
 ---
 
@@ -12,13 +12,13 @@
 
 ### 1.1 Existing Codebase & Architecture Baseline
 1. **Repository Layout**:
-   - `Sources/MacDubCore/Models/`: Contains `Cue.swift`, `CueEditState.swift`, `AudioTrackMapping.swift`, `ProjectBundle.swift`, `ProjectMetadata.swift`, and `CMTime+Codable.swift`.
-   - `Sources/MacDubCore/Composition/`: Contains `SyncInvariantEngine.swift`, `CueSplitter.swift`, `BoundaryCrossfader.swift`, `AudioTrackInspector.swift`, and `LoudnessNormalizer.swift`.
-   - `Sources/MacDubCore/Storage/`: Contains `APFSCloner.swift`, `BookmarkManager.swift`, `KeychainVault.swift`, and `ProjectBundleSerializer.swift`.
-   - `Sources/macdub/`: Contains only `main.swift` stub. `MainWindowView`, `VideoPlayerView`, `TimelineView`, `CueTrackView`, and `ProjectViewModel` have not yet been implemented.
-   - `Sources/MacDubCore/Timeline/`: Directory planned in `PROJECT.md` (`TimelineClock.swift`, `SMPTERulerFormatter.swift`, `FilmstripGenerator.swift`, `WaveformExtractor.swift`) is ready for implementation.
+   - `Sources/AmendCore/Models/`: Contains `Cue.swift`, `CueEditState.swift`, `AudioTrackMapping.swift`, `ProjectBundle.swift`, `ProjectMetadata.swift`, and `CMTime+Codable.swift`.
+   - `Sources/AmendCore/Composition/`: Contains `SyncInvariantEngine.swift`, `CueSplitter.swift`, `BoundaryCrossfader.swift`, `AudioTrackInspector.swift`, and `LoudnessNormalizer.swift`.
+   - `Sources/AmendCore/Storage/`: Contains `APFSCloner.swift`, `BookmarkManager.swift`, `KeychainVault.swift`, and `ProjectBundleSerializer.swift`.
+   - `Sources/amend/`: Contains only `main.swift` stub. `MainWindowView`, `VideoPlayerView`, `TimelineView`, `CueTrackView`, and `ProjectViewModel` have not yet been implemented.
+   - `Sources/AmendCore/Timeline/`: Directory planned in `PROJECT.md` (`TimelineClock.swift`, `SMPTERulerFormatter.swift`, `FilmstripGenerator.swift`, `WaveformExtractor.swift`) is ready for implementation.
    - `Package.swift`: Configured with Swift 6 / 5.0 mode (`.macOS(.v14)`), importing `DSWaveformImage` (`14.5.0`), `swift-timecode` (`3.1.4`, products: `SwiftTimecodeCore`, `SwiftTimecodeAV`), and `FluidAudio` (`0.9.1`).
-   - `Tests/MacDubCoreTests/`: Uses modern Swift Testing (`import Testing`, `@Suite`, `@Test`, `#expect(...)`).
+   - `Tests/AmendCoreTests/`: Uses modern Swift Testing (`import Testing`, `@Suite`, `@Test`, `#expect(...)`).
 
 2. **Core Domain Invariants (ADR 0001 & ORIGINAL_REQUEST.md)**:
    - Video timeline is driven strictly by continuous `CMTime` and `CMTimeRange`.
@@ -362,7 +362,7 @@ public final class TimelineScrubberController {
 
 #### Component Hierarchy & Data Flow
 The timeline presentation relies on a clean three-layer model:
-1. **`MacDubCore/Timeline/` Foundation**:
+1. **`AmendCore/Timeline/` Foundation**:
    - `TimelineClock`: Core media playback clock wrapping `AVPlayer` with 60Hz `CADisplayLink` / `addPeriodicTimeObserver`.
    - `SMPTERulerFormatter`: SMPTE timecode generation using `SwiftTimecode` (`Timecode(..., at: frameRate)`).
    - `FilmstripGenerator`: Asynchronous thumbnail cache engine using `AVAssetImageGenerator` with downscaled tile caching.
@@ -411,7 +411,7 @@ The timeline presentation relies on a clean three-layer model:
 import Foundation
 import CoreMedia
 import Combine
-import MacDubCore
+import AmendCore
 import AVFoundation
 
 @MainActor
@@ -556,7 +556,7 @@ public final class TimelineViewModel: ObservableObject {
 ```swift
 import SwiftUI
 import CoreMedia
-import MacDubCore
+import AmendCore
 
 public struct CueTrackView: View {
     @ObservedObject var viewModel: TimelineViewModel
@@ -756,7 +756,7 @@ public struct PlayheadCapShape: Shape {
    - SwiftUI's native `ScrollView` in macOS 14 does not offer bidirectional `contentOffset` binding out of the box.
    - *Recommendation*: Use `ScrollViewReader` with invisible anchor tags, or wrap an `NSScrollView` via `NSViewRepresentable` to achieve glitch-free programmatic scroll synchronization during anchor-preserved zooming.
 3. **DSWaveformImage Cache Multi-Scale Invalidation**:
-   - Audio waveform envelopes must be computed asynchronously in `MacDubCore/Timeline/WaveformExtractor.swift` and cached at downsampled bucket resolutions. If a cue's audio is regenerated (M5), only the waveform region matching `cue.timeRange` needs invalidation.
+   - Audio waveform envelopes must be computed asynchronously in `AmendCore/Timeline/WaveformExtractor.swift` and cached at downsampled bucket resolutions. If a cue's audio is regenerated (M5), only the waveform region matching `cue.timeRange` needs invalidation.
 
 ---
 
@@ -787,7 +787,7 @@ swift test --filter CueBinarySearchTests
 import Testing
 import CoreMedia
 import Foundation
-@testable import MacDubCore
+@testable import AmendCore
 
 @Suite("Timeline Coordinate & Zoom Tests")
 struct TimelineCoordinateTests {
@@ -855,7 +855,7 @@ struct TimelineCoordinateTests {
 import Testing
 import CoreMedia
 import Foundation
-@testable import MacDubCore
+@testable import AmendCore
 
 @Suite("Cue Binary Search & Active Highlighting Tests")
 struct CueBinarySearchTests {

@@ -1,7 +1,7 @@
 # Handoff Report: Core Foundation, Storage & Security Architecture (Milestone 1)
 
 **Investigator**: `m1_explorer_2` (Domain Models & Storage Architecture Explorer)  
-**Assigned Directory**: `/Users/fady/Dev/macdub/.agents/m1_explorer_2`  
+**Assigned Directory**: `/Users/fady/Dev/amend/.agents/m1_explorer_2`  
 **Target Milestone**: Milestone 1 (Core Foundation, Storage & Security)  
 **Date**: 2026-09-16  
 
@@ -34,7 +34,7 @@ Direct empirical observations gathered from code inspection, specification docum
   The test succeeded with zero warnings and produced exact, deterministic round-trips preserving `value`, `timescale`, `flags`, and `epoch`.
 
 ### 1.2 APFS Volume Capabilities and Cloning Latency
-- Queried local volume capabilities on `/Users/fady/Dev/macdub` via `URLResourceValues`:
+- Queried local volume capabilities on `/Users/fady/Dev/amend` via `URLResourceValues`:
   ```swift
   volumeSupportsFileCloning: true
   volumeIdentifier: Optional(<67456400 00000000>)
@@ -45,7 +45,7 @@ Direct empirical observations gathered from code inspection, specification docum
 - Executed `FileManager.default.copyItem` benchmark on a 10 MB payload on the APFS volume:
   - Duration: `0.000267042` seconds (~267 microseconds).
   - This confirms that `FileManager.default.copyItem(at:to:)` performs native APFS Copy-on-Write cloning (instant pointer duplicate without physical disk duplication) when invoked on the same APFS volume.
-- Queried volume identifiers across paths (`/Users/fady/Dev/macdub` vs `/tmp`):
+- Queried volume identifiers across paths (`/Users/fady/Dev/amend` vs `/tmp`):
   - Standardized paths via `resolvingSymlinksInPath()` confirmed both paths share the same `volumeIdentifier`.
   - APFS cloning cannot cross volume boundaries (e.g. from an external FAT32/exFAT drive or a separate APFS volume to the local container).
 
@@ -79,7 +79,7 @@ Direct empirical observations gathered from code inspection, specification docum
 
 1. **Premise**: `CMTime` and `CMTimeRange` are C-struct types from CoreMedia that do not conform to `Codable` in Foundation (Observation 1.1).
    - *Deduction*: Core domain models `Cue` and `ProjectMetadata` cannot be serialized to JSON via standard `JSONEncoder` unless explicit `Codable` conformances exist.
-   - *Deduction*: Providing `@retroactive Codable` conformances in `MacDubCore` (or dedicated extensions) that encode `value`, `timescale`, `flags`, and `epoch` guarantees lossless rational time serialization without floating-point precision loss.
+   - *Deduction*: Providing `@retroactive Codable` conformances in `AmendCore` (or dedicated extensions) that encode `value`, `timescale`, `flags`, and `epoch` guarantees lossless rational time serialization without floating-point precision loss.
 
 2. **Premise**: `Cue.timeRange` is defined with `public let timeRange: CMTimeRange` (Observation 1.4).
    - *Deduction*: Immutability of the slot boundary is enforced by the Swift compiler. A cue's temporal window cannot be mutated in place; text edits or synthesized audio replacements preserve `Cue[N].timeRange` intrinsically.
@@ -117,9 +117,9 @@ Direct empirical observations gathered from code inspection, specification docum
 
 The following exact designs and file structures are recommended for the Milestone 1 Worker:
 
-### 4.1 Target File Layout in `Sources/MacDubCore/`
+### 4.1 Target File Layout in `Sources/AmendCore/`
 ```
-Sources/MacDubCore/
+Sources/AmendCore/
 ├── Models/
 │   ├── CMTime+Codable.swift         # Lossless rational Codable extensions for CMTime & CMTimeRange
 │   ├── CueEditState.swift           # Enum: original, edited, synthesized, overflowGated, forceFitted
@@ -401,7 +401,7 @@ public struct ProjectMetadata: Codable, Equatable, Sendable {
 import Foundation
 
 public struct ProjectBundle: Equatable, Sendable {
-    public static let packageExtension = "voicefix"
+    public static let packageExtension = "amend"
     public static let projectFileName = "project.json"
 
     public let rootURL: URL
@@ -730,7 +730,7 @@ To independently verify these designs and models without modifying repo files:
    *Pass criteria*: All assertions evaluate to true, exit code is 0.
 
 2. **Milestone 1 Worker Test Execution (`StorageAPFSTests`)**:
-   Once the Worker places these files into `Sources/MacDubCore/` and `Tests/MacDubCoreTests/Suites/StorageAPFSTests.swift`:
+   Once the Worker places these files into `Sources/AmendCore/` and `Tests/AmendCoreTests/Suites/StorageAPFSTests.swift`:
    ```bash
    swift test --filter StorageAPFSTests
    ```

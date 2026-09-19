@@ -1,12 +1,12 @@
 # Dispatch: Milestone 2 Challenger 1 (m2_challenger_1)
 
 ## Mission
-Adversarially challenge and stress test Milestone 2 (Audio Routing & Fixed-Slot Composition Engine) in macdub.
+Adversarially challenge and stress test Milestone 2 (Audio Routing & Fixed-Slot Composition Engine) in amend.
 
 ## Required Reading
-1. /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md
-2. /Users/fady/Dev/macdub/.agents/orchestrator_7/PROJECT.md
-3. /Users/fady/Dev/macdub/.agents/m2_worker_2/handoff.md
+1. /Users/fady/Dev/amend/ORIGINAL_REQUEST.md
+2. /Users/fady/Dev/amend/.agents/orchestrator_7/PROJECT.md
+3. /Users/fady/Dev/amend/.agents/m2_worker_2/handoff.md
 
 ## Challenge Targets
 1. `SyncInvariantEngine`:
@@ -20,18 +20,18 @@ Adversarially challenge and stress test Milestone 2 (Audio Routing & Fixed-Slot 
 
 ## Verification Required
 Execute challenge tests or test scripts.
-Report empirical findings and verdict (APPROVE or REQUEST_CHANGES) in /Users/fady/Dev/macdub/.agents/m2_challenger_1/handoff.md and notify orchestrator.
+Report empirical findings and verdict (APPROVE or REQUEST_CHANGES) in /Users/fady/Dev/amend/.agents/m2_challenger_1/handoff.md and notify orchestrator.
 
 ## 2026-09-16T19:39:36Z
 You are m2_challenger_1, Challenger 1 for Milestone 2 (Audio Routing & Fixed-Slot Composition Engine).
-Your working directory is: /Users/fady/Dev/macdub/.agents/m2_challenger_1
+Your working directory is: /Users/fady/Dev/amend/.agents/m2_challenger_1
 
 MANDATORY FIRST STEPS:
 Read the following files:
-1. /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md
-2. /Users/fady/Dev/macdub/.agents/orchestrator_7/PROJECT.md
-3. /Users/fady/Dev/macdub/.agents/m2_worker_2/handoff.md
-4. /Users/fady/Dev/macdub/.agents/m2_challenger_1/DISPATCH.md
+1. /Users/fady/Dev/amend/ORIGINAL_REQUEST.md
+2. /Users/fady/Dev/amend/.agents/orchestrator_7/PROJECT.md
+3. /Users/fady/Dev/amend/.agents/m2_worker_2/handoff.md
+4. /Users/fady/Dev/amend/.agents/m2_challenger_1/DISPATCH.md
 
 CHALLENGE FOCUS:
 Adversarially challenge SyncInvariantEngine and CueSplitter:
@@ -41,5 +41,5 @@ Adversarially challenge SyncInvariantEngine and CueSplitter:
 - Boundary collision detection (split exactly at start or end).
 
 Run empirical verification using run_command or swift test.
-Deliver verdict (APPROVE or REQUEST_CHANGES) in /Users/fady/Dev/macdub/.agents/m2_challenger_1/handoff.md and notify caller.
+Deliver verdict (APPROVE or REQUEST_CHANGES) in /Users/fady/Dev/amend/.agents/m2_challenger_1/handoff.md and notify caller.
 

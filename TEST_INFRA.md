@@ -1,15 +1,15 @@
-# MacDub Test Infrastructure (`TEST_INFRA.md`)
+# Amend Test Infrastructure (`TEST_INFRA.md`)
 
 ## 1. Architectural Overview & Test Philosophy
 
-MacDub is a professional macOS application for screen recording speech editing, narration replacement, and voice cloning that strictly enforces an **immutable video timeline with zero synchronization drift**.
+Amend is a professional macOS application for screen recording speech editing, narration replacement, and voice cloning that strictly enforces an **immutable video timeline with zero synchronization drift**.
 
-To guarantee synchronization integrity across multi-agent development cycles without human judgment, MacDub employs a **Dual-Track E2E Testing Architecture**:
+To guarantee synchronization integrity across multi-agent development cycles without human judgment, Amend employs a **Dual-Track E2E Testing Architecture**:
 - **Implementation Track**: Progressively builds modules (M1 through M6) following architectural decision records (ADRs).
 - **E2E Testing Track**: Independently designs, maintains, and executes an opaque-box, requirement-driven test harness using programmatically generated **Synthetic AVFoundation Fixtures**.
 
 ### Key Principles
-1. **Deterministic AV Synthesis & Minimal Speech Provenance**: Deterministic AV/video test fixtures remain programmatically synthesized in milliseconds using native `AVFoundation`, `CoreMedia`, and `CoreVideo` APIs. A small, explicitly licensed human-speech WAV fixture (`human_speech_reference.wav`, ~247 KB, CC0 public domain) is committed under `Tests/MacDubCoreTests/Fixtures/` solely for opt-in ASR and PocketTTS neural acceptance testing. Ordinary CI remains entirely deterministic without downloading neural models or storing large recorded videos in git.
+1. **Deterministic AV Synthesis & Minimal Speech Provenance**: Deterministic AV/video test fixtures remain programmatically synthesized in milliseconds using native `AVFoundation`, `CoreMedia`, and `CoreVideo` APIs. A small, explicitly licensed human-speech WAV fixture (`human_speech_reference.wav`, ~247 KB, CC0 public domain) is committed under `Tests/AmendCoreTests/Fixtures/` solely for opt-in ASR and PocketTTS neural acceptance testing. Ordinary CI remains entirely deterministic without downloading neural models or storing large recorded videos in git.
 2. **Opaque-Box Requirement Verification**: Tests exercise public subsystem boundaries and observable behaviors rather than internal implementation details.
 3. **Rigorous Invariant Enforcement**: Every cue edit, split, duration fit, and export is validated against mathematical `CMTime` invariants.
 4. **Sample Payload Identity**: The passthrough export pipeline is verified by asserting bit-for-bit SHA-256 payload identity between source and exported compressed video sample buffers (`CMSampleBuffer`).
@@ -54,14 +54,14 @@ Testing is organized into four distinct tiers covering depth, boundaries, integr
 ### Tier 4: Real-World Application Scenarios (End-to-End Workflows)
 - End-to-end user workflows executed from import to exported media:
   - **Scenario A (Single-Track Screencast)**: Import single-track recording -> advisory badge verified -> auto-transcribe cues -> split cue at playhead -> edit transcript -> re-render audio with room-tone padding -> export container -> verify total duration matches source to the exact sample.
-  - **Scenario B (Multi-Track Tutorial)**: Import media with mic + system audio -> interactive track picker designates narration vs passthrough -> APFS clone to `.voicefix` bundle -> replace narration cue with cloned voice -> export -> verify passthrough system audio bitstream is intact and unaltered.
+  - **Scenario B (Multi-Track Tutorial)**: Import media with mic + system audio -> interactive track picker designates narration vs passthrough -> APFS clone to `.amend` bundle -> replace narration cue with cloned voice -> export -> verify passthrough system audio bitstream is intact and unaltered.
   - **Scenario C (Manual Overflow Gated Journey)**: Import recording -> synthesize replacement audio with $+15\%$ duration overflow -> assert system enters gated state -> execute "Rewrite to Fit" -> verify replacement fits within slot duration -> export and verify video sync.
 
 ---
 
 ## 3. Synthetic AVFoundation Fixture Architecture
 
-All programmatic fixtures are located under `Tests/MacDubCoreTests/Fixtures/` and generate programmatically valid, playable QuickTime (`.mov`) and MPEG-4 (`.mp4`) assets on demand. In addition, an authentic CC0-licensed human-speech reference fixture (`human_speech_reference.wav`) is included exclusively for opt-in local neural acceptance tests (`MACDUB_RUN_LOCAL_AI_TESTS=1`).
+All programmatic fixtures are located under `Tests/AmendCoreTests/Fixtures/` and generate programmatically valid, playable QuickTime (`.mov`) and MPEG-4 (`.mp4`) assets on demand. In addition, an authentic CC0-licensed human-speech reference fixture (`human_speech_reference.wav`) is included exclusively for opt-in local neural acceptance tests (`AMEND_RUN_LOCAL_AI_TESTS=1`).
 
 ### Architecture Diagram
 ```
@@ -97,7 +97,7 @@ All programmatic fixtures are located under `Tests/MacDubCoreTests/Fixtures/` an
   - `[8.5s, 9.5s]`: 440 Hz Sine Tone (Speech Cue 3: 1.0s duration)
   - `[9.5s, 10.0s]`: Silence (Tail silence: 0.5s duration)
 - **Ground Truth Cues**:
-  - Cue 1: `start: 1.0s`, `duration: 2.5s`, text: "Welcome to MacDub screen recording"
+  - Cue 1: `start: 1.0s`, `duration: 2.5s`, text: "Welcome to Amend screen recording"
   - Cue 2: `start: 4.5s`, `duration: 3.0s`, text: "This is the second narration segment"
   - Cue 3: `start: 8.5s`, `duration: 1.0s`, text: "Conclusion"
 - **Primary Use**: Waveform extraction tests, single-track advisory badge, cue splitting, and export duration preservation.
@@ -129,34 +129,40 @@ Every test suite strictly verifies the following non-negotiable invariants:
 | **2. Zero-Gap Splitting** | $t_{end}(Cue_A) = t_{start}(Cue_B) = t_{split}$ | Exact rational timestamp identity; zero overlap, zero gap |
 | **3. Bitstream Payload Identity** | $SHA256(Payload_{export}) = SHA256(Payload_{source})$ | Hash comparison of extracted compressed `CMSampleBuffer` bytes |
 | **4. Container Duration Matching** | $\Delta t_{container} = \lvert Dur_{export} - Dur_{source} \rvert \le \frac{1}{SampleRate}$ | Media duration difference bounded to $\le 1$ audio sample |
-| **5. Zero Credential Leakage** | $\forall k \in Keys: k \notin project.json \land k \notin logs$ | AST/regex credential leak scanner over `.voicefix` bundle |
+| **5. Zero Credential Leakage** | $\forall k \in Keys: k \notin project.json \land k \notin logs$ | AST/regex credential leak scanner over `.amend` bundle |
 
 ---
 
 ## 5. Running the Test Suites
 
-MacDub uses the native **Swift Testing** framework (`import Testing`, `@Suite`, `@Test`, `#expect`).
+Amend uses the native **Swift Testing** framework (`import Testing`, `@Suite`, `@Test`, `#expect`).
 
 ### Test Execution Commands
 ```bash
-# Run all tests in the package
-swift test
+# Run all deterministic tests
+swift test --no-parallel
 
 # Run only Tier 1 Feature Coverage tests
 swift test --filter Tier1FeatureTests
 
-# Run only Synthetic Fixture Generation tests
-swift test --filter Fixture
+# Run only Project Format tests
+swift test --filter AmendProjectFormatTests
 
 # Run Security Suite tests
 swift test --filter SecuritySuiteTests
 
 # Run Storage & APFS tests
 swift test --filter StorageAPFSTests
+
+# Run opt-in Apple Foundation Models grammar tests
+AMEND_RUN_APPLE_MODEL_TESTS=1 swift test --filter AppleFoundationGrammarTests
+
+# Run opt-in local PocketTTS acceptance tests
+AMEND_RUN_LOCAL_AI_TESTS=1 swift test --filter PocketTTSAcceptanceTests
 ```
 
 ### Environment Prerequisites
 - **macOS Version**: macOS 26.0 or newer.
 - **Architecture**: Apple Silicon (arm64).
 - **Toolchain**: Swift 6.0+ (Swift tools version 6.0) with SwiftPM.
-- **Security**: macOS Keychain available for test credentials.
+- **Security**: macOS Keychain available for test credentials (`com.fady.amend`).

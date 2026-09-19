@@ -6,13 +6,13 @@ Complete Milestone 3 (Timeline Engine & Visual Presentation) by implementing the
 ## 🔒 My Identity
 - Archetype: implementer, qa, specialist
 - Roles: implementer, qa, specialist
-- Working directory: /Users/fady/Dev/macdub/.agents/m3_worker_4
+- Working directory: /Users/fady/Dev/amend/.agents/m3_worker_4
 - Original parent: abcb9ed9-7ae3-469f-a32a-ff6208f1cb66
 - Milestone: Milestone 3 (Timeline Engine & Visual Presentation)
 
 ## 🔒 Key Constraints
 - DO NOT CHEAT. All implementations must be genuine. DO NOT hardcode test results or create dummy facades.
-- Strict write ownership: Sources/MacDubCore/Timeline/*, Sources/macdub/ViewModels/*, Sources/macdub/Views/*, Tests/MacDubCoreTests/Suites/*
+- Strict write ownership: Sources/AmendCore/Timeline/*, Sources/amend/ViewModels/*, Sources/amend/Views/*, Tests/AmendCoreTests/Suites/*
 - All existing M1, M2, and E2E Tier 1 tests must continue to pass with 0 regressions.
 - All 7 M3 test suites must genuinely pass.
 - Maintain progress.md heartbeat.
@@ -25,8 +25,8 @@ Complete Milestone 3 (Timeline Engine & Visual Presentation) by implementing the
 ## Task Summary
 - **What to build**: 5 remaining comprehensive test suites (PlayheadSnapperTests, SMPTERulerFormatterTests, TimelineClockTests, FilmstripGeneratorTests, WaveformExtractorTests).
 - **Success criteria**: 100% test pass on `swift build` and `swift test`, genuine AVFoundation/DSWaveformImage/SwiftTimecode assertions, memory budgets verified, zero regressions.
-- **Interface contracts**: /Users/fady/Dev/macdub/.agents/orchestrator_11/PROJECT.md and Explorer handoffs.
-- **Code layout**: Sources/MacDubCore/Timeline/, Sources/macdub/ViewModels/, Sources/macdub/Views/, Tests/MacDubCoreTests/Suites/.
+- **Interface contracts**: /Users/fady/Dev/amend/.agents/orchestrator_11/PROJECT.md and Explorer handoffs.
+- **Code layout**: Sources/AmendCore/Timeline/, Sources/amend/ViewModels/, Sources/amend/Views/, Tests/AmendCoreTests/Suites/.
 
 ## Key Decisions Made
 - [TBD]

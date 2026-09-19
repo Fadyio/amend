@@ -5,7 +5,7 @@
 
 ## Checklist
 - [x] Received dispatch & initialized BRIEFING.md
-- [x] Inspect existing Sources/MacDubCore/ and Tests/
+- [x] Inspect existing Sources/AmendCore/ and Tests/
 - [x] Inspect relevant ADRs (0001, 0003, 0005, 0006, 0007, 0008)
 - [x] Analyze AudioTrackInspector architecture & track routing
 - [x] Analyze SyncInvariantEngine architecture & continuous CMTime precision

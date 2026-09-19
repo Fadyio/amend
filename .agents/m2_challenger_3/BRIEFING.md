@@ -6,7 +6,7 @@ Adversarially stress-test Milestone 2's SyncInvariantEngine, CueSplitter, and Au
 ## 🔒 My Identity
 - Archetype: empirical challenger
 - Roles: critic, specialist
-- Working directory: /Users/fady/Dev/macdub/.agents/m2_challenger_3
+- Working directory: /Users/fady/Dev/amend/.agents/m2_challenger_3
 - Original parent: dddb455d-722d-48b2-bdde-0a7e35f53727
 - Milestone: M2
 - Instance: 1 of 1
@@ -24,27 +24,27 @@ Adversarially stress-test Milestone 2's SyncInvariantEngine, CueSplitter, and Au
 
 ## Review Scope
 - **Files to review**:
-  - `Sources/MacDubCore/Composition/SyncInvariantEngine.swift`
-  - `Sources/MacDubCore/Composition/CueSplitter.swift`
-  - `Sources/MacDubCore/Composition/AudioTrackInspector.swift`
-  - `Sources/MacDubCore/Models/AudioTrackInfo.swift`
-  - `Sources/MacDubCore/Models/Cue.swift`
+  - `Sources/AmendCore/Composition/SyncInvariantEngine.swift`
+  - `Sources/AmendCore/Composition/CueSplitter.swift`
+  - `Sources/AmendCore/Composition/AudioTrackInspector.swift`
+  - `Sources/AmendCore/Models/AudioTrackInfo.swift`
+  - `Sources/AmendCore/Models/Cue.swift`
 - **Interface contracts**: `PROJECT.md`, `ORIGINAL_REQUEST.md`, `ADR 0001`, `ADR 0003`
 - **Review criteria**: Continuous zero-gap cue splitting, rational CMTime invariance, microsecond splits, boundary containment, malformed tracks/formats.
 
 ## Key Decisions Made
-- Authored and executed 26 rigorous adversarial tests in `Tests/MacDubCoreTests/Suites/SyncInvariantAdversarialTests.swift`.
+- Authored and executed 26 rigorous adversarial tests in `Tests/AmendCoreTests/Suites/SyncInvariantAdversarialTests.swift`.
 - Stress-tested microsecond sub-frame splits, 100 sequential continuous splits, 50 binary splits, concurrent mutations, out-of-order timelines, and edge cases.
 - Discovered and empirically verified 3 non-fatal invariant blind spots in `SyncInvariantEngine` and `AudioTrackMapping`.
 - Confirmed zero numerical drift, zero temporal gaps, zero overlaps, and robust neighbor immutability across all stress vectors.
 - Recommended APPROVE verdict with documented improvement observations for downstream hardening.
 
 ## Artifact Index
-- `/Users/fady/Dev/macdub/.agents/m2_challenger_3/DISPATCH.md` — Assignment instructions
-- `/Users/fady/Dev/macdub/.agents/m2_challenger_3/BRIEFING.md` — Situational awareness
-- `/Users/fady/Dev/macdub/.agents/m2_challenger_3/progress.md` — Liveness heartbeat
-- `/Users/fady/Dev/macdub/.agents/m2_challenger_3/handoff.md` — Final handoff report
-- `Tests/MacDubCoreTests/Suites/SyncInvariantAdversarialTests.swift` — 26 adversarial stress tests
+- `/Users/fady/Dev/amend/.agents/m2_challenger_3/DISPATCH.md` — Assignment instructions
+- `/Users/fady/Dev/amend/.agents/m2_challenger_3/BRIEFING.md` — Situational awareness
+- `/Users/fady/Dev/amend/.agents/m2_challenger_3/progress.md` — Liveness heartbeat
+- `/Users/fady/Dev/amend/.agents/m2_challenger_3/handoff.md` — Final handoff report
+- `Tests/AmendCoreTests/Suites/SyncInvariantAdversarialTests.swift` — 26 adversarial stress tests
 
 ## Attack Surface
 - **Hypotheses tested**:

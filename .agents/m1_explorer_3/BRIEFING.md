@@ -1,12 +1,12 @@
 # BRIEFING — 2026-09-16T13:03:45Z
 
 ## Mission
-Investigate and design the security credential vault (macOS Keychain Services) and Milestone 1 unit test specifications (StorageAPFSTests, SecuritySuiteTests, credential leak scanner) for macdub.
+Investigate and design the security credential vault (macOS Keychain Services) and Milestone 1 unit test specifications (StorageAPFSTests, SecuritySuiteTests, credential leak scanner) for amend.
 
 ## 🔒 My Identity
 - Archetype: explorer
 - Roles: Security & Unit Test Suite Explorer for Milestone 1
-- Working directory: /Users/fady/Dev/macdub/.agents/m1_explorer_3
+- Working directory: /Users/fady/Dev/amend/.agents/m1_explorer_3
 - Original parent: 7ec3ddce-95f5-49a5-a77f-54809810b3da
 - Milestone: Milestone 1: Core Foundation, Storage & Security
 

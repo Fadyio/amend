@@ -18,18 +18,18 @@
   - `docs/adr/0003-ambiguity-safe-audio-track-mapping.md`: Ambiguity-safe track inspection, single-track warning, passthrough track preservation.
   - `docs/adr/0005-ambient-room-tone-cue-padding.md`: 10–20 ms boundary crossfades for acoustic continuity and exact `CMTimeRange` adherence.
 - **Implemented Source Files**:
-  - `Sources/MacDubCore/Models/AudioTrackInfo.swift` (Lines 1–41)
-  - `Sources/MacDubCore/Models/Cue.swift` (Lines 1–104)
-  - `Sources/MacDubCore/Composition/AudioTrackInspector.swift` (Lines 1–176)
-  - `Sources/MacDubCore/Composition/SyncInvariantEngine.swift` (Lines 1–145)
-  - `Sources/MacDubCore/Composition/CueSplitter.swift` (Lines 1–124)
-  - `Sources/MacDubCore/Composition/BoundaryCrossfader.swift` (Lines 1–155)
-  - `Sources/MacDubCore/Composition/LoudnessNormalizer.swift` (Lines 1–191)
+  - `Sources/AmendCore/Models/AudioTrackInfo.swift` (Lines 1–41)
+  - `Sources/AmendCore/Models/Cue.swift` (Lines 1–104)
+  - `Sources/AmendCore/Composition/AudioTrackInspector.swift` (Lines 1–176)
+  - `Sources/AmendCore/Composition/SyncInvariantEngine.swift` (Lines 1–145)
+  - `Sources/AmendCore/Composition/CueSplitter.swift` (Lines 1–124)
+  - `Sources/AmendCore/Composition/BoundaryCrossfader.swift` (Lines 1–155)
+  - `Sources/AmendCore/Composition/LoudnessNormalizer.swift` (Lines 1–191)
 
 ### 1.2 Build & Verification Execution
 1. **Target Build**:
    - Command: `swift build`
-   - Output: `Build complete! (2.21 secs)`, Exit code 0, 0 warnings in `MacDubCore`.
+   - Output: `Build complete! (2.21 secs)`, Exit code 0, 0 warnings in `AmendCore`.
 2. **Milestone 2 Unit Test Suites**:
    - `AudioRoutingTests` (8 tests): 8 passed in 0.020s.
    - `SyncInvariantTests` (10 tests): 10 passed in 0.007s.
@@ -50,7 +50,7 @@
 ## 2. Adversarial Critic Integrity Attestation
 
 As adversarial critic, the codebase was inspected for any form of cheating or facade implementations:
-1. **Hardcoded Test Outputs**: Grep scans for test-specific constants or mock values in `Sources/MacDubCore/Composition/` returned 0 occurrences. Logic executes genuine computations.
+1. **Hardcoded Test Outputs**: Grep scans for test-specific constants or mock values in `Sources/AmendCore/Composition/` returned 0 occurrences. Logic executes genuine computations.
 2. **Dummy / Facade Implementations**: All components implement real algorithms:
    - `LoudnessNormalizer` implements the full ITU-R BS.1770-4 K-weighting two-stage IIR filter with standard coefficients and Accelerate `vDSP` vectorized math (`vDSP_rmsqv`, `vDSP_maxmgv`, `vDSP_svesq`, `vDSP_vsmul`).
    - `BoundaryCrossfader` computes true trigonometric equal-power $(\sin(\theta), \cos(\theta))$ and linear curves with exact $(fadeLength - 1)$ zero-boundary scaling.
@@ -91,7 +91,7 @@ As adversarial critic, the codebase was inspected for any form of cheating or fa
 ## 4. Findings & Adversarial Challenges
 
 ### 4.1 Major Finding: Incomplete Field Check in `assertSyncInvariant`
-- **Location**: `Sources/MacDubCore/Composition/SyncInvariantEngine.swift:104–109`
+- **Location**: `Sources/AmendCore/Composition/SyncInvariantEngine.swift:104–109`
 - **Issue**: For non-target cues, `assertSyncInvariant` only checks:
   ```swift
   if b.text != a.text || b.audioWAVRelativePath != a.audioWAVRelativePath || b.editState != a.editState {
@@ -108,18 +108,18 @@ As adversarial critic, the codebase was inspected for any form of cheating or fa
   This guarantees that all current and future fields of `Cue` are strictly protected against non-target tampering.
 
 ### 4.2 Minor Finding: Negative Start Time Allowed in `validateTimelineContinuity`
-- **Location**: `Sources/MacDubCore/Composition/SyncInvariantEngine.swift:118–142`
+- **Location**: `Sources/AmendCore/Composition/SyncInvariantEngine.swift:118–142`
 - **Issue**: `validateTimelineContinuity` checks `current.duration <= 0` and chronological ordering, but does not check if `CMTimeCompare(current.start, .zero) < 0`.
 - **Why this matters**: A cue starting at `-5.0s` with positive duration passes timeline validation even though video timestamps must be non-negative.
 - **Remediation Suggestion**: Add `if CMTimeCompare(current.start, .zero) < 0 { throw ... }`.
 
 ### 4.3 Minor Finding: 0-Byte File Error Type in `AudioTrackInspector`
-- **Location**: `Sources/MacDubCore/Composition/AudioTrackInspector.swift:60–70`
+- **Location**: `Sources/AmendCore/Composition/AudioTrackInspector.swift:60–70`
 - **Issue**: In `SyncInvariantAdversarialTests`, inspecting a 0-byte file throws `AudioTrackInspectorError.unreadableAsset(..., "Cannot Open")` while the test expected `.noAudioTracks`.
 - **Assessment**: While throwing `unreadableAsset` is technically sound (a 0-byte file is corrupt media, not an empty valid container), explicitly checking file size or documenting the error behavior avoids confusion.
 
 ### 4.4 Baseline Note (M1 Scope): `CredentialLeakScanner` Findings in `AdversarialStressTests`
-- In `Tests/MacDubCoreTests/Suites/AdversarialStressTests.swift`, 2 tests failed:
+- In `Tests/AmendCoreTests/Suites/AdversarialStressTests.swift`, 2 tests failed:
   1. `CredentialLeakScanner bundle file user path detection` (Line 532): `scanText` does not check `userAbsolutePathPattern` in text/log files.
   2. `CredentialLeakScanner detects credentials in .env files in bundle` (Line 554): `.env` files are not in the scanned extension list.
 - **Note**: This belongs to Milestone 1 (`Storage/CredentialLeakScanner.swift`) and is flagged here for orchestrator tracking.

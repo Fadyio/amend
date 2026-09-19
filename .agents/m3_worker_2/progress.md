@@ -6,12 +6,12 @@ Last visited: 2026-09-17T00:55:00Z
 - [x] Initialized DISPATCH.md, BRIEFING.md, progress.md
 - [x] Read ORIGINAL_REQUEST.md and PROJECT.md
 - [x] Read Explorer 1, 2, 3 reports
-- [x] Inspect existing codebase structure, Package.swift, MacDubCore, macdub app
+- [x] Inspect existing codebase structure, Package.swift, AmendCore, amend app
 - [x] Cleaned up stale background test helper process causing Keychain mutex lock
 
 ## Phase 2: Design & Implementation Plan [COMPLETED]
 - [x] Synthesized architecture specifications from explorer handoffs
-- [x] Outlined file structure and interfaces across MacDubCore and macdub app
+- [x] Outlined file structure and interfaces across AmendCore and amend app
 
 ## Phase 3: Implementation - Core Timeline Engine [IN PROGRESS]
 - [ ] TimelineCoordinateConverter.swift

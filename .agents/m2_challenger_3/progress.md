@@ -9,7 +9,7 @@ Status: COMPLETE
 - [x] Read PROJECT.md blueprint
 - [x] Read m2_worker_2 handoff.md
 - [x] Initialized and updated BRIEFING.md
-- [x] Designed and implemented 26 comprehensive adversarial tests in `Tests/MacDubCoreTests/Suites/SyncInvariantAdversarialTests.swift`
+- [x] Designed and implemented 26 comprehensive adversarial tests in `Tests/AmendCoreTests/Suites/SyncInvariantAdversarialTests.swift`
 - [x] Executed full test suite (`swift test --filter SyncInvariantAdversarialTests`) — 26/26 tests passed in 0.064s
 - [x] Verified zero regression on baseline M2 suites (`AudioRoutingTests`, `SyncInvariantTests`, `CueSplitterTests`) — 25/25 tests passed in 0.023s
 - [x] Documented and empirically verified 3 non-fatal invariant blind spots for downstream hardening

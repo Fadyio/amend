@@ -6,7 +6,7 @@ Independent quality review and adversarial challenge of Milestone 2 (Audio Routi
 ## 🔒 My Identity
 - Archetype: reviewer-critic
 - Roles: reviewer, critic
-- Working directory: /Users/fady/Dev/macdub/.agents/m2_reviewer_3
+- Working directory: /Users/fady/Dev/amend/.agents/m2_reviewer_3
 - Original parent: dddb455d-722d-48b2-bdde-0a7e35f53727
 - Milestone: Milestone 2 (Audio Routing & Fixed-Slot Composition Engine)
 - Instance: 1 of 2 (Reviewer 1)
@@ -23,18 +23,18 @@ Independent quality review and adversarial challenge of Milestone 2 (Audio Routi
 
 ## Review Scope
 - **Files to review**:
-  - Sources/MacDubCore/Models/AudioTrackInfo.swift
-  - Sources/MacDubCore/Models/Cue.swift
-  - Sources/MacDubCore/Composition/AudioTrackInspector.swift
-  - Sources/MacDubCore/Composition/SyncInvariantEngine.swift
-  - Sources/MacDubCore/Composition/CueSplitter.swift
-  - Sources/MacDubCore/Composition/BoundaryCrossfader.swift
-  - Sources/MacDubCore/Composition/LoudnessNormalizer.swift
-  - Tests/MacDubCoreTests/Suites/AudioRoutingTests.swift
-  - Tests/MacDubCoreTests/Suites/SyncInvariantTests.swift
-  - Tests/MacDubCoreTests/Suites/CueSplitterTests.swift
-  - Tests/MacDubCoreTests/Suites/BoundaryCrossfaderTests.swift
-  - Tests/MacDubCoreTests/Suites/LoudnessNormalizerTests.swift
+  - Sources/AmendCore/Models/AudioTrackInfo.swift
+  - Sources/AmendCore/Models/Cue.swift
+  - Sources/AmendCore/Composition/AudioTrackInspector.swift
+  - Sources/AmendCore/Composition/SyncInvariantEngine.swift
+  - Sources/AmendCore/Composition/CueSplitter.swift
+  - Sources/AmendCore/Composition/BoundaryCrossfader.swift
+  - Sources/AmendCore/Composition/LoudnessNormalizer.swift
+  - Tests/AmendCoreTests/Suites/AudioRoutingTests.swift
+  - Tests/AmendCoreTests/Suites/SyncInvariantTests.swift
+  - Tests/AmendCoreTests/Suites/CueSplitterTests.swift
+  - Tests/AmendCoreTests/Suites/BoundaryCrossfaderTests.swift
+  - Tests/AmendCoreTests/Suites/LoudnessNormalizerTests.swift
 - **Interface contracts**: ORIGINAL_REQUEST.md, PROJECT.md, ADRs (0001, 0003, 0005)
 - **Review criteria**: correctness, integrity, standards, specs, edge-cases, error handling, performance
 
@@ -71,7 +71,7 @@ Independent quality review and adversarial challenge of Milestone 2 (Audio Routi
 - Issued verdict of APPROVE with recommendations for hardening.
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/.agents/m2_reviewer_3/BRIEFING.md — Situational awareness
-- /Users/fady/Dev/macdub/.agents/m2_reviewer_3/progress.md — Liveness & progress tracking
-- /Users/fady/Dev/macdub/.agents/m2_reviewer_3/DISPATCH.md — Dispatch log
-- /Users/fady/Dev/macdub/.agents/m2_reviewer_3/handoff.md — Final review and challenge report
+- /Users/fady/Dev/amend/.agents/m2_reviewer_3/BRIEFING.md — Situational awareness
+- /Users/fady/Dev/amend/.agents/m2_reviewer_3/progress.md — Liveness & progress tracking
+- /Users/fady/Dev/amend/.agents/m2_reviewer_3/DISPATCH.md — Dispatch log
+- /Users/fady/Dev/amend/.agents/m2_reviewer_3/handoff.md — Final review and challenge report

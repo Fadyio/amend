@@ -1,7 +1,7 @@
 # Handoff Report — Sentinel Initialization
 
 ## Observation
-- Received comprehensive project prompt for `macdub` (native macOS screen recording speech editing application).
+- Received comprehensive project prompt for `amend` (native macOS screen recording speech editing application).
 - Documented requirements R1 through R8, AVFoundation synthetic verification harness, and acceptance criteria.
 - Captured verbatim request to `ORIGINAL_REQUEST.md` and initialized `.agents/BRIEFING.md`.
 

@@ -6,7 +6,7 @@ Adversarially challenge and stress-test BoundaryCrossfader, LoudnessNormalizer, 
 ## 🔒 My Identity
 - Archetype: empirical-challenger
 - Roles: critic, specialist
-- Working directory: /Users/fady/Dev/macdub/.agents/m2_challenger_2
+- Working directory: /Users/fady/Dev/amend/.agents/m2_challenger_2
 - Original parent: 6d0f15a4-fc57-4559-a103-9d3b296d77df
 - Milestone: M2
 - Instance: 2 of 2
@@ -23,10 +23,10 @@ Adversarially challenge and stress-test BoundaryCrossfader, LoudnessNormalizer, 
 
 ## Review Scope
 - **Files to review**:
-  - Sources/MacDubCore/Composition/BoundaryCrossfader.swift
-  - Sources/MacDubCore/Composition/LoudnessNormalizer.swift
-  - Sources/MacDubCore/Composition/AudioTrackInspector.swift
-- **Interface contracts**: /Users/fady/Dev/macdub/.agents/orchestrator_7/PROJECT.md
+  - Sources/AmendCore/Composition/BoundaryCrossfader.swift
+  - Sources/AmendCore/Composition/LoudnessNormalizer.swift
+  - Sources/AmendCore/Composition/AudioTrackInspector.swift
+- **Interface contracts**: /Users/fady/Dev/amend/.agents/orchestrator_7/PROJECT.md
 - **Review criteria**: edge cases, NaN/Inf handling, boundary clamping, equal-power energy preservation, multichannel handling, corruption handling
 
 ## Attack Surface
@@ -41,5 +41,5 @@ Adversarially challenge and stress-test BoundaryCrossfader, LoudnessNormalizer, 
 - Focus challenge on acoustic components and edge cases (ultra-short buffers, silence/NaN, full scale square wave, corrupted URLs/0 audio tracks)
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/.agents/m2_challenger_2/handoff.md — Final challenge verdict and findings
-- /Users/fady/Dev/macdub/.agents/m2_challenger_2/progress.md — Progress log
+- /Users/fady/Dev/amend/.agents/m2_challenger_2/handoff.md — Final challenge verdict and findings
+- /Users/fady/Dev/amend/.agents/m2_challenger_2/progress.md — Progress log

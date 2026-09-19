@@ -6,7 +6,7 @@ Architectural, thread-safety, Sendable conformance, and memory budget review for
 ## 🔒 My Identity
 - Archetype: reviewer / critic
 - Roles: reviewer, critic
-- Working directory: /Users/fady/Dev/macdub/.agents/m2_reviewer_4
+- Working directory: /Users/fady/Dev/amend/.agents/m2_reviewer_4
 - Original parent: dddb455d-722d-48b2-bdde-0a7e35f53727
 - Milestone: Milestone 2 (Audio Routing & Fixed-Slot Composition Engine)
 - Instance: 2 of 2 (m2_reviewer_4)
@@ -23,15 +23,15 @@ Architectural, thread-safety, Sendable conformance, and memory budget review for
 
 ## Review Scope
 - **Files to review**:
-  - Sources/MacDubCore/Models/AudioTrackInfo.swift
-  - Sources/MacDubCore/Models/Cue.swift
-  - Sources/MacDubCore/Composition/AudioTrackInspector.swift
-  - Sources/MacDubCore/Composition/SyncInvariantEngine.swift
-  - Sources/MacDubCore/Composition/CueSplitter.swift
-  - Sources/MacDubCore/Composition/BoundaryCrossfader.swift
-  - Sources/MacDubCore/Composition/LoudnessNormalizer.swift
-  - Associated tests under Tests/MacDubCoreTests/
-- **Interface contracts**: /Users/fady/Dev/macdub/.agents/orchestrator_8/PROJECT.md, /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md
+  - Sources/AmendCore/Models/AudioTrackInfo.swift
+  - Sources/AmendCore/Models/Cue.swift
+  - Sources/AmendCore/Composition/AudioTrackInspector.swift
+  - Sources/AmendCore/Composition/SyncInvariantEngine.swift
+  - Sources/AmendCore/Composition/CueSplitter.swift
+  - Sources/AmendCore/Composition/BoundaryCrossfader.swift
+  - Sources/AmendCore/Composition/LoudnessNormalizer.swift
+  - Associated tests under Tests/AmendCoreTests/
+- **Interface contracts**: /Users/fady/Dev/amend/.agents/orchestrator_8/PROJECT.md, /Users/fady/Dev/amend/ORIGINAL_REQUEST.md
 - **Review criteria**: Architecture, thread safety, Sendable conformance, memory budget (8GB), correctness, integrity
 
 ## Review Checklist
@@ -55,6 +55,6 @@ Architectural, thread-safety, Sendable conformance, and memory budget review for
 - Approved Milestone 2 architecture and implementation.
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/.agents/m2_reviewer_4/BRIEFING.md — persistent situational awareness
-- /Users/fady/Dev/macdub/.agents/m2_reviewer_4/progress.md — liveness heartbeat
-- /Users/fady/Dev/macdub/.agents/m2_reviewer_4/handoff.md — final review report
+- /Users/fady/Dev/amend/.agents/m2_reviewer_4/BRIEFING.md — persistent situational awareness
+- /Users/fady/Dev/amend/.agents/m2_reviewer_4/progress.md — liveness heartbeat
+- /Users/fady/Dev/amend/.agents/m2_reviewer_4/handoff.md — final review report

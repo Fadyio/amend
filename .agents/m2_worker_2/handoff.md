@@ -18,34 +18,34 @@
   - "10–20 ms boundary crossfades are applied to guarantee seamless acoustic continuity and exact `CMTimeRange` adherence."
 
 ### 1.2 Implemented Source Files & Line Numbers
-1. `Sources/MacDubCore/Models/AudioTrackInfo.swift` (Lines 1–36):
+1. `Sources/AmendCore/Models/AudioTrackInfo.swift` (Lines 1–36):
    - Model representing inspected audio track details (`id: Int`, `format: String`, `channelCount: Int`, `sampleRate: Double`, `bitDepth: Int?`, `duration: CMTime`, `timeRange: CMTimeRange`, `languageCode: String?`, `title: String?`, `estimatedDataRate: Float`). Conforms to `Identifiable`, `Codable`, `Equatable`, `Sendable`.
-2. `Sources/MacDubCore/Models/Cue.swift` (Lines 68–104):
+2. `Sources/AmendCore/Models/Cue.swift` (Lines 68–104):
    - Extensions `withUpdatedText(_ newText: String) -> Cue`: generates updated cue preserving immutable `timeRange` and `originalText`.
    - `withUpdatedAudio(audioWAVRelativePath: String?, editState: CueEditState, overflowDelta: CMTime? = nil) -> Cue`: preserves immutable `timeRange`.
    - `contains(time: CMTime) -> Bool`: exact rational interval containment check `CMTimeCompare(time, start) >= 0 && CMTimeCompare(time, end) < 0`.
-3. `Sources/MacDubCore/Composition/AudioTrackInspector.swift` (Lines 1–178):
+3. `Sources/AmendCore/Composition/AudioTrackInspector.swift` (Lines 1–178):
    - `AudioTrackInspectionResult` enum (`.singleTrack`, `.multiTrack`, `.noAudioTracks`).
    - `AudioTrackInspectorError` localized errors (`fileNotFound`, `unreadableAsset`, `noAudioTracksFound`, `designatedTrackNotInAsset`, `passthroughTrackNotInAsset`, `narrationInPassthroughList`, `duplicatePassthroughTrackIDs`, `singleTrackAdvisoryViolation`).
    - `inspect(assetURL: URL) async throws -> AudioTrackInspectionResult` and `inspect(asset: AVAsset) async throws -> AudioTrackInspectionResult`.
    - `validate(mapping: AudioTrackMapping, against tracks: [AudioTrackInfo]) throws`.
-4. `Sources/MacDubCore/Composition/SyncInvariantEngine.swift` (Lines 1–142):
+4. `Sources/AmendCore/Composition/SyncInvariantEngine.swift` (Lines 1–142):
    - `SyncInvariantError` enum (`cueNotFound`, `overlappingCues`, `cuesOutOfChronologicalOrder`, `zeroOrNegativeDuration`, `timeExceedsProjectDuration`, `invariantViolationBoundaryShifted`, `nonTargetCueMutated`).
    - `updateCueText(in:cueID:newText:) throws -> [Cue]`.
    - `updateCueAudio(in:cueID:audioRelativePath:editState:overflowDelta:) throws -> [Cue]`.
    - `assertSyncInvariant(before:after:modifiedCueID:) throws`: exact rational equality checks across non-target and target cues.
    - `validateTimelineContinuity(cues:totalDuration:) throws`.
-5. `Sources/MacDubCore/Composition/CueSplitter.swift` (Lines 1–123):
+5. `Sources/AmendCore/Composition/CueSplitter.swift` (Lines 1–123):
    - `CueSplitterError` enum (`targetCueNotFound`, `splitTimestampOutOfBounds`, `resultingDurationTooShort`).
    - `split(cue:at:textSplitIndex:) throws -> (cueA: Cue, cueB: Cue)`.
    - `splitCue(in:targetCueID:at:textSplitIndex:) throws -> (updatedCues: [Cue], splitA: Cue, splitB: Cue)`.
    - Guarantees 0 gap (`cueB.start - cueA.end == 0`), 0 overlap (`cueA.end == cueB.start`), and neighbor immutability.
-6. `Sources/MacDubCore/Composition/BoundaryCrossfader.swift` (Lines 1–143):
+6. `Sources/AmendCore/Composition/BoundaryCrossfader.swift` (Lines 1–143):
    - `CrossfadeCurve` enum (`linear`, `equalPower`).
    - `BoundaryCrossfaderError` enum (`invalidBuffer`, `unsupportedAudioFormat`).
    - `applyBoundaryFades(to:windowDuration:curve:) throws`: fade-in at head, fade-out at tail, normalized by `(fadeLength - 1)` for true zero boundary amplitude.
    - `crossfade(bufferA:bufferB:windowDuration:curve:) throws -> AVAudioPCMBuffer`: equal-power $\cos(\theta) + \sin(\theta)$ and linear crossfading preserving acoustic energy.
-7. `Sources/MacDubCore/Composition/LoudnessNormalizer.swift` (Lines 1–168):
+7. `Sources/AmendCore/Composition/LoudnessNormalizer.swift` (Lines 1–168):
    - `LoudnessNormalizerError` enum (`unsupportedAudioFormat`, `emptyBuffer`, `zeroSampleRate`).
    - `measureRMS(buffer: AVAudioPCMBuffer) throws -> Double`: Accelerate `vDSP_rmsqv` calculation in dBFS.
    - `measureLUFS(buffer: AVAudioPCMBuffer) throws -> Double`: ITU-R BS.1770-4 K-weighting two-stage IIR filter simulation.
@@ -194,7 +194,7 @@ Milestone 2 (Audio Routing & Fixed-Slot Composition Engine) is fully implemented
 ```bash
 swift build
 ```
-Verify zero compiler errors and zero warnings in MacDubCore.
+Verify zero compiler errors and zero warnings in AmendCore.
 
 ### 5.2 Unit Test Execution
 Execute all five Milestone 2 suites individually:

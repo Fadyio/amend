@@ -6,7 +6,7 @@ Investigate and architect TimelineClock and SMPTERulerFormatter with SwiftTimeco
 ## 🔒 My Identity
 - Archetype: explorer
 - Roles: explorer, investigator, architect
-- Working directory: /Users/fady/Dev/macdub/.agents/m3_explorer_1
+- Working directory: /Users/fady/Dev/amend/.agents/m3_explorer_1
 - Original parent: dddb455d-722d-48b2-bdde-0a7e35f53727
 - Milestone: Milestone 3
 
@@ -14,7 +14,7 @@ Investigate and architect TimelineClock and SMPTERulerFormatter with SwiftTimeco
 - Read-only investigation — do NOT implement in production source files directly.
 - Fixed-slot invariant: Never round internal Cue boundaries to video frames. Internal time is continuous audio-rate CMTime.
 - Display timecode is frame-quantized SMPTE representation.
-- Deliver comprehensive handoff report to `/Users/fady/Dev/macdub/.agents/m3_explorer_1/handoff.md`.
+- Deliver comprehensive handoff report to `/Users/fady/Dev/amend/.agents/m3_explorer_1/handoff.md`.
 
 ## Current Parent
 - Conversation ID: dddb455d-722d-48b2-bdde-0a7e35f53727
@@ -29,6 +29,6 @@ Investigate and architect TimelineClock and SMPTERulerFormatter with SwiftTimeco
 - Established baseline identity and constraints.
 
 ## Artifact Index
-- `/Users/fady/Dev/macdub/.agents/m3_explorer_1/BRIEFING.md` — Agent working memory
-- `/Users/fady/Dev/macdub/.agents/m3_explorer_1/progress.md` — Liveness heartbeat
-- `/Users/fady/Dev/macdub/.agents/m3_explorer_1/handoff.md` — Final handoff report
+- `/Users/fady/Dev/amend/.agents/m3_explorer_1/BRIEFING.md` — Agent working memory
+- `/Users/fady/Dev/amend/.agents/m3_explorer_1/progress.md` — Liveness heartbeat
+- `/Users/fady/Dev/amend/.agents/m3_explorer_1/handoff.md` — Final handoff report

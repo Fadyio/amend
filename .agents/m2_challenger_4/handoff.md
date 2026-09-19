@@ -9,7 +9,7 @@
 ## 1. Observation
 
 ### 1.1 Target Source Files & Logic Under Challenge
-1. `Sources/MacDubCore/Composition/BoundaryCrossfader.swift`:
+1. `Sources/AmendCore/Composition/BoundaryCrossfader.swift`:
    - Line 31: `applyBoundaryFades(to:windowDuration:curve:)`
    - Lines 42–47: Clamps `fadeLength` to `max(1, frameCount / 2)` if `fadeLength * 2 > frameCount`.
    - Line 50: `denom = Float(max(1, fadeLength - 1))` ensures zero division cannot occur when `fadeLength <= 1`.
@@ -17,14 +17,14 @@
    - Line 85: `crossfade(bufferA:bufferB:windowDuration:curve:) -> AVAudioPCMBuffer`
    - Lines 103–105: Clamps `fadeLength = min(fadeLength, min(lenA, lenB))` to handle asymmetric buffers shorter than window duration.
    - Lines 130–143: Overlap region computes $(ptrA[unmixedA + i] \cdot w_A) + (ptrB[i] \cdot w_B)$.
-2. `Sources/MacDubCore/Composition/LoudnessNormalizer.swift`:
+2. `Sources/AmendCore/Composition/LoudnessNormalizer.swift`:
    - Lines 28–47: `measureRMS(buffer:)` using `vDSP_rmsqv`, with `clampedRMS = max(overallRMS, 1e-9)` producing a theoretical floor of -180.0 dBFS on zero/subnormal amplitude signals without `log(0)` or `-Inf` blowup.
    - Lines 50–76: `measureLUFS(buffer:)` simulating ITU-R BS.1770-4 two-stage IIR filter with -0.691 LU offset, with `clampedEnergy = max(totalEnergy, 1e-12)` producing a floor of -120.691 LUFS on silence.
    - Lines 79–95: `measurePeak(buffer:)` utilizing Accelerate's `vDSP_maxmgv` to measure maximum absolute amplitude across all channels.
    - Lines 98–133: `normalize(buffer:targetLUFS:peakCeiling:)` calculating linear gain $10^{\Delta\text{dB} / 20}$, limiting gain to `peakCeiling / peak` if `peak * linearGain > peakCeiling && peak > 0`, and applying uniform vector scalar multiplication via `vDSP_vsmul` across all channels.
 
 ### 1.2 Created Adversarial Verification Harness
-Authored `Tests/MacDubCoreTests/Suites/DSPAdversarialTests.swift` (660 lines) containing 27 targeted adversarial tests spanning:
+Authored `Tests/AmendCoreTests/Suites/DSPAdversarialTests.swift` (660 lines) containing 27 targeted adversarial tests spanning:
 - Peak ceiling enforcement on 0 dBFS full scale, square waves, overscaled signals (amplitude 3.0), and custom ceilings (`0.95`, `0.50`, `0.25`, `0.10`).
 - Extreme target LUFS levels (+100 dBFS, -100 dBFS).
 - Silent and zero-amplitude buffers across all measurement and processing methods.
@@ -40,7 +40,7 @@ Authored `Tests/MacDubCoreTests/Suites/DSPAdversarialTests.swift` (660 lines) co
 1. Adversarial Suite Execution:
    - Command:
      ```bash
-     DYLD_FRAMEWORK_PATH=/Library/Developer/CommandLineTools/Library/Developer/Frameworks DYLD_LIBRARY_PATH=/Library/Developer/CommandLineTools/Library/Developer/usr/lib /Library/Developer/CommandLineTools/usr/libexec/swift/pm/swiftpm-testing-helper --test-bundle-path /Users/fady/Dev/macdub/.build/out/Products/Debug/MacDubCoreTests.xctest/Contents/MacOS/MacDubCoreTests /Users/fady/Dev/macdub/.build/out/Products/Debug/MacDubCoreTests.xctest/Contents/MacOS/MacDubCoreTests --testing-library swift-testing --filter DSPAdversarialTests
+     DYLD_FRAMEWORK_PATH=/Library/Developer/CommandLineTools/Library/Developer/Frameworks DYLD_LIBRARY_PATH=/Library/Developer/CommandLineTools/Library/Developer/usr/lib /Library/Developer/CommandLineTools/usr/libexec/swift/pm/swiftpm-testing-helper --test-bundle-path /Users/fady/Dev/amend/.build/out/Products/Debug/AmendCoreTests.xctest/Contents/MacOS/AmendCoreTests /Users/fady/Dev/amend/.build/out/Products/Debug/AmendCoreTests.xctest/Contents/MacOS/AmendCoreTests --testing-library swift-testing --filter DSPAdversarialTests
      ```
    - Result:
      ```text
@@ -79,7 +79,7 @@ Authored `Tests/MacDubCoreTests/Suites/DSPAdversarialTests.swift` (660 lines) co
 2. Comprehensive Milestone 2 Test Run (All 6 Suites):
    - Command:
      ```bash
-     DYLD_FRAMEWORK_PATH=/Library/Developer/CommandLineTools/Library/Developer/Frameworks DYLD_LIBRARY_PATH=/Library/Developer/CommandLineTools/Library/Developer/usr/lib /Library/Developer/CommandLineTools/usr/libexec/swift/pm/swiftpm-testing-helper --test-bundle-path /Users/fady/Dev/macdub/.build/out/Products/Debug/MacDubCoreTests.xctest/Contents/MacOS/MacDubCoreTests /Users/fady/Dev/macdub/.build/out/Products/Debug/MacDubCoreTests.xctest/Contents/MacOS/MacDubCoreTests --testing-library swift-testing --filter "BoundaryCrossfaderTests|LoudnessNormalizerTests|DSPAdversarialTests|AudioRoutingTests|SyncInvariantTests|CueSplitterTests"
+     DYLD_FRAMEWORK_PATH=/Library/Developer/CommandLineTools/Library/Developer/Frameworks DYLD_LIBRARY_PATH=/Library/Developer/CommandLineTools/Library/Developer/usr/lib /Library/Developer/CommandLineTools/usr/libexec/swift/pm/swiftpm-testing-helper --test-bundle-path /Users/fady/Dev/amend/.build/out/Products/Debug/AmendCoreTests.xctest/Contents/MacOS/AmendCoreTests /Users/fady/Dev/amend/.build/out/Products/Debug/AmendCoreTests.xctest/Contents/MacOS/AmendCoreTests --testing-library swift-testing --filter "BoundaryCrossfaderTests|LoudnessNormalizerTests|DSPAdversarialTests|AudioRoutingTests|SyncInvariantTests|CueSplitterTests"
      ```
    - Result:
      ```text
@@ -120,7 +120,7 @@ Authored `Tests/MacDubCoreTests/Suites/DSPAdversarialTests.swift` (660 lines) co
 1. **AVAudioChannelLayout Requirement for > 2 Channels**:
    - As observed during test authoring, AVFoundation's `AVAudioFormat(standardFormatWithSampleRate:channels:)` returns `nil` when `channels > 2`. Multi-channel buffers (such as 5.1 surround) must be initialized with an explicit `AVAudioChannelLayout` (e.g. `kAudioChannelLayoutTag_AudioUnit_5_1`). Once a valid buffer is provided, `BoundaryCrossfader` and `LoudnessNormalizer` operate correctly across all channels.
 2. **K-Weighting Coefficients at Non-Standard Sample Rates**:
-   - `LoudnessNormalizer` uses BS.1770 Annex 2 coefficients for 44.1 kHz, and defaults to 48.0 kHz broadcast coefficients for other rates. For standard macdub screen recording assets (which are 48 kHz or 44.1 kHz), this provides exact BS.1770-4 compliance.
+   - `LoudnessNormalizer` uses BS.1770 Annex 2 coefficients for 44.1 kHz, and defaults to 48.0 kHz broadcast coefficients for other rates. For standard amend screen recording assets (which are 48 kHz or 44.1 kHz), this provides exact BS.1770-4 compliance.
 
 ---
 
@@ -148,8 +148,8 @@ swift build --build-tests
 DYLD_FRAMEWORK_PATH=/Library/Developer/CommandLineTools/Library/Developer/Frameworks \
 DYLD_LIBRARY_PATH=/Library/Developer/CommandLineTools/Library/Developer/usr/lib \
 /Library/Developer/CommandLineTools/usr/libexec/swift/pm/swiftpm-testing-helper \
---test-bundle-path /Users/fady/Dev/macdub/.build/out/Products/Debug/MacDubCoreTests.xctest/Contents/MacOS/MacDubCoreTests \
-/Users/fady/Dev/macdub/.build/out/Products/Debug/MacDubCoreTests.xctest/Contents/MacOS/MacDubCoreTests \
+--test-bundle-path /Users/fady/Dev/amend/.build/out/Products/Debug/AmendCoreTests.xctest/Contents/MacOS/AmendCoreTests \
+/Users/fady/Dev/amend/.build/out/Products/Debug/AmendCoreTests.xctest/Contents/MacOS/AmendCoreTests \
 --testing-library swift-testing \
 --filter DSPAdversarialTests
 
@@ -157,8 +157,8 @@ DYLD_LIBRARY_PATH=/Library/Developer/CommandLineTools/Library/Developer/usr/lib 
 DYLD_FRAMEWORK_PATH=/Library/Developer/CommandLineTools/Library/Developer/Frameworks \
 DYLD_LIBRARY_PATH=/Library/Developer/CommandLineTools/Library/Developer/usr/lib \
 /Library/Developer/CommandLineTools/usr/libexec/swift/pm/swiftpm-testing-helper \
---test-bundle-path /Users/fady/Dev/macdub/.build/out/Products/Debug/MacDubCoreTests.xctest/Contents/MacOS/MacDubCoreTests \
-/Users/fady/Dev/macdub/.build/out/Products/Debug/MacDubCoreTests.xctest/Contents/MacOS/MacDubCoreTests \
+--test-bundle-path /Users/fady/Dev/amend/.build/out/Products/Debug/AmendCoreTests.xctest/Contents/MacOS/AmendCoreTests \
+/Users/fady/Dev/amend/.build/out/Products/Debug/AmendCoreTests.xctest/Contents/MacOS/AmendCoreTests \
 --testing-library swift-testing \
 --filter "BoundaryCrossfaderTests|LoudnessNormalizerTests|DSPAdversarialTests|AudioRoutingTests|SyncInvariantTests|CueSplitterTests"
 ```

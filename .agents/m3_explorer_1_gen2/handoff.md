@@ -2,7 +2,7 @@
 
 **Agent**: `m3_explorer_1_gen2`  
 **Milestone**: Milestone 3 (Timeline Engine & Visual Presentation)  
-**Target Working Directory**: `/Users/fady/Dev/macdub/.agents/m3_explorer_1_gen2`  
+**Target Working Directory**: `/Users/fady/Dev/amend/.agents/m3_explorer_1_gen2`  
 **Date**: 2026-09-17  
 
 ---
@@ -11,36 +11,36 @@
 
 ### 1.1 Authoritative Requirements & Codebase State
 1. **Requirements (R1 & Acceptance Criteria)**:
-   - In `/Users/fady/Dev/macdub/ORIGINAL_REQUEST.md`:
+   - In `/Users/fady/Dev/amend/ORIGINAL_REQUEST.md`:
      - Line 29–30: *"Build a native macOS video viewer and horizontal timeline driven strictly by CMTime and CMTimeRange with synchronized visual layers: SMPTE timecode ruler using SwiftTimecode for drop-frame/standard frame rate handling."*
      - Line 34–35: *"Horizontal zoom controlled by pixelsPerSecond with a continuous CMTime-based draggable playhead providing frame-accurate video seeking and audio-resolution Cue boundary representation. Maintain a strict distinction between timelineTime (high-resolution CMTime) and displayTimecode (frame-quantized SMPTE representation). Never round internal Cue boundaries to video frames."*
      - Line 103–104: *"Draggable playhead tracks continuous CMTime and maintains frame-accurate video seeking. Internal Cue boundaries maintain exact audio-rate timestamps and are never rounded to video frames."*
 2. **Project Blueprint & Layout**:
-   - In `/Users/fady/Dev/macdub/.agents/orchestrator_9/PROJECT.md`:
-     - Lines 128–132 list target files under `Sources/MacDubCore/Timeline/`:
+   - In `/Users/fady/Dev/amend/.agents/orchestrator_9/PROJECT.md`:
+     - Lines 128–132 list target files under `Sources/AmendCore/Timeline/`:
        - `TimelineClock.swift`
        - `SMPTERulerFormatter.swift`
        - `FilmstripGenerator.swift`
        - `WaveformExtractor.swift`
-     - Investigation of `/Users/fady/Dev/macdub/Sources/MacDubCore/` reveals that `Timeline/` does not yet exist. Milestones M1 and M2 (`Models/`, `Storage/`, `Composition/`) are implemented and verified.
+     - Investigation of `/Users/fady/Dev/amend/Sources/AmendCore/` reveals that `Timeline/` does not yet exist. Milestones M1 and M2 (`Models/`, `Storage/`, `Composition/`) are implemented and verified.
 3. **Package Dependencies & Integration**:
-   - In `/Users/fady/Dev/macdub/Package.swift`:
+   - In `/Users/fady/Dev/amend/Package.swift`:
      - Lines 14–16 & 22–24:
        ```swift
        .package(url: "https://github.com/dmrschmidt/DSWaveformImage.git", from: "14.5.0"),
        .package(url: "https://github.com/orchetect/swift-timecode.git", from: "3.1.4"),
        ```
-       Target `MacDubCore` already links products `.product(name: "SwiftTimecodeCore", package: "swift-timecode")` and `.product(name: "SwiftTimecodeAV", package: "swift-timecode")`.
+       Target `AmendCore` already links products `.product(name: "SwiftTimecodeCore", package: "swift-timecode")` and `.product(name: "SwiftTimecodeAV", package: "swift-timecode")`.
    - Inspection of `.build/checkouts/swift-timecode/Sources/SwiftTimecodeCore/`:
      - `Timecode Rational CMTime.swift` (lines 58–71): provides `timecode.cmTimeValue: CMTime` and static constructors `TimecodeSourceValue.cmTime(_:)`.
      - `Timecode FrameCount.swift` (lines 150–232): provides drop-frame and non-drop-frame calculation algorithms between frame indices and SMPTE components (`dd:hh:mm:ss:ff`).
      - `TimecodeFrameRate.swift` (lines 54–100): defines standard frame rates: `.fps23_976`, `.fps24`, `.fps25`, `.fps29_97`, `.fps29_97d`, `.fps30`, `.fps59_94`, `.fps59_94d`, `.fps60`.
 4. **Existing Domain Models**:
-   - In `/Users/fady/Dev/macdub/Sources/MacDubCore/Models/Cue.swift`:
+   - In `/Users/fady/Dev/amend/Sources/AmendCore/Models/Cue.swift`:
      - Line 6: `public let timeRange: CMTimeRange // Immutable slot boundaries`
      - Lines 31–33: `public var start: CMTime { timeRange.start }`, `public var duration: CMTime { timeRange.duration }`, `public var end: CMTime { timeRange.end }`
      - Lines 100–102: `public func contains(time: CMTime) -> Bool { CMTimeCompare(time, timeRange.start) >= 0 && CMTimeCompare(time, timeRange.end) < 0 }`
-   - In `/Users/fady/Dev/macdub/Sources/MacDubCore/Models/CMTime+Codable.swift`: `CMTime` and `CMTimeRange` have retroactive `Codable` conformances.
+   - In `/Users/fady/Dev/amend/Sources/AmendCore/Models/CMTime+Codable.swift`: `CMTime` and `CMTimeRange` have retroactive `Codable` conformances.
 
 ---
 
@@ -50,7 +50,7 @@
 
 #### A. Continuous Audio-Rate Core Media Time (`CMTime`) Master Clock
 - **Observation**: Video editing applications that store playhead state as integer frame numbers (e.g., frame 142 at 30 fps) or floating point seconds subject timestamps to quantization errors ($1/30\text{ s} \approx 33.33\text{ ms}$).
-- **Deduction**: In `macdub`, audio operations operate at audio sample precision ($1/48000\text{ s} \approx 0.0208\text{ ms}$). If the playhead or cue boundaries were rounded to video frame intervals, audio cue splitting and boundary alignment would suffer accumulated drift of up to $16.67\text{ ms}$ per edit.
+- **Deduction**: In `amend`, audio operations operate at audio sample precision ($1/48000\text{ s} \approx 0.0208\text{ ms}$). If the playhead or cue boundaries were rounded to video frame intervals, audio cue splitting and boundary alignment would suffer accumulated drift of up to $16.67\text{ ms}$ per edit.
 - **Architectural Solution**:
   - `TimelineClock` maintains its master playhead position strictly as `currentTime: CMTime`.
   - The canonical timescale for `TimelineClock` calculations should be `600_000` (or the native audio track timescale, typically `48_000`).
@@ -233,7 +233,7 @@ The formatter must support:
 
 ### 4.1 Concrete Swift API Signatures & Data Structures
 
-Below are the recommended production-grade Swift APIs to be implemented in `Sources/MacDubCore/Timeline/`:
+Below are the recommended production-grade Swift APIs to be implemented in `Sources/AmendCore/Timeline/`:
 
 #### 1. `TimelineClock.swift`
 ```swift
@@ -651,7 +651,7 @@ public final class PlayheadSnapper {
 ## 5. Verification Method
 
 ### 5.1 Proposed Verification Test Suites
-Create test suites under `Tests/MacDubCoreTests/Suites/`:
+Create test suites under `Tests/AmendCoreTests/Suites/`:
 
 1. **`TimelineClockTests.swift`**:
    - `test_continuous_clock_maintains_exact_subframe_precision()`:

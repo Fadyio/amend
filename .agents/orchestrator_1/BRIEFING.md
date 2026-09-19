@@ -1,18 +1,18 @@
 # BRIEFING — 2026-09-16T12:53:00Z
 
 ## Mission
-Orchestrate the full implementation and verification of macdub (native macOS speech-editing and narration app) per ORIGINAL_REQUEST.md.
+Orchestrate the full implementation and verification of amend (native macOS speech-editing and narration app) per ORIGINAL_REQUEST.md.
 
 ## 🔒 My Identity
 - Archetype: teamwork_preview_orchestrator
 - Roles: orchestrator, user_liaison, human_reporter, successor
-- Working directory: /Users/fady/Dev/macdub/.agents/orchestrator_1
+- Working directory: /Users/fady/Dev/amend/.agents/orchestrator_1
 - Original parent: parent
 - Original parent conversation ID: c12bc566-59fe-45d9-9332-56af06d70e7e
 
 ## 🔒 My Workflow
 - **Pattern**: Project Pattern
-- **Scope document**: /Users/fady/Dev/macdub/.agents/orchestrator_1/PROJECT.md
+- **Scope document**: /Users/fady/Dev/amend/.agents/orchestrator_1/PROJECT.md
 1. **Decompose**: Survey full scope via 3 parallel explorers (codebase, ADR/architecture specs, test fixtures), compile Feature Inventory in PROJECT.md, decompose R1-R8 into milestones with interface contracts.
 2. **Dispatch & Execute**:
    - Sub-orchestrators for milestones or Explorer -> Worker -> Reviewer -> Challenger -> Auditor loop per milestone.
@@ -78,6 +78,6 @@ Orchestrate the full implementation and verification of macdub (native macOS spe
 - Safety timer: none
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md — Authoritative User Request
-- /Users/fady/Dev/macdub/.agents/orchestrator_1/PROJECT.md — Global Project Specification & Plan
-- /Users/fady/Dev/macdub/.agents/orchestrator_1/GATE_STATUS.md — Milestone Gate Status Log
+- /Users/fady/Dev/amend/ORIGINAL_REQUEST.md — Authoritative User Request
+- /Users/fady/Dev/amend/.agents/orchestrator_1/PROJECT.md — Global Project Specification & Plan
+- /Users/fady/Dev/amend/.agents/orchestrator_1/GATE_STATUS.md — Milestone Gate Status Log

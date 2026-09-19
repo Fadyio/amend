@@ -5,13 +5,13 @@
 ### 1.1 Codebase Structure & Dependencies
 1. **Package Manifest (`Package.swift`)**:
    - `Package.swift:14`: Contains dependency `.package(url: "https://github.com/dmrschmidt/DSWaveformImage.git", from: "14.5.0")`.
-   - `Package.swift:20-27`: Target `MacDubCore` depends on `DSWaveformImage`, `SwiftTimecodeCore`, `SwiftTimecodeAV`, `FluidAudio`, and `FluidAudioTTS`.
+   - `Package.swift:20-27`: Target `AmendCore` depends on `DSWaveformImage`, `SwiftTimecodeCore`, `SwiftTimecodeAV`, `FluidAudio`, and `FluidAudioTTS`.
    - `Package.swift:6`: Platform target is `.macOS(.v14)`.
    - `Package.swift:29`: Language mode is `.swiftLanguageMode(.v5)`.
 
-2. **Source Layout (`Sources/MacDubCore/`)**:
+2. **Source Layout (`Sources/AmendCore/`)**:
    - Existing modules: `Composition/`, `Models/`, `Storage/`.
-   - `Sources/MacDubCore/Timeline/` does not yet exist. In accordance with `PROJECT.md:128-132`, Milestone 3 requires `TimelineClock.swift`, `SMPTERulerFormatter.swift`, `FilmstripGenerator.swift`, and `WaveformExtractor.swift` in `Sources/MacDubCore/Timeline/`.
+   - `Sources/AmendCore/Timeline/` does not yet exist. In accordance with `PROJECT.md:128-132`, Milestone 3 requires `TimelineClock.swift`, `SMPTERulerFormatter.swift`, `FilmstripGenerator.swift`, and `WaveformExtractor.swift` in `Sources/AmendCore/Timeline/`.
 
 3. **Storage & Project Bundle Contracts (`ProjectBundleSerializer.swift` & `ProjectBundle.swift`)**:
    - `ProjectBundle.swift:27-33`:
@@ -29,7 +29,7 @@
      try fm.createDirectory(at: bundleURL.appendingPathComponent("waveforms"), withIntermediateDirectories: true)
      try fm.createDirectory(at: bundleURL.appendingPathComponent("thumbnails"), withIntermediateDirectories: true)
      ```
-     The bundle structure already establishes `waveforms` and `thumbnails` directories under the `.voicefix` root. Note: The prompt mentions `thumbs/` directory; `thumbnails/` is already established and backwards compatible.
+     The bundle structure already establishes `waveforms` and `thumbnails` directories under the `.amend` root. Note: The prompt mentions `thumbs/` directory; `thumbnails/` is already established and backwards compatible.
 
 4. **DSWaveformImage Internal Implementation (`WaveformAnalyzer.swift`)**:
    - `.build/checkouts/DSWaveformImage/Sources/DSWaveformImage/WaveformAnalyzer.swift:43-66`:
@@ -110,7 +110,7 @@
   - Total cost limit: 25 MB (`totalCostLimit = 26_214_400`).
   - Count limit: 250 images.
   - Automatically responds to macOS memory pressure events.
-- **Tier 2 (On-Disk JPEG Cache in `.voicefix/thumbnails/`)**:
+- **Tier 2 (On-Disk JPEG Cache in `.amend/thumbnails/`)**:
   - File name: `"thumb_\(Int64(time.seconds * 1000))_\(pixelWidth)x\(pixelHeight).jpg"`
   - Format: JPEG with compression quality 0.85 (achieves $\approx 15-20 \text{ KB}$ per thumbnail, hardware-decoded via Apple Silicon JPEG decoders in $< 1\text{ms}$).
   - Disk write occurs asynchronously on a background utility queue so generation throughput is unhindered.
@@ -182,7 +182,7 @@
 
 ### 2.3 Proposed Concrete Swift Interfaces
 
-#### Interface 1: `Sources/MacDubCore/Timeline/FilmstripGenerator.swift`
+#### Interface 1: `Sources/AmendCore/Timeline/FilmstripGenerator.swift`
 ```swift
 import Foundation
 import AVFoundation
@@ -475,7 +475,7 @@ public final class FilmstripGenerator: FilmstripGenerating, @unchecked Sendable 
 
 ---
 
-#### Interface 2: `Sources/MacDubCore/Timeline/WaveformExtractor.swift`
+#### Interface 2: `Sources/AmendCore/Timeline/WaveformExtractor.swift`
 ```swift
 import Foundation
 import AVFoundation
@@ -890,13 +890,13 @@ public actor WaveformExtractor: WaveformExtracting {
 
 1. **Filmstrip Generation**:
    - The combination of strict `maximumSize` bounding, adaptive time tolerances (`min(deltaT * 0.45, 0.25)`), outward-spiral visual priority ordering, and bounded 3-task concurrency guarantees smooth 60fps timeline interaction without memory blowups, remaining strictly under the 25MB NSCache ceiling.
-   - Dual-tier caching (in-memory `NSCache` + `.voicefix/thumbnails/` JPEG disk storage) ensures that re-opening a project requires zero video decoding for already-scanned regions.
+   - Dual-tier caching (in-memory `NSCache` + `.amend/thumbnails/` JPEG disk storage) ensures that re-opening a project requires zero video decoding for already-scanned regions.
 2. **Audio Waveform Engine**:
    - Direct `AVAssetReader` 32-bit Float Linear PCM reading coupled with `vDSP_maxv`, `vDSP_minv`, and `vDSP_rmsqv` delivers $> 120\times$ real-time extraction speed.
    - The 3-level Peak Pyramid (`MultiScaleWaveform`) guarantees that timeline waveform rendering is strictly $O(\text{pixelWidth})$ ($< 0.05\text{ms}$ query latency), eliminating UI lag during scrubbing.
-   - Binary disk caching to `.voicefix/waveforms/` provides instant sub-millisecond project loading.
+   - Binary disk caching to `.amend/waveforms/` provides instant sub-millisecond project loading.
 3. **Milestone 3 Readiness**:
-   - Concrete interfaces `FilmstripGenerating` and `WaveformExtracting` fit seamlessly into `Sources/MacDubCore/Timeline/`, alongside `TimelineClock` and `SMPTERulerFormatter` from `m3_explorer_1` and view bindings from `m3_explorer_3`.
+   - Concrete interfaces `FilmstripGenerating` and `WaveformExtracting` fit seamlessly into `Sources/AmendCore/Timeline/`, alongside `TimelineClock` and `SMPTERulerFormatter` from `m3_explorer_1` and view bindings from `m3_explorer_3`.
 
 ---
 
@@ -924,7 +924,7 @@ public actor WaveformExtractor: WaveformExtracting {
 | **Filmstrip Bounded Time Tolerance** | Request frame with `deltaT = 0.2s` | Tolerance set to $\le 0.09\text{s}$, verifying distinct frames returned |
 | **Filmstrip Memory Ceiling** | Generate 200 thumbnails from 4K video fixture | Memory usage verified $< 30 \text{ MB}$, zero full-resolution frame allocations |
 | **Filmstrip Cancellation** | Rapidly dispatch 10 generation tasks, cancelling each | Stale tasks abort immediately, no thread exhaustion or leaked allocations |
-| **Filmstrip Disk Cache Persistence** | Generate thumbnails, clear memory cache, request again | Thumbnails loaded from `.voicefix/thumbnails/` in $< 5\text{ms}$, 0 video decodes |
+| **Filmstrip Disk Cache Persistence** | Generate thumbnails, clear memory cache, request again | Thumbnails loaded from `.amend/thumbnails/` in $< 5\text{ms}$, 0 video decodes |
 | **Waveform Synthetic Extraction** | Extract from `Fixture1SingleTrack` (10s movie) | Silence segments produce $\approx 0.0$ RMS; 0.6 sine tones produce $\approx 0.424$ RMS |
 | **Multi-Scale Waveform Render Complexity** | Render 1200 px waveform from 1-hour audio | Execution completes in $< 0.1\text{ms}$; sample count equals exactly 1200 |
 | **Waveform Binary Bundle Roundtrip** | Serialize to `.waveform` binary file and deserialize | All peak values, counts, sample rates match identically |

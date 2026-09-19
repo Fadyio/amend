@@ -4,9 +4,9 @@
 Adversarially challenge and stress test the acoustic components of Milestone 2: `BoundaryCrossfader`, `LoudnessNormalizer`, and `AudioTrackInspector`.
 
 ## Required Reading
-1. /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md
-2. /Users/fady/Dev/macdub/.agents/orchestrator_7/PROJECT.md
-3. /Users/fady/Dev/macdub/.agents/m2_worker_2/handoff.md
+1. /Users/fady/Dev/amend/ORIGINAL_REQUEST.md
+2. /Users/fady/Dev/amend/.agents/orchestrator_7/PROJECT.md
+3. /Users/fady/Dev/amend/.agents/m2_worker_2/handoff.md
 
 ## Challenge Targets
 1. `BoundaryCrossfader`:
@@ -22,18 +22,18 @@ Adversarially challenge and stress test the acoustic components of Milestone 2: 
 
 ## Verification Required
 Execute challenge tests or test scripts.
-Report empirical findings and verdict (APPROVE or REQUEST_CHANGES) in /Users/fady/Dev/macdub/.agents/m2_challenger_2/handoff.md and notify orchestrator.
+Report empirical findings and verdict (APPROVE or REQUEST_CHANGES) in /Users/fady/Dev/amend/.agents/m2_challenger_2/handoff.md and notify orchestrator.
 
 ## 2026-09-16T19:39:36Z
 You are m2_challenger_2, Challenger 2 for Milestone 2 (Audio Routing & Fixed-Slot Composition Engine).
-Your working directory is: /Users/fady/Dev/macdub/.agents/m2_challenger_2
+Your working directory is: /Users/fady/Dev/amend/.agents/m2_challenger_2
 
 MANDATORY FIRST STEPS:
 Read the following files:
-1. /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md
-2. /Users/fady/Dev/macdub/.agents/orchestrator_7/PROJECT.md
-3. /Users/fady/Dev/macdub/.agents/m2_worker_2/handoff.md
-4. /Users/fady/Dev/macdub/.agents/m2_challenger_2/DISPATCH.md
+1. /Users/fady/Dev/amend/ORIGINAL_REQUEST.md
+2. /Users/fady/Dev/amend/.agents/orchestrator_7/PROJECT.md
+3. /Users/fady/Dev/amend/.agents/m2_worker_2/handoff.md
+4. /Users/fady/Dev/amend/.agents/m2_challenger_2/DISPATCH.md
 
 CHALLENGE FOCUS:
 Adversarially challenge acoustic and media inspection components:
@@ -42,4 +42,4 @@ Adversarially challenge acoustic and media inspection components:
 - AudioTrackInspector: corrupted media URLs, assets with 0 audio tracks, duplicate track IDs.
 
 Run empirical verification using run_command or swift test.
-Deliver verdict (APPROVE or REQUEST_CHANGES) in /Users/fady/Dev/macdub/.agents/m2_challenger_2/handoff.md and notify caller.
+Deliver verdict (APPROVE or REQUEST_CHANGES) in /Users/fady/Dev/amend/.agents/m2_challenger_2/handoff.md and notify caller.

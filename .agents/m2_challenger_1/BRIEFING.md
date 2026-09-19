@@ -1,12 +1,12 @@
 # BRIEFING — 2026-09-16T19:42:00Z
 
 ## Mission
-Adversarially challenge SyncInvariantEngine and CueSplitter in macdub Milestone 2 via empirical verification.
+Adversarially challenge SyncInvariantEngine and CueSplitter in amend Milestone 2 via empirical verification.
 
 ## 🔒 My Identity
 - Archetype: empirical-challenger
 - Roles: critic, specialist
-- Working directory: /Users/fady/Dev/macdub/.agents/m2_challenger_1
+- Working directory: /Users/fady/Dev/amend/.agents/m2_challenger_1
 - Original parent: 6d0f15a4-fc57-4559-a103-9d3b296d77df
 - Milestone: M2
 - Instance: 1 of 1
@@ -22,12 +22,12 @@ Adversarially challenge SyncInvariantEngine and CueSplitter in macdub Milestone 
 
 ## Review Scope
 - **Files to review**:
-  - `Sources/MacDubCore/Composition/SyncInvariantEngine.swift`
-  - `Sources/MacDubCore/Composition/CueSplitter.swift`
-  - `Sources/MacDubCore/Models/Cue.swift`
-  - `Tests/MacDubCoreTests/Suites/SyncInvariantTests.swift`
-  - `Tests/MacDubCoreTests/Suites/CueSplitterTests.swift`
-- **Interface contracts**: `/Users/fady/Dev/macdub/.agents/orchestrator_7/PROJECT.md`
+  - `Sources/AmendCore/Composition/SyncInvariantEngine.swift`
+  - `Sources/AmendCore/Composition/CueSplitter.swift`
+  - `Sources/AmendCore/Models/Cue.swift`
+  - `Tests/AmendCoreTests/Suites/SyncInvariantTests.swift`
+  - `Tests/AmendCoreTests/Suites/CueSplitterTests.swift`
+- **Interface contracts**: `/Users/fady/Dev/amend/.agents/orchestrator_7/PROJECT.md`
 - **Review criteria**: exact rational tick arithmetic across timescales, zero gap/overlap, boundary collision rejection, nested split stability, rapid sequential edit invariance
 
 ## Attack Surface

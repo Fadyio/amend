@@ -10,7 +10,7 @@
 ## 1. Observation
 
 ### 1.1 Direct Inspection of Implementation Code
-1. `Sources/MacDubCore/Composition/SyncInvariantEngine.swift`:
+1. `Sources/AmendCore/Composition/SyncInvariantEngine.swift`:
    - Line 48: `let updatedCue = originalCue.withUpdatedText(newText)` — updates cue content while keeping `timeRange` immutable.
    - Line 69: `let updatedCue = originalCue.withUpdatedAudio(...)` — updates audio references while keeping `timeRange` immutable.
    - Line 96: `if CMTimeCompare(b.timeRange.start, a.timeRange.start) != 0 || CMTimeCompare(b.timeRange.duration, a.timeRange.duration) != 0` — asserts exact rational equality using CoreMedia `CMTimeCompare`.
@@ -20,14 +20,14 @@
    - Line 128: `if CMTimeCompare(current.start, prev.end) < 0` — rejects overlapping intervals.
    - Line 138: `if CMTimeCompare(current.end, maxDuration) > 0` — rejects cues exceeding project duration.
 
-2. `Sources/MacDubCore/Composition/CueSplitter.swift`:
+2. `Sources/AmendCore/Composition/CueSplitter.swift`:
    - Line 42: `if CMTimeCompare(splitTime, start) <= 0 || CMTimeCompare(splitTime, end) >= 0` — rejects out-of-bounds split timestamps.
    - Lines 47–48: `let durationA = CMTimeSubtract(splitTime, start); let durationB = CMTimeSubtract(end, splitTime)` — exact rational duration partitioning.
    - Lines 50–55: rejects splits creating sub-cues shorter than `minimumDuration` (default 10ms).
    - Lines 68–78: proportional word partitioning with fallback for single-word strings.
    - Lines 116–120: `newCues.remove(at: index); newCues.insert(cueB, at: index); newCues.insert(cueA, at: index)` — neighbor cues are preserved in-place without modification.
 
-3. `Sources/MacDubCore/Composition/AudioTrackInspector.swift`:
+3. `Sources/AmendCore/Composition/AudioTrackInspector.swift`:
    - Lines 51–53: `FileManager.default.fileExists(atPath: assetURL.path)` — throws `fileNotFound` if file does not exist.
    - Lines 65–69: catches AVFoundation track loading failures and wraps in `AudioTrackInspectorError.unreadableAsset(url, error.localizedDescription)`.
    - Line 134: verifies `designatedNarrationTrackID` exists in inspected track list.
@@ -37,7 +37,7 @@
    - Line 153: enforces single-track advisory constraint (no passthrough tracks and asset track count == 1).
 
 ### 1.2 Adversarial Test Suite Implementation & Execution
-Created dedicated adversarial test suite in `Tests/MacDubCoreTests/Suites/SyncInvariantAdversarialTests.swift` containing 26 adversarial stress tests:
+Created dedicated adversarial test suite in `Tests/AmendCoreTests/Suites/SyncInvariantAdversarialTests.swift` containing 26 adversarial stress tests:
 
 ```text
 Suite "Sync Invariant & Cue Splitter Adversarial Stress Suite" (26 tests):

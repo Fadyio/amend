@@ -6,7 +6,7 @@
 ## Tasks
 - [x] Read DISPATCH.md, ORIGINAL_REQUEST.md, PROJECT.md
 - [x] Create BRIEFING.md and progress.md
-- [ ] Inspect existing codebase (MacDubCore, macdub app, tests)
+- [ ] Inspect existing codebase (AmendCore, amend app, tests)
 - [ ] Deep-dive ADR 0001 and Timeline models
 - [ ] Investigate Coordinate mapping & zoom math (CMTime <-> pixelsPerSecond)
 - [ ] Investigate CueTrackView layout & interactive cue selection / seeking

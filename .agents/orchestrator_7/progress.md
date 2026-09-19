@@ -1,4 +1,4 @@
-# Progress Log — macdub Orchestration (orchestrator_7)
+# Progress Log — amend Orchestration (orchestrator_7)
 
 Last visited: 2026-09-16T22:41:50Z
 
@@ -13,7 +13,7 @@ Last visited: 2026-09-16T22:41:50Z
 - [/] Phase 2: Parallel E2E Testing Track (Fixtures & 4-Tier Opaque-Box Test Suite)
   - [x] E2E Test Infra (TEST_INFRA.md created)
   - [x] Synthetic Fixtures Setup (Fixture 1 SingleTrack, Fixture 2 MultiTrack, Fixture 3 DurationFitting)
-  - [x] Tier 1 Feature Tests (Tests/MacDubCoreTests/E2E/Tier1FeatureTests.swift passing)
+  - [x] Tier 1 Feature Tests (Tests/AmendCoreTests/E2E/Tier1FeatureTests.swift passing)
   - [ ] Tier 2 Boundary Tests
   - [ ] Tier 3 Pairwise Tests
   - [ ] Tier 4 Real-World Application Tests

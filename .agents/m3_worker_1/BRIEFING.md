@@ -1,12 +1,12 @@
 # BRIEFING — 2026-09-17T00:29:30Z
 
 ## Mission
-Implement Milestone 3 (Timeline Engine & Visual Presentation) for macdub: TimelineClock, SMPTERulerFormatter, PlayheadSnapper, FilmstripGenerator, WaveformExtractor, TimelineCoordinateConverter, ViewModels, SwiftUI/AppKit views, and full test suite.
+Implement Milestone 3 (Timeline Engine & Visual Presentation) for amend: TimelineClock, SMPTERulerFormatter, PlayheadSnapper, FilmstripGenerator, WaveformExtractor, TimelineCoordinateConverter, ViewModels, SwiftUI/AppKit views, and full test suite.
 
 ## 🔒 My Identity
 - Archetype: worker
 - Roles: implementer, qa, specialist
-- Working directory: /Users/fady/Dev/macdub/.agents/m3_worker_1
+- Working directory: /Users/fady/Dev/amend/.agents/m3_worker_1
 - Original parent: b34c3ff6-40fb-40eb-9abe-6faa574a682f
 - Milestone: Milestone 3 (Timeline Engine & Visual Presentation)
 
@@ -18,7 +18,7 @@ Implement Milestone 3 (Timeline Engine & Visual Presentation) for macdub: Timeli
 - Waveform pyramid (100/s, 10/s, 1/s) with Accelerate vDSP >120x real-time extraction
 - Zero compilation errors, 0 warnings, 100% test pass rate on swift test
 - Isolated 60fps/120fps playhead view avoiding full view-tree invalidation (<1.5% CPU)
-- Write ownership: Sources/MacDubCore/Timeline/*, Sources/macdub/ViewModels/*, Sources/macdub/Views/*, Tests/MacDubCoreTests/Suites/*
+- Write ownership: Sources/AmendCore/Timeline/*, Sources/amend/ViewModels/*, Sources/amend/Views/*, Tests/AmendCoreTests/Suites/*
 
 ## Current Parent
 - Conversation ID: b34c3ff6-40fb-40eb-9abe-6faa574a682f
@@ -28,7 +28,7 @@ Implement Milestone 3 (Timeline Engine & Visual Presentation) for macdub: Timeli
 - **What to build**: Full Timeline Engine (Core Media clock, SMPTE ruler, cue snapping, thumbnail filmstrip, multi-scale waveform, coordinate converter) and UI presentation (ViewModels, composable tracks, isolated playhead needle), plus unit & integration tests.
 - **Success criteria**: All M3 components functional, genuine logic, zero regressions on M1/M2/E2E tests, 100% new M3 test pass.
 - **Interface contracts**: PROJECT.md, Explorer handoffs 1, 2, 3.
-- **Code layout**: Sources/MacDubCore/Timeline/, Sources/macdub/ViewModels/, Sources/macdub/Views/, Tests/MacDubCoreTests/Suites/.
+- **Code layout**: Sources/AmendCore/Timeline/, Sources/amend/ViewModels/, Sources/amend/Views/, Tests/AmendCoreTests/Suites/.
 
 ## Key Decisions Made
 - [TBD - reading handoffs and existing code]

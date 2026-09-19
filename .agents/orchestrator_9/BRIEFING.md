@@ -1,18 +1,18 @@
 # BRIEFING — 2026-09-17T00:29:15+03:00
 
 ## Mission
-Orchestrate macdub completion starting with Milestone 3 (Timeline Engine & Visual Presentation), advancing through M4-M6, E2E tiers 1-4 passing, and Tier 5 adversarial hardening to full project delivery.
+Orchestrate amend completion starting with Milestone 3 (Timeline Engine & Visual Presentation), advancing through M4-M6, E2E tiers 1-4 passing, and Tier 5 adversarial hardening to full project delivery.
 
 ## 🔒 My Identity
 - Archetype: teamwork_preview_orchestrator
 - Roles: orchestrator, user_liaison, human_reporter, successor
-- Working directory: /Users/fady/Dev/macdub/.agents/orchestrator_9
+- Working directory: /Users/fady/Dev/amend/.agents/orchestrator_9
 - Original parent: d6c717bd-8fa1-4366-9301-9e7d2b1c2226
 - Original parent conversation ID: d6c717bd-8fa1-4366-9301-9e7d2b1c2226
 
 ## 🔒 My Workflow
 - **Pattern**: Project
-- **Scope document**: /Users/fady/Dev/macdub/.agents/orchestrator_9/PROJECT.md
+- **Scope document**: /Users/fady/Dev/amend/.agents/orchestrator_9/PROJECT.md
 1. **Decompose**: Decomposed into 6 implementation milestones + final milestone + E2E track per PROJECT.md
 2. **Dispatch & Execute** (pick ONE):
    - **Direct (iteration loop)**: For each milestone: 3 Explorers -> 1 Worker -> 2 Reviewers + 2 Challengers + 1 Forensic Auditor -> Gate evaluation in GATE_STATUS.md
@@ -75,11 +75,11 @@ Orchestrate macdub completion starting with Milestone 3 (Timeline Engine & Visua
 - On context truncation: run manage_task(Action="list") — re-create if missing
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md — Authoritative user requirements
-- /Users/fady/Dev/macdub/.agents/orchestrator_9/PROJECT.md — Global architecture, feature inventory, milestones, interface contracts
-- /Users/fady/Dev/macdub/.agents/orchestrator_9/GATE_STATUS.md — Gate verdicts log
-- /Users/fady/Dev/macdub/.agents/orchestrator_9/progress.md — Current orchestrator progress and liveness heartbeat
-- /Users/fady/Dev/macdub/TEST_INFRA.md — E2E test infrastructure specification
-- /Users/fady/Dev/macdub/.agents/m3_explorer_1_gen2/handoff.md — Clock, SMPTE, Snapping architecture
-- /Users/fady/Dev/macdub/.agents/m3_explorer_2_gen2/handoff.md — Filmstrip & Waveform architecture
-- /Users/fady/Dev/macdub/.agents/m3_explorer_3_gen2/handoff.md — Coordinates, 60fps Playhead, UI architecture
+- /Users/fady/Dev/amend/ORIGINAL_REQUEST.md — Authoritative user requirements
+- /Users/fady/Dev/amend/.agents/orchestrator_9/PROJECT.md — Global architecture, feature inventory, milestones, interface contracts
+- /Users/fady/Dev/amend/.agents/orchestrator_9/GATE_STATUS.md — Gate verdicts log
+- /Users/fady/Dev/amend/.agents/orchestrator_9/progress.md — Current orchestrator progress and liveness heartbeat
+- /Users/fady/Dev/amend/TEST_INFRA.md — E2E test infrastructure specification
+- /Users/fady/Dev/amend/.agents/m3_explorer_1_gen2/handoff.md — Clock, SMPTE, Snapping architecture
+- /Users/fady/Dev/amend/.agents/m3_explorer_2_gen2/handoff.md — Filmstrip & Waveform architecture
+- /Users/fady/Dev/amend/.agents/m3_explorer_3_gen2/handoff.md — Coordinates, 60fps Playhead, UI architecture

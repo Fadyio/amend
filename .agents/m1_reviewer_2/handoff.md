@@ -46,16 +46,16 @@
     􁁛  Suite "Security Suite Tests" passed after 0.151 seconds.
     􁁛  Test run with 17 tests in 2 suites passed after 0.152 seconds.
     ```
-- Command: `swift run macdub`
+- Command: `swift run amend`
   - Result: Exit code 0
-  - Output: `macdub: Developer screen recording speech editor and narration engine.`
+  - Output: `amend: Developer screen recording speech editor and narration engine.`
 
 ### Inspected Source Files
 1. `Package.swift`:
    - Configured for `macOS(.v14)`, Swift language mode `.v5` (for FluidAudio compatibility).
-   - `MacDubCore` depends on `DSWaveformImage`, `SwiftTimecodeCore`, `SwiftTimecodeAV`, `FluidAudio`, `FluidAudioTTS`.
-   - `MacDubCoreTests` targets Swift Testing with explicit macro plugin loading flag: `-load-plugin-library /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib`.
-2. `Sources/MacDubCore/Models/`:
+   - `AmendCore` depends on `DSWaveformImage`, `SwiftTimecodeCore`, `SwiftTimecodeAV`, `FluidAudio`, `FluidAudioTTS`.
+   - `AmendCoreTests` targets Swift Testing with explicit macro plugin loading flag: `-load-plugin-library /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib`.
+2. `Sources/AmendCore/Models/`:
    - `CMTime+Codable.swift` (lines 4–48): Encodes `value` (Int64), `timescale` (Int32), `flags` (UInt32), `epoch` (Int64). `CMTimeRange` encodes `start` and `duration` as exact `CMTime` structs. Zero floating-point rounding.
    - `Cue.swift` (lines 4–66): Implements `id`, `timeRange`, `text`, `originalText`, `audioWAVRelativePath`, `editState`, `overflowDelta`.
    - `CueEditState.swift` (lines 3–9): `original`, `edited`, `synthesized`, `overflowGated`, `forceFitted`.
@@ -63,20 +63,20 @@
    - `ProjectMetadata.swift` (lines 4–120): Implements all required properties from `PROJECT.md`, plus convenience accessors `sourceMode` and `audioTrackMapping`.
    - `ProjectBundle.swift` (lines 3–60): Manages bundle scaffolding (`audio/cues`, `waveforms`, `thumbnails`) and atomic `project.json` encoding.
    - `AudioTrackMapping.swift` (lines 3–42): Tracks `designatedNarrationTrackID`, `passthroughTrackIDs`, and `isSingleTrackAdvisory`.
-3. `Sources/MacDubCore/Storage/`:
+3. `Sources/AmendCore/Storage/`:
    - `APFSCloner.swift` (lines 20–74): Checks destination volume cloning support via `volumeSupportsFileCloningKey` and verifies matching volumes via `volumeIdentifierKey`.
    - `BookmarkManager.swift` (lines 17–77): Generates `.withSecurityScope` bookmarks with non-sandboxed fallback, resolves bookmarks, checks staleness, and wraps resource access via `withSecurityScopedAccess`.
    - `ProjectBundleSerializer.swift` (lines 21–131): Handles bundle creation, atomic saving via `Data.write(..., options: .atomic)`, APFS clone vs bookmark fallback branching, decoding, and stale bookmark refreshment.
    - `KeychainVault.swift` (lines 41–151): Uses `kSecClassGenericPassword`, `kSecAttrService`, `kSecAttrAccount`, `kSecValueData`. Rejects empty/whitespace keys. Gracefully updates duplicate items via `SecItemUpdate`. Provides `MockCredentialVault` for isolated testing.
    - `CredentialLeakScanner.swift` (lines 34–165): Scans raw text and JSON AST for known secrets, provider regexes (ElevenLabs, Gemini, Resemble, Bearer tokens), suspicious key names (`api_key`, `secret`, `token`, `password`, `auth_header`), and user home paths (`/(?:Users|home)/[A-Za-z0-9._\\-]+/`).
-4. `Sources/macdub/main.swift` (lines 1–10): CLI entry point.
+4. `Sources/amend/main.swift` (lines 1–10): CLI entry point.
 
 ---
 
 ## 2. Logic Chain
 
 1. **Integrity Verification**:
-   - Inspected all source files in `Sources/MacDubCore/`. Verified that neither production code nor tests contain hardcoded return values, facade stubs, or dummy logic.
+   - Inspected all source files in `Sources/AmendCore/`. Verified that neither production code nor tests contain hardcoded return values, facade stubs, or dummy logic.
    - Real system framework calls are made: `FileManager.copyItem`, `URLResourceValues`, `SecItemAdd`, `SecItemCopyMatching`, `JSONSerialization`, `JSONEncoder`, `JSONDecoder`.
    - Conclusion: Zero integrity violations.
 
@@ -131,21 +131,21 @@ Milestone 1 satisfies all requirements of R3, ADR 0004, and the architectural co
 To independently reproduce the verification results:
 
 ```bash
-cd /Users/fady/Dev/macdub
+cd /Users/fady/Dev/amend
 
 # 1. Standard build and test suite
 swift build
 swift test
 
 # 2. CLI smoke test
-swift run macdub
+swift run amend
 
 # 3. Targeted test suites
 swift test --filter StorageAPFSTests
 swift test --filter SecuritySuiteTests
 
 # 4. Reviewer adversarial stress suite
-swiftc -I .build/out/Products/Debug -L .build/out/Products/Debug -lMacDubCore .agents/m1_reviewer_2/stress_test.swift -o /tmp/m1_stress_bin
+swiftc -I .build/out/Products/Debug -L .build/out/Products/Debug -lAmendCore .agents/m1_reviewer_2/stress_test.swift -o /tmp/m1_stress_bin
 /tmp/m1_stress_bin
 rm -f /tmp/m1_stress_bin
 ```

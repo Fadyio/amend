@@ -1,12 +1,12 @@
 # BRIEFING — 2026-09-16T16:53:00Z
 
 ## Mission
-Independently review, test, and stress-test Milestone 1 (Core Foundation, Storage & Security) implementation of macdub.
+Independently review, test, and stress-test Milestone 1 (Core Foundation, Storage & Security) implementation of amend.
 
 ## 🔒 My Identity
 - Archetype: reviewer
 - Roles: reviewer, critic
-- Working directory: /Users/fady/Dev/macdub/.agents/m1_reviewer_1
+- Working directory: /Users/fady/Dev/amend/.agents/m1_reviewer_1
 - Original parent: f4d33157-8c85-4175-941d-68dd087b5235
 - Milestone: Milestone 1 (Core Foundation, Storage & Security)
 - Instance: 1 of 1
@@ -22,8 +22,8 @@ Independently review, test, and stress-test Milestone 1 (Core Foundation, Storag
 - Updated: 2026-09-16T16:53:00Z
 
 ## Review Scope
-- **Files to review**: Package.swift, Sources/MacDubCore/Models/*, Sources/MacDubCore/Storage/*, Sources/macdub/main.swift, Tests/MacDubCoreTests/Suites/StorageAPFSTests.swift, Tests/MacDubCoreTests/Suites/SecuritySuiteTests.swift
-- **Interface contracts**: /Users/fady/Dev/macdub/.agents/orchestrator_5/PROJECT.md
+- **Files to review**: Package.swift, Sources/AmendCore/Models/*, Sources/AmendCore/Storage/*, Sources/amend/main.swift, Tests/AmendCoreTests/Suites/StorageAPFSTests.swift, Tests/AmendCoreTests/Suites/SecuritySuiteTests.swift
+- **Interface contracts**: /Users/fady/Dev/amend/.agents/orchestrator_5/PROJECT.md
 - **Review criteria**: correctness (APFS clone + fallback, atomic project.json), security (Keychain kSecClassGenericPassword, CredentialLeakScanner), invariants (CMTime+Codable rational precision), interface conformance, adversarial resilience
 
 ## Review Checklist
@@ -31,7 +31,7 @@ Independently review, test, and stress-test Milestone 1 (Core Foundation, Storag
   - Package.swift: pruned UI macros, configured Testing.framework macro library
   - Models: CMTime+Codable, Cue, CueEditState, AudioTrackMapping, SourceStorageMode, ProjectMetadata, ProjectBundle
   - Storage: APFSCloner, BookmarkManager, ProjectBundleSerializer, KeychainVault, CredentialLeakScanner
-  - macdub/main.swift: CLI entry point
+  - amend/main.swift: CLI entry point
   - Tests: StorageAPFSTests (6 tests), SecuritySuiteTests (11 tests)
 - **Verdict**: APPROVE
 - **Unverified claims**: none; all 17 tests and builds verified independently via terminal execution
@@ -54,7 +54,7 @@ Independently review, test, and stress-test Milestone 1 (Core Foundation, Storag
 - Approved Milestone 1 for transition to Milestone 2.
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/.agents/m1_reviewer_1/DISPATCH.md — Dispatch log
-- /Users/fady/Dev/macdub/.agents/m1_reviewer_1/BRIEFING.md — Situational awareness
-- /Users/fady/Dev/macdub/.agents/m1_reviewer_1/progress.md — Liveness heartbeat
-- /Users/fady/Dev/macdub/.agents/m1_reviewer_1/handoff.md — Complete review report
+- /Users/fady/Dev/amend/.agents/m1_reviewer_1/DISPATCH.md — Dispatch log
+- /Users/fady/Dev/amend/.agents/m1_reviewer_1/BRIEFING.md — Situational awareness
+- /Users/fady/Dev/amend/.agents/m1_reviewer_1/progress.md — Liveness heartbeat
+- /Users/fady/Dev/amend/.agents/m1_reviewer_1/handoff.md — Complete review report

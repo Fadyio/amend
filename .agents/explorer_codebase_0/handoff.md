@@ -1,7 +1,7 @@
-# Codebase & Environment Explorer Report: macdub
+# Codebase & Environment Explorer Report: amend
 
-**Target Working Directory**: `/Users/fady/Dev/macdub`  
-**Report Location**: `/Users/fady/Dev/macdub/.agents/explorer_codebase_0/handoff.md`  
+**Target Working Directory**: `/Users/fady/Dev/amend`  
+**Report Location**: `/Users/fady/Dev/amend/.agents/explorer_codebase_0/handoff.md`  
 **Date**: 2026-09-16  
 **Investigator**: Codebase & Environment Explorer (`explorer_codebase_0`)
 
@@ -12,9 +12,9 @@
 Direct empirical observations gathered from the environment, filesystem, and toolchain:
 
 ### 1.1 Filesystem Inventory & Existing Code Assets
-Executing directory listings and file discovery across `/Users/fady/Dev/macdub` yielded:
+Executing directory listings and file discovery across `/Users/fady/Dev/amend` yielded:
 ```bash
-# Command: list_dir /Users/fady/Dev/macdub
+# Command: list_dir /Users/fady/Dev/amend
 {"name":".agents", "isDir":true}
 {"name":".git", "isDir":true}
 {"name":".impeccable", "isDir":true}
@@ -28,9 +28,9 @@ Executing directory listings and file discovery across `/Users/fady/Dev/macdub` 
 - **Xcode Projects**: No `.xcodeproj` or `.xcworkspace` bundles exist.
 - **Test Suites**: No `Tests/` directory or test files exist.
 - **Documentation & Specs Present**:
-  - `/Users/fady/Dev/macdub/ORIGINAL_REQUEST.md`: Full specification for requirements R1 through R8, test harnesses, and acceptance criteria.
-  - `/Users/fady/Dev/macdub/CONTEXT.md`: Ubiquitous domain language defining: *Cue*, *Narration*, *Sync Invariant*, *Duration Fitting*, *Reference Voice*, *Room Tone*, *Passthrough Track*, *Project Bundle*.
-  - `/Users/fady/Dev/macdub/docs/adr/`: 9 Architecture Decision Records:
+  - `/Users/fady/Dev/amend/ORIGINAL_REQUEST.md`: Full specification for requirements R1 through R8, test harnesses, and acceptance criteria.
+  - `/Users/fady/Dev/amend/CONTEXT.md`: Ubiquitous domain language defining: *Cue*, *Narration*, *Sync Invariant*, *Duration Fitting*, *Reference Voice*, *Room Tone*, *Passthrough Track*, *Project Bundle*.
+  - `/Users/fady/Dev/amend/docs/adr/`: 9 Architecture Decision Records:
     - `0001-fixed-sync-invariant.md`
     - `0002-native-swift-and-coreml-stack.md`
     - `0003-ambiguity-safe-audio-track-mapping.md`
@@ -171,11 +171,11 @@ Investigated the remote repositories for all external dependencies specified in 
 ## 2. Logic Chain
 
 1. **Premise**: The repository contains no existing Swift files, `Package.swift`, or Xcode projects (Observation 1.1).
-   - *Deduction*: macdub is a **completely greenfield implementation**. There are no legacy code conventions, deprecated APIs, or technical debt to preserve or refactor. The architecture can and must be established cleanly from the ground up matching `ORIGINAL_REQUEST.md` and the 9 ADRs.
+   - *Deduction*: amend is a **completely greenfield implementation**. There are no legacy code conventions, deprecated APIs, or technical debt to preserve or refactor. The architecture can and must be established cleanly from the ground up matching `ORIGINAL_REQUEST.md` and the 9 ADRs.
 
 2. **Premise**: The build environment has Apple Command Line Tools active (`/Library/Developer/CommandLineTools`) and lacks `xcodebuild` (Observation 1.3).
    - *Deduction*: Any command invoking `xcodebuild` will immediately exit with error code 1. Therefore, all build configurations, module definitions, and test suites must strictly operate via **Swift Package Manager (`Package.swift`)** and be executable via `swift build` and `swift test`.
-   - *Deduction*: Executables and libraries must be defined as SPM targets. An App target can be structured as an executable product (`macdub`) with `@main` SwiftUI App entry point, supported by a modular core library (`MacDubCore`).
+   - *Deduction*: Executables and libraries must be defined as SPM targets. An App target can be structured as an executable product (`amend`) with `@main` SwiftUI App entry point, supported by a modular core library (`AmendCore`).
 
 3. **Premise**: The host platform is Apple M1 with 8.0 GB RAM running macOS 26.6.2, and the deployment target is macOS 14.0+ arm64 (Observation 1.2, 1.3).
    - *Deduction*: The target platform matches all prerequisites of the specification. The 8GB physical RAM confirms that memory constraints are not theoretical: concurrent memory residency of Parakeet ASR, local LLM, and PocketTTS will trigger OS memory pressure and kernel jetsam/swapping. `LocalModelCoordinator` (ADR 0009) is mandatory.
@@ -194,7 +194,7 @@ Investigated the remote repositories for all external dependencies specified in 
 ## 3. Caveats
 
 1. **Command Line Tools vs Full Xcode GUI**:
-   Because full Xcode (`Xcode.app`) is not installed, building an `.app` bundle for macOS Finder drag-and-drop distribution typically requires `xcodebuild` or manual bundle packaging (`mkdir -p macdub.app/Contents/MacOS && cp .build/debug/macdub macdub.app/Contents/MacOS/`). For local development, running, and automated verification, `swift build` and `swift run` / `swift test` operate natively.
+   Because full Xcode (`Xcode.app`) is not installed, building an `.app` bundle for macOS Finder drag-and-drop distribution typically requires `xcodebuild` or manual bundle packaging (`mkdir -p amend.app/Contents/MacOS && cp .build/debug/amend amend.app/Contents/MacOS/`). For local development, running, and automated verification, `swift build` and `swift run` / `swift test` operate natively.
 2. **FluidAudio Package Resolution Size**:
    `FluidAudio` contains C++ wrappers (`FastClusterWrapper`, `MachTaskSelfWrapper`) and binary framework `ESpeakNG.xcframework`. When SPM first resolves dependencies, downloading and building these packages may require several minutes over the network.
 3. **Swift 6 Concurrency Compiler Setting**:
@@ -211,13 +211,13 @@ The workspace is currently in an uninitialized greenfield state with complete ar
 To ensure clean separation of concerns, testability, and fast compilation, the following package structure is recommended for `Package.swift`:
 
 ```
-macdub/
+amend/
 ├── Package.swift
 ├── CONTEXT.md
 ├── ORIGINAL_REQUEST.md
 ├── docs/adr/
 ├── Sources/
-│   ├── MacDubCore/                        # Core reusable domain library
+│   ├── AmendCore/                        # Core reusable domain library
 │   │   ├── Models/                        # Cue, AudioTrack, ProjectBundle, ProjectMetadata
 │   │   ├── Storage/                       # APFS cloning, Security-scoped bookmarks, project.json
 │   │   ├── Timeline/                      # CMTime engine, SwiftTimecode SMPTE conversion
@@ -226,11 +226,11 @@ macdub/
 │   │   ├── AudioProcessing/               # RoomToneSampler, DurationFitter, TimePitch compressor
 │   │   ├── AI/                            # LocalModelCoordinator, SpeechTranscriber, VoiceSynthesizers, Grammar
 │   │   └── Export/                        # AVAssetReader/Writer compressed-sample passthrough muxer
-│   └── macdub/                            # macOS App Target (SwiftUI / AppKit executable)
-│       ├── App/                           # MacDubApp.swift (@main)
+│   └── amend/                            # macOS App Target (SwiftUI / AppKit executable)
+│       ├── App/                           # AmendApp.swift (@main)
 │       └── Views/                         # VideoPlayer, TimelineRuler, CueTrack, OverflowSheet, TrackPicker
 └── Tests/
-    └── MacDubCoreTests/                   # Test Suite
+    └── AmendCoreTests/                   # Test Suite
         ├── Fixtures/                      # Fixture 1, 2, 3 (synthetic AVFoundation asset generators)
         ├── SyncInvariantTests.swift       # Immutable boundary & split verification
         ├── SamplePayloadTests.swift       # Compressed video bitstream hash identity
@@ -247,14 +247,14 @@ macdub/
 import PackageDescription
 
 let package = Package(
-    name: "macdub",
+    name: "amend",
     defaultLocalization: "en",
     platforms: [
         .macOS(.v14)
     ],
     products: [
-        .executable(name: "macdub", targets: ["macdub"]),
-        .library(name: "MacDubCore", targets: ["MacDubCore"])
+        .executable(name: "amend", targets: ["amend"]),
+        .library(name: "AmendCore", targets: ["AmendCore"])
     ],
     dependencies: [
         .package(url: "https://github.com/dmrschmidt/DSWaveformImage.git", from: "14.5.0"),
@@ -263,34 +263,34 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "MacDubCore",
+            name: "AmendCore",
             dependencies: [
                 .product(name: "DSWaveformImage", package: "DSWaveformImage"),
                 .product(name: "SwiftTimecode", package: "swift-timecode"),
                 .product(name: "FluidAudio", package: "FluidAudio"),
                 .product(name: "FluidAudioTTS", package: "FluidAudio")
             ],
-            path: "Sources/MacDubCore",
+            path: "Sources/AmendCore",
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]
         ),
         .executableTarget(
-            name: "macdub",
+            name: "amend",
             dependencies: [
-                "MacDubCore",
+                "AmendCore",
                 .product(name: "SwiftTimecodeUI", package: "swift-timecode"),
                 .product(name: "DSWaveformImageViews", package: "DSWaveformImage")
             ],
-            path: "Sources/macdub",
+            path: "Sources/amend",
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]
         ),
         .testTarget(
-            name: "MacDubCoreTests",
-            dependencies: ["MacDubCore"],
-            path: "Tests/MacDubCoreTests",
+            name: "AmendCoreTests",
+            dependencies: ["AmendCore"],
+            path: "Tests/AmendCoreTests",
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]
@@ -327,6 +327,6 @@ To independently verify the environment, findings, and compiler readiness:
    ```
 5. **Verify Project Compilation Once Package.swift is Written**:
    ```bash
-   swift build --target MacDubCore
+   swift build --target AmendCore
    swift test
    ```

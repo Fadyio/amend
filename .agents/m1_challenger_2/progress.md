@@ -4,7 +4,7 @@ Last visited: 2026-09-16T17:00:30Z
 
 - [x] Initialized DISPATCH.md, BRIEFING.md, and progress.md
 - [ ] Read ORIGINAL_REQUEST.md and orchestrator_5/PROJECT.md
-- [ ] Review implementation files in Sources/MacDubCore/ and Tests/
+- [ ] Review implementation files in Sources/AmendCore/ and Tests/
 - [ ] Run `swift build` and `swift test`
 - [ ] Design and execute adversarial stress tests:
   - APFS cloning vs bookmark fallback (read-only source, nested bundle dir, CoW independence upon mutation)

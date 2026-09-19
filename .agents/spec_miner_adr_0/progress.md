@@ -22,7 +22,7 @@ Last visited: 2026-09-16T12:44:30Z
 - [x] Step 6: Formulate architectural catalog and feature specifications:
   - [x] Section 1: Fixed-sync invariant & timeline time vs display timecode, Cue data model, splitting semantics, boundary crossfades (R1, R2)
   - [x] Section 2: Native Swift & CoreML stack constraints, FluidAudio (Parakeet ASR, Silero VAD), PocketTTS, cloud TTS (ElevenLabs, Resemble, Gemini non-cloning) (R4, R5)
-  - [x] Section 3: Ambiguity-safe audio track mapping & track picker, APFS clone-first vs security-scoped bookmarks storage, project bundle layout (.voicefix, project.json) (R3)
+  - [x] Section 3: Ambiguity-safe audio track mapping & track picker, APFS clone-first vs security-scoped bookmarks storage, project bundle layout (.amend, project.json) (R3)
   - [x] Section 4: Ambient room-tone sampling (200-500ms VAD silence) & crossfade padding, asymmetric duration fitting (<=8% AVAudioUnitTimePitch, >8% gated manual overflow with 3 choices) (R5)
   - [x] Section 5: Compressed-sample passthrough export pipeline (AVAssetReader/AVAssetWriter, compressed sample preservation, passthrough tracks, duration match) (R6)
   - [x] Section 6: Grammar correction and script rewriting, diff modal, duration constraints, provider protocols (R7)

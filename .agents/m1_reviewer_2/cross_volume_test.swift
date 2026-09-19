@@ -1,11 +1,11 @@
 import Foundation
 import CoreMedia
-import MacDubCore
+import AmendCore
 
-print("=== MACDUB CROSS-VOLUME & BOOKMARK FALLBACK STRESS TEST ===")
+print("=== AMEND CROSS-VOLUME & BOOKMARK FALLBACK STRESS TEST ===")
 
-let mountPoint = URL(fileURLWithPath: "/Volumes/MacDubTestHFS")
-let apfsTempDir = FileManager.default.temporaryDirectory.appendingPathComponent("MacDubAPFSSource_\(UUID().uuidString)")
+let mountPoint = URL(fileURLWithPath: "/Volumes/AmendTestHFS")
+let apfsTempDir = FileManager.default.temporaryDirectory.appendingPathComponent("AmendAPFSSource_\(UUID().uuidString)")
 try FileManager.default.createDirectory(at: apfsTempDir, withIntermediateDirectories: true)
 defer {
     try? FileManager.default.removeItem(at: apfsTempDir)
@@ -39,7 +39,7 @@ let bundle = try ProjectBundleSerializer.createBundle(
 )
 
 print("Created bundle URL: \(bundle.rootURL.path)")
-assert(bundle.rootURL.pathExtension == "voicefix", "Bundle extension must be voicefix")
+assert(bundle.rootURL.pathExtension == "amend", "Bundle extension must be amend")
 
 // 5. Verify sourceStorageMode is externalBookmark
 switch bundle.metadata.sourceStorageMode {

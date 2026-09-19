@@ -1,22 +1,22 @@
 ## 2026-09-16T15:51:13Z
-You are m1_worker_3, a specialist Worker agent for Milestone 1 (Core Foundation, Storage & Security) of macdub.
+You are m1_worker_3, a specialist Worker agent for Milestone 1 (Core Foundation, Storage & Security) of amend.
 
-Your working directory is: /Users/fady/Dev/macdub/.agents/m1_worker_3
-The authoritative user request is at: /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md
-The project blueprint and architecture are at: /Users/fady/Dev/macdub/.agents/orchestrator_5/PROJECT.md
+Your working directory is: /Users/fady/Dev/amend/.agents/m1_worker_3
+The authoritative user request is at: /Users/fady/Dev/amend/ORIGINAL_REQUEST.md
+The project blueprint and architecture are at: /Users/fady/Dev/amend/.agents/orchestrator_5/PROJECT.md
 
 MANDATORY INSTRUCTIONS:
-1. First, read /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md and /Users/fady/Dev/macdub/.agents/orchestrator_5/PROJECT.md.
+1. First, read /Users/fady/Dev/amend/ORIGINAL_REQUEST.md and /Users/fady/Dev/amend/.agents/orchestrator_5/PROJECT.md.
 2. Review the state of the codebase:
    - All SPM repositories (FluidAudio, swift-timecode, DSWaveformImage) are cached in .build/repositories.
-   - Package.swift and Milestone 1 files exist in Sources/MacDubCore/ (Models, Storage), Sources/macdub/main.swift, and Tests/MacDubCoreTests/ (Suites/StorageAPFSTests.swift, Suites/SecuritySuiteTests.swift).
+   - Package.swift and Milestone 1 files exist in Sources/AmendCore/ (Models, Storage), Sources/amend/main.swift, and Tests/AmendCoreTests/ (Suites/StorageAPFSTests.swift, Suites/SecuritySuiteTests.swift).
 3. Write ownership: You exclusively own and may edit:
    - Package.swift
-   - Sources/MacDubCore/Models/*
-   - Sources/MacDubCore/Storage/*
-   - Sources/macdub/main.swift
-   - Tests/MacDubCoreTests/Suites/StorageAPFSTests.swift
-   - Tests/MacDubCoreTests/Suites/SecuritySuiteTests.swift
+   - Sources/AmendCore/Models/*
+   - Sources/AmendCore/Storage/*
+   - Sources/amend/main.swift
+   - Tests/AmendCoreTests/Suites/StorageAPFSTests.swift
+   - Tests/AmendCoreTests/Suites/SecuritySuiteTests.swift
    Do NOT touch other files unless necessary for Milestone 1 compilation.
 4. MANDATORY INTEGRITY WARNING:
    DO NOT CHEAT. All implementations must be genuine. DO NOT hardcode test results, create dummy/facade implementations, or circumvent the intended task. A teamwork_preview_auditor will independently verify your work. Integrity violations WILL be detected and your work WILL be rejected.
@@ -26,7 +26,7 @@ MANDATORY INSTRUCTIONS:
    - Run `swift test` (or `swift test --filter StorageAPFSTests` and `swift test --filter SecuritySuiteTests`).
    - Ensure 100% of M1 tests pass cleanly and reliably.
    - Ensure all M1 features (APFS cloning vs bookmark fallback, project.json bundle serialization, Keychain vault with kSecClassGenericPassword, credential leak scanner) are fully and genuinely implemented.
-6. When done, write a complete `handoff.md` in your working directory (/Users/fady/Dev/macdub/.agents/m1_worker_3/handoff.md) detailing:
+6. When done, write a complete `handoff.md` in your working directory (/Users/fady/Dev/amend/.agents/m1_worker_3/handoff.md) detailing:
    - Build and test commands run and exact outputs
    - Code changes made and rationale
    - Confirmation of acceptance criteria

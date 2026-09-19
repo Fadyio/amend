@@ -17,7 +17,7 @@
   - [x] `Cue` & `CueEditState` & CMTimeRange / CMTime representations (with immutable let timeRange)
   - [x] `AudioTrackMapping` & multi-track vs single-track handling (advisory badge logic, validation)
   - [x] `ProjectMetadata` & `SourceStorageMode` (dual-key decoding for sourceStorageMode/sourceMode, ISO8601 dates)
-  - [x] `ProjectBundle` directory structure & file layout (`.voicefix` bundle layout: project.json, audio/cues/, waveforms/, thumbnails/)
+  - [x] `ProjectBundle` directory structure & file layout (`.amend` bundle layout: project.json, audio/cues/, waveforms/, thumbnails/)
 - [x] Investigate APFS clone-first strategy & Bookmark fallback:
   - [x] `URLResourceValues.volumeSupportsFileCloning` check & same-volume verification
   - [x] `FileManager.copyItem` CoW semantics & benchmark (verified ~267 microseconds for 10MB copy)

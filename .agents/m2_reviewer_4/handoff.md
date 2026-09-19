@@ -18,38 +18,38 @@
   - 10–20 ms boundary crossfades to prevent audible clicks/pops without timeline drift.
 
 ### 1.2 Audited Source Files & Structural Conformance
-1. `Sources/MacDubCore/Models/AudioTrackInfo.swift` (Lines 1–41):
+1. `Sources/AmendCore/Models/AudioTrackInfo.swift` (Lines 1–41):
    - Conforms to `Identifiable, Codable, Equatable, Sendable`.
    - Immutable value type: all 10 properties are `let`.
    - Contains track ID, format FourCharCode string, channel count, sample rate, bit depth, duration, timeRange, language code, title, and estimated data rate.
-2. `Sources/MacDubCore/Models/Cue.swift` (Lines 1–104):
+2. `Sources/AmendCore/Models/Cue.swift` (Lines 1–104):
    - Conforms to `Identifiable, Codable, Equatable, Sendable`.
    - `public let timeRange: CMTimeRange` is strictly immutable.
    - `withUpdatedText(_:)` and `withUpdatedAudio(...)` return new `Cue` instances preserving `timeRange`.
    - `contains(time: CMTime) -> Bool` implements exact rational interval check $[start, end)$ using `CMTimeCompare`.
-3. `Sources/MacDubCore/Composition/AudioTrackInspector.swift` (Lines 1–176):
+3. `Sources/AmendCore/Composition/AudioTrackInspector.swift` (Lines 1–176):
    - Conforms to `Sendable`. Stateless value type (`struct`).
    - Uses modern Swift concurrency: `await asset.loadTracks(withMediaType: .audio)`, `await track.load(.timeRange)`, `await track.load(.formatDescriptions)`.
    - Converts audio stream basic description (ASBD) format IDs to string.
    - Maps 1 track to `AudioTrackInspectionResult.singleTrack(track:mapping:)` with `isSingleTrackAdvisory = true`.
    - Maps $>1$ tracks to `AudioTrackInspectionResult.multiTrack(tracks:defaultMapping:)` with `isSingleTrackAdvisory = false`.
    - `validate(mapping:against:)` verifies track IDs exist, prevents narration in passthrough list, rejects duplicate passthrough IDs, and enforces single-track advisory invariants.
-4. `Sources/MacDubCore/Composition/SyncInvariantEngine.swift` (Lines 1–145):
+4. `Sources/AmendCore/Composition/SyncInvariantEngine.swift` (Lines 1–145):
    - Conforms to `Sendable`. Stateless value type (`struct`).
    - `updateCueText` and `updateCueAudio` perform atomic slot updates and immediately verify `assertSyncInvariant`.
    - `assertSyncInvariant` verifies with `CMTimeCompare` that for every cue in the timeline, `start` and `duration` remain rational-identical, and non-target cues have untouched `text`, `audioWAVRelativePath`, and `editState`.
    - `validateTimelineContinuity` asserts chronological ordering, non-overlap, positive duration, and project duration boundary.
-5. `Sources/MacDubCore/Composition/CueSplitter.swift` (Lines 1–124):
+5. `Sources/AmendCore/Composition/CueSplitter.swift` (Lines 1–124):
    - Conforms to `Sendable`. Value type with `minimumDuration: CMTime` (default 10ms).
    - Validates $t \in (t_{start}, t_{end})$ strictly using `CMTimeCompare`.
    - Produces sub-cues: $cueA = [start, splitTime]$ and $cueB = [splitTime, end]$.
    - Zero gap ($cueB.start - cueA.end \equiv 0$) and zero overlap ($cueA.end == cueB.start$).
    - `splitCue(in:targetCueID:at:textSplitIndex:)` removes target cue and inserts $[cueA, cueB]$ preserving neighbor index ordering and properties.
-6. `Sources/MacDubCore/Composition/BoundaryCrossfader.swift` (Lines 1–155):
+6. `Sources/AmendCore/Composition/BoundaryCrossfader.swift` (Lines 1–155):
    - Conforms to `Sendable`. Stateless value type (`struct`).
    - `applyBoundaryFades(to:windowDuration:curve:)`: fade-in at head, fade-out at tail, normalized by $(fadeLength - 1)$ for true zero boundary amplitude. Clamps fade length to $frameCount / 2$ for short buffers.
    - `crossfade(bufferA:bufferB:windowDuration:curve:)`: allocates exact output buffer $lenA + lenB - fadeLength$. Copies unmixed prefix, computes equal-power ($\cos / \sin$) or linear crossfade, and copies suffix.
-7. `Sources/MacDubCore/Composition/LoudnessNormalizer.swift` (Lines 1–191):
+7. `Sources/AmendCore/Composition/LoudnessNormalizer.swift` (Lines 1–191):
    - Conforms to `Sendable`. Stateless value type (`struct`).
    - `measureRMS`: Accelerate `vDSP_rmsqv` across channels in dBFS, clamped to $1e-9$ to prevent $\log_{10}(0)$.
    - `measureLUFS`: ITU-R BS.1770-4 K-weighting two-stage IIR filter simulation (high shelf + high pass) using authentic broadcast coefficients for 44.1 kHz and 48 kHz, computing energy with `vDSP_svesq` and $-0.691\text{ LU}$ offset.
@@ -62,7 +62,7 @@ All commands were executed independently via the project build tools:
 
 1. **Compilation (`swift build`)**:
    - Status: **SUCCESS** (Exit code: 0)
-   - Zero compiler errors and zero compiler warnings in `MacDubCore`.
+   - Zero compiler errors and zero compiler warnings in `AmendCore`.
 
 2. **Milestone 2 Unit Test Suites**:
    - `swift test --filter AudioRoutingTests`: **8/8 PASSED** (0.017s)
@@ -93,7 +93,7 @@ All commands were executed independently via the project build tools:
    - Total Tests Failed: **0**
 
 ### 1.4 Integrity & Anti-Cheating Audit
-- **Hardcoded Output Detection**: Grep search across `Sources/MacDubCore/Composition` found zero instances of hardcoded test strings, fake returns, or bypass conditions.
+- **Hardcoded Output Detection**: Grep search across `Sources/AmendCore/Composition` found zero instances of hardcoded test strings, fake returns, or bypass conditions.
 - **Facade & Dummy Detection**: All components execute genuine mathematical logic: AVFoundation async tracks, CMTime exact rational comparisons, Accelerate SIMD vector functions, and authentic ITU-R BS.1770-4 IIR filter coefficients.
 - **Verification Integrity**: All 89 test executions were run directly against compiled binaries with live assertion verification.
 
@@ -102,7 +102,7 @@ All commands were executed independently via the project build tools:
 ## 2. Logic Chain
 
 1. **Architecture & Module Separation**:
-   - The Milestone 2 components are cleanly encapsulated under `Sources/MacDubCore/Composition/`.
+   - The Milestone 2 components are cleanly encapsulated under `Sources/AmendCore/Composition/`.
    - Each component is a pure value type (`struct`) with no shared mutable state.
    - Responsibilities are strictly decoupled: `AudioTrackInspector` handles media container inspection; `SyncInvariantEngine` enforces timeline immutability; `CueSplitter` handles rational boundary partitioning; `BoundaryCrossfader` handles acoustic smoothing; `LoudnessNormalizer` handles dynamic range and peak management.
 

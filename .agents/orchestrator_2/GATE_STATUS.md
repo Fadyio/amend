@@ -1,4 +1,4 @@
-# Gate Status — macdub
+# Gate Status — amend
 
 ## Milestone 1: Core Foundation, Storage & Security
 Iteration 1: IN_PROGRESS

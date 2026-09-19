@@ -1,12 +1,12 @@
 # BRIEFING — 2026-09-16T17:47:00Z
 
 ## Mission
-Design and implement the complete E2E testing infrastructure (TEST_INFRA.md), synthetic AVFoundation media fixtures (Fixture 1 Single-Track, Fixture 2 Multi-Track, Fixture 3 Duration Fitting), and initial Swift Testing E2E test suites (Tier 1 Feature Coverage, etc.) for macdub.
+Design and implement the complete E2E testing infrastructure (TEST_INFRA.md), synthetic AVFoundation media fixtures (Fixture 1 Single-Track, Fixture 2 Multi-Track, Fixture 3 Duration Fitting), and initial Swift Testing E2E test suites (Tier 1 Feature Coverage, etc.) for amend.
 
 ## 🔒 My Identity
 - Archetype: Test Writer / E2E Test Architect
 - Roles: specialist, qa
-- Working directory: /Users/fady/Dev/macdub/.agents/e2e_test_writer_1
+- Working directory: /Users/fady/Dev/amend/.agents/e2e_test_writer_1
 - Original parent: 4d531adf-45c7-4a43-8701-f7617acd84e7
 - Milestone: E2E_TRACK
 
@@ -24,7 +24,7 @@ Design and implement the complete E2E testing infrastructure (TEST_INFRA.md), sy
 - Swift Testing framework (`import Testing`, `@Suite`, `@Test`, `#expect`).
 - Tests must be verifiable using ONLY features from current milestone and completed dependencies.
 - Never edit implementation code; report defects for escalation.
-- Only write to own agent folder `.agents/e2e_test_writer_1/` for agent metadata. Tests and fixtures go to `Tests/MacDubCoreTests/`. TEST_INFRA.md goes to repo root.
+- Only write to own agent folder `.agents/e2e_test_writer_1/` for agent metadata. Tests and fixtures go to `Tests/AmendCoreTests/`. TEST_INFRA.md goes to repo root.
 
 ## Current Parent
 - Conversation ID: 4d531adf-45c7-4a43-8701-f7617acd84e7
@@ -33,12 +33,12 @@ Design and implement the complete E2E testing infrastructure (TEST_INFRA.md), sy
 ## Task Summary
 - **What to build**:
   1. `TEST_INFRA.md` at project root describing test runner, tiers, and fixture architecture.
-  2. `Tests/MacDubCoreTests/Fixtures/` containing:
+  2. `Tests/AmendCoreTests/Fixtures/` containing:
      - `SyntheticFixtureGenerator.swift`
      - `Fixture1SingleTrack.swift`
      - `Fixture2MultiTrack.swift`
      - `Fixture3DurationFitting.swift`
-  3. Initial test suites in `Tests/MacDubCoreTests/E2E/`:
+  3. Initial test suites in `Tests/AmendCoreTests/E2E/`:
      - `Tier1FeatureTests.swift`
   4. Verify with `swift test`.
   5. Publish `handoff.md` and communicate to parent.
@@ -51,9 +51,9 @@ Design and implement the complete E2E testing infrastructure (TEST_INFRA.md), sy
 - Avoid external file downloads or asset bundling.
 
 ## Artifact Index
-- `/Users/fady/Dev/macdub/TEST_INFRA.md` — Test infrastructure documentation
-- `/Users/fady/Dev/macdub/Tests/MacDubCoreTests/Fixtures/SyntheticFixtureGenerator.swift` — Core generator helper for video/audio AVAssets
-- `/Users/fady/Dev/macdub/Tests/MacDubCoreTests/Fixtures/Fixture1SingleTrack.swift` — Single-track video + narration fixture
-- `/Users/fady/Dev/macdub/Tests/MacDubCoreTests/Fixtures/Fixture2MultiTrack.swift` — Multi-track video + narration + passthrough fixture
-- `/Users/fady/Dev/macdub/Tests/MacDubCoreTests/Fixtures/Fixture3DurationFitting.swift` — Speech + silence duration fitting fixture
-- `/Users/fady/Dev/macdub/Tests/MacDubCoreTests/E2E/Tier1FeatureTests.swift` — Tier 1 initial feature test suite
+- `/Users/fady/Dev/amend/TEST_INFRA.md` — Test infrastructure documentation
+- `/Users/fady/Dev/amend/Tests/AmendCoreTests/Fixtures/SyntheticFixtureGenerator.swift` — Core generator helper for video/audio AVAssets
+- `/Users/fady/Dev/amend/Tests/AmendCoreTests/Fixtures/Fixture1SingleTrack.swift` — Single-track video + narration fixture
+- `/Users/fady/Dev/amend/Tests/AmendCoreTests/Fixtures/Fixture2MultiTrack.swift` — Multi-track video + narration + passthrough fixture
+- `/Users/fady/Dev/amend/Tests/AmendCoreTests/Fixtures/Fixture3DurationFitting.swift` — Speech + silence duration fitting fixture
+- `/Users/fady/Dev/amend/Tests/AmendCoreTests/E2E/Tier1FeatureTests.swift` — Tier 1 initial feature test suite

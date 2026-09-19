@@ -18,7 +18,7 @@
 | 12 | Timeline / UI | Frame-Accurate Playhead & SMPTE Ruler | Continuous CMTime playhead with SwiftTimecode SMPTE conversion and independent audio/video time resolution. | CMTime playhead position, pixelsPerSecond zoom factor. | Visual playhead position, SMPTE display string, frame-accurate video presentation. | Negative time or invalid timescale clamped cleanly. | ORIGINAL_REQUEST.md:28-36, AC 102-105 |
 | 13 | Composition Engine | Cue Splitting Zero-Gap Invariant | Splitting cue $[t_s, t_e]$ at playhead $t$ produces $[t_s, t]$ and $[t, t_e]$ with zero gap and zero overlap. | Cue $C$, split timestamp $t \in (t_s, t_e)$. | Cues $C_A, C_B$ where $C_A.\text{end} == C_B.\text{start} == t$. | $t \le t_s$ or $t \ge t_e$ throws invalidSplitPoint error. | ORIGINAL_REQUEST.md:41, AC 115 |
 | 14 | Media Import | Ambiguity-Safe Audio Track Mapping | Automated track discovery with single-track advisory badge or multi-track assignment modal. | Source AVAsset audio tracks array. | Track designation: Narration track index + Passthrough track indices set. | 0 audio tracks displays error alert; unassigned tracks blocked from export. | ORIGINAL_REQUEST.md:46, ADR 0003, AC 108-109 |
-| 15 | Project Storage | APFS Clone-First Media Bundling | Destination volume inspection for volumeSupportsFileCloning: copyItem vs security-scoped bookmark. | Source media URL, destination .voicefix bundle URL. | Cloned media inside bundle or externalBookmark in project.json. | Non-clonable volume copying large file triggers fallback, not full copy. | ORIGINAL_REQUEST.md:47-48, ADR 0004, AC 110-111 |
+| 15 | Project Storage | APFS Clone-First Media Bundling | Destination volume inspection for volumeSupportsFileCloning: copyItem vs security-scoped bookmark. | Source media URL, destination .amend bundle URL. | Cloned media inside bundle or externalBookmark in project.json. | Non-clonable volume copying large file triggers fallback, not full copy. | ORIGINAL_REQUEST.md:47-48, ADR 0004, AC 110-111 |
 | 16 | Duration Fitting | Room-Tone Padding Engine | Sampling 200–500ms ambient silence slice via Silero VAD to pad shorter synthesized audio with 10–20ms crossfades. | Shorter synthesized audio, sampled room tone slice, target slot CMTimeRange. | Rendered audio buffer of exact slot duration with seamless acoustic bed. | Absence of VAD silence falls back to generated dithered noise floor. | ORIGINAL_REQUEST.md:54-55, ADR 0005, AC 119 |
 | 17 | Duration Fitting | Automatic Pitch-Preserving Compression | Offline AVAudioUnitTimePitch compression for speech exceeding duration by $\le 8\%$. | Synthesized audio, target slot duration ($\Delta \le +8\%$). | Compressed audio matching slot duration; pitch shift == 0 cents. | Compression $>8\%$ rejected; triggers overflow state. | ORIGINAL_REQUEST.md:56, ADR 0006, AC 120 |
 | 18 | Duration Fitting | Gated Manual Overflow Controller | Strict manual gating for speech exceeding duration by $>8\%$, presenting exact overflow delta and 3 actions. | Synthesized audio with $\Delta > +8\%$. | UI state presenting exact $+\Delta t$, [Rewrite to Fit], [Force Fit], [Split Cue]. | Automated retry loop strictly forbidden; throws if loop attempted. | ORIGINAL_REQUEST.md:57, ADR 0006, AC 121 |
@@ -184,7 +184,7 @@
          let payloadSHA256: String
      }
      ```
-  3. Execute `macdub` export pipeline producing `Exported.mp4`.
+  3. Execute `amend` export pipeline producing `Exported.mp4`.
   4. Initialize `AVAssetReader` on `Exported.mp4` with `outputSettings: nil`.
   5. Extract all $K'$ exported video sample buffers into exported descriptors.
   6. Assertions:
@@ -230,14 +230,14 @@
 * **Test Verification Procedure**:
   1. **Keychain Round-Trip Test**:
      - Define test keys for providers: ElevenLabs (`sk_test_11labs_xyz`), Resemble (`resemble_test_token_abc`), Gemini (`AIzaSyTestGeminiKey123`).
-     - Save credentials via Keychain wrapper utilizing `kSecClassGenericPassword` with service identifier `com.macdub.credentials.<provider>`.
+     - Save credentials via Keychain wrapper utilizing `kSecClassGenericPassword` with service identifier `com.fady.amend.credentials.<provider>`.
      - Verify `SecItemAdd` returns `errSecSuccess`.
      - Read back credentials: verify returned string matches original plain text.
      - Update credentials: verify `SecItemUpdate` updates secret without duplication.
      - Delete credentials: verify `SecItemDelete` removes entry and subsequent read returns `errSecItemNotFound`.
   2. **Project Bundle Sanitization Scanner**:
-     - Create a complete `.voicefix` project bundle containing edited cues, cached waveforms, thumbnails, and provider configurations (e.g. provider selected: "ElevenLabs", voice ID: "21m00Tcm4TlvDq8ikWAM").
-     - Recursively inspect all files in `Project.voicefix/`:
+     - Create a complete `.amend` project bundle containing edited cues, cached waveforms, thumbnails, and provider configurations (e.g. provider selected: "ElevenLabs", voice ID: "21m00Tcm4TlvDq8ikWAM").
+     - Recursively inspect all files in `Project.amend/`:
        - `project.json`
        - Cache files, log files, and metadata plists.
      - Parse JSON AST and perform regex pattern matching against:
@@ -385,7 +385,7 @@
    - *Interaction*: Synthesized speech exceeds cue by $+15\%$ (gated overflow). User selects `[Rewrite to Fit]`. Grammar provider generates shorter text based on slot CMTime constraint. Re-synthesized speech is now $+3\%$ longer.
    - *Assertion*: System automatically time-compresses the $+3\%$ audio; clears overflow state; preserves slot boundaries.
 5. **Pair 5: APFS Project Storage (R3) $\times$ Local Model Lifecycle (R8)**
-   - *Interaction*: Project created on APFS volume. Heavyweight transcription and synthesis executed. Intermediate tokens and synthesized WAVs written to `.voicefix` bundle.
+   - *Interaction*: Project created on APFS volume. Heavyweight transcription and synthesis executed. Intermediate tokens and synthesized WAVs written to `.amend` bundle.
    - *Assertion*: Bundle stores all intermediate artifacts without memory residency; project reloads instantly from disk cache after process restart.
 6. **Pair 6: Cloud Voice Synthesis (R5) $\times$ Keychain Security (R5/Security)**
    - *Interaction*: User synthesizes speech using ElevenLabs and Gemini cloud providers. API keys retrieved from Keychain on-demand.
@@ -503,8 +503,8 @@
 # 5-Component Handoff Report
 
 ## 1. Observation
-- Inspected `/Users/fady/Dev/macdub/ORIGINAL_REQUEST.md` (lines 1–138) establishing all project functional requirements R1–R8, verification resources (lines 88–98), and 24 acceptance criteria (lines 99–138).
-- Inspected `/Users/fady/Dev/macdub/docs/adr/0007-deterministic-avfoundation-verification-fixtures.md` mandating programmatic generation of deterministic synthetic AVFoundation fixtures (single-track, multi-track, duration fitting) and headless verification suites.
+- Inspected `/Users/fady/Dev/amend/ORIGINAL_REQUEST.md` (lines 1–138) establishing all project functional requirements R1–R8, verification resources (lines 88–98), and 24 acceptance criteria (lines 99–138).
+- Inspected `/Users/fady/Dev/amend/docs/adr/0007-deterministic-avfoundation-verification-fixtures.md` mandating programmatic generation of deterministic synthetic AVFoundation fixtures (single-track, multi-track, duration fitting) and headless verification suites.
 - Inspected all architectural decision records:
   - `docs/adr/0001-fixed-sync-invariant.md`: fixed-slot synchronization vs ripple editing.
   - `docs/adr/0002-native-swift-and-coreml-stack.md`: pure Swift & Core ML (FluidAudio) without Python.
@@ -514,7 +514,7 @@
   - `docs/adr/0006-user-gated-duration-overflow-handling.md`: asymmetric fitting ($\le 8\%$ auto-compression, $>8\%$ user-gated overflow).
   - `docs/adr/0008-compressed-sample-passthrough-export-pipeline.md`: `AVAssetReader` / `AVAssetWriter` compressed video passthrough with sample payload identity.
   - `docs/adr/0009-serialized-local-model-lifecycle.md`: `LocalModelCoordinator` mutual exclusion on 8GB Apple Silicon.
-- Inspected `/Users/fady/Dev/macdub/CONTEXT.md` defining ubiquitous language: Cue, Narration, Sync Invariant, Duration Fitting, Reference Voice, Room Tone, Passthrough Track, Project Bundle.
+- Inspected `/Users/fady/Dev/amend/CONTEXT.md` defining ubiquitous language: Cue, Narration, Sync Invariant, Duration Fitting, Reference Voice, Room Tone, Passthrough Track, Project Bundle.
 - Inspected workspace file tree: clean repository on branch `main` ready for Milestone 0 verification scaffolding.
 
 ## 2. Logic Chain
@@ -537,7 +537,7 @@
 The verification specifications, synthetic AVFoundation fixture parameters, required test suites, 4-tier E2E testing framework, and acceptance criteria mappings are fully mined, cataloged, and mathematically specified. The testing framework guarantees zero-drift synchronization, bitstream passthrough preservation, memory safety on 8GB hardware, and credential security.
 
 ## 5. Verification Method
-1. Inspect `/Users/fady/Dev/macdub/.agents/spec_miner_fixtures_0/handoff.md` to review the complete specification report.
+1. Inspect `/Users/fady/Dev/amend/.agents/spec_miner_fixtures_0/handoff.md` to review the complete specification report.
 2. Verify all 3 synthetic fixtures, 4 test suites, 4 E2E tiers, and 24 acceptance criteria are completely accounted for without omissions.
 3. When the implementation agent scaffolds the test suite in `Tests/`, run:
    ```bash

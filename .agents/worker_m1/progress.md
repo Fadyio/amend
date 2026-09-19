@@ -11,7 +11,7 @@ Fetching FluidAudio tag `v0.9.1` directly to populate SPM cache:
 ## Steps Completed
 - [x] Initialized DISPATCH.md and BRIEFING.md
 - [x] Inspected mandatory files: `ORIGINAL_REQUEST.md` and `PROJECT.md`
-- [x] Inspected Package.swift, MacDubCore Models, Storage, macdub executable, and MacDubCoreTests suites
+- [x] Inspected Package.swift, AmendCore Models, Storage, amend executable, and AmendCoreTests suites
 - [x] Cached `DSWaveformImage` and `swift-timecode` in SPM cache
 - [x] Resolved tag `v0.9.1` ref to streamline SPM cache population
 

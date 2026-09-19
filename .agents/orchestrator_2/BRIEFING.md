@@ -1,18 +1,18 @@
 # BRIEFING — 2026-09-16T13:13:30Z
 
 ## Mission
-Orchestrate the full implementation and verification of macdub (native macOS speech-editing and narration app) per ORIGINAL_REQUEST.md.
+Orchestrate the full implementation and verification of amend (native macOS speech-editing and narration app) per ORIGINAL_REQUEST.md.
 
 ## 🔒 My Identity
 - Archetype: teamwork_preview_orchestrator
 - Roles: orchestrator, user_liaison, human_reporter, successor
-- Working directory: /Users/fady/Dev/macdub/.agents/orchestrator_2
+- Working directory: /Users/fady/Dev/amend/.agents/orchestrator_2
 - Original parent: parent
 - Original parent conversation ID: c12bc566-59fe-45d9-9332-56af06d70e7e
 
 ## 🔒 My Workflow
 - **Pattern**: Project Pattern
-- **Scope document**: /Users/fady/Dev/macdub/.agents/orchestrator_2/PROJECT.md
+- **Scope document**: /Users/fady/Dev/amend/.agents/orchestrator_2/PROJECT.md
 1. **Decompose**: Survey full scope via 3 parallel explorers (completed), compile Feature Inventory in PROJECT.md (completed), decompose R1-R8 into milestones with interface contracts (completed).
 2. **Dispatch & Execute**:
    - Sub-orchestrators for milestones or Explorer -> Worker -> Reviewer -> Challenger -> Auditor loop per milestone.
@@ -75,7 +75,7 @@ Orchestrate the full implementation and verification of macdub (native macOS spe
 - Safety timer: d9c7932c-bad9-4568-97bf-29fd2b48b36d/task-137
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md — Authoritative User Request
-- /Users/fady/Dev/macdub/.agents/orchestrator_2/PROJECT.md — Global Project Specification & Plan
-- /Users/fady/Dev/macdub/.agents/orchestrator_2/GATE_STATUS.md — Milestone Gate Status Log
-- /Users/fady/Dev/macdub/.agents/orchestrator_2/progress.md — Orchestration Progress Log
+- /Users/fady/Dev/amend/ORIGINAL_REQUEST.md — Authoritative User Request
+- /Users/fady/Dev/amend/.agents/orchestrator_2/PROJECT.md — Global Project Specification & Plan
+- /Users/fady/Dev/amend/.agents/orchestrator_2/GATE_STATUS.md — Milestone Gate Status Log
+- /Users/fady/Dev/amend/.agents/orchestrator_2/progress.md — Orchestration Progress Log

@@ -22,23 +22,23 @@
 - **docs/adr/0005-ambient-room-tone-cue-padding.md:3**:
   - "10–20 ms boundary crossfades are applied to guarantee seamless acoustic continuity and exact `CMTimeRange` adherence."
 
-### 1.2 Existing Codebase State in `Sources/MacDubCore/`
+### 1.2 Existing Codebase State in `Sources/AmendCore/`
 - **Models Directory**:
-  - `Sources/MacDubCore/Models/Cue.swift`: Implements `Cue` (`id: UUID`, `timeRange: CMTimeRange`, `text: String`, `originalText: String`, `audioWAVRelativePath: String?`, `editState: CueEditState`, `overflowDelta: CMTime?`). Lines 31–33 expose `public var start: CMTime`, `public var duration: CMTime`, `public var end: CMTime`.
-  - `Sources/MacDubCore/Models/AudioTrackMapping.swift`: Implements `AudioTrackMapping` (`designatedNarrationTrackID: Int`, `passthroughTrackIDs: [Int]`, `isSingleTrackAdvisory: Bool`, with static factories `.singleTrack(trackID:)` and `.multiTrack(narrationTrackID:passthroughTrackIDs:)` and validation `.isValid`).
-  - `Sources/MacDubCore/Models/ProjectMetadata.swift`: Includes `cues: [Cue]`, `audioTrackMapping: AudioTrackMapping`, `designatedNarrationTrackID: Int`, `passthroughTrackIDs: [Int]`, `isSingleTrackAdvisory: Bool`.
-  - `Sources/MacDubCore/Models/CMTime+Codable.swift`: Provides `@retroactive Codable` conformance for `CMTime` and `CMTimeRange`.
+  - `Sources/AmendCore/Models/Cue.swift`: Implements `Cue` (`id: UUID`, `timeRange: CMTimeRange`, `text: String`, `originalText: String`, `audioWAVRelativePath: String?`, `editState: CueEditState`, `overflowDelta: CMTime?`). Lines 31–33 expose `public var start: CMTime`, `public var duration: CMTime`, `public var end: CMTime`.
+  - `Sources/AmendCore/Models/AudioTrackMapping.swift`: Implements `AudioTrackMapping` (`designatedNarrationTrackID: Int`, `passthroughTrackIDs: [Int]`, `isSingleTrackAdvisory: Bool`, with static factories `.singleTrack(trackID:)` and `.multiTrack(narrationTrackID:passthroughTrackIDs:)` and validation `.isValid`).
+  - `Sources/AmendCore/Models/ProjectMetadata.swift`: Includes `cues: [Cue]`, `audioTrackMapping: AudioTrackMapping`, `designatedNarrationTrackID: Int`, `passthroughTrackIDs: [Int]`, `isSingleTrackAdvisory: Bool`.
+  - `Sources/AmendCore/Models/CMTime+Codable.swift`: Provides `@retroactive Codable` conformance for `CMTime` and `CMTimeRange`.
 - **Target Directories for Milestone 2**:
-  - `Sources/MacDubCore/Composition/` does not yet exist.
+  - `Sources/AmendCore/Composition/` does not yet exist.
   - Required source files to create in M2:
-    1. `Sources/MacDubCore/Composition/AudioTrackInspector.swift`
-    2. `Sources/MacDubCore/Composition/SyncInvariantEngine.swift`
-    3. `Sources/MacDubCore/Composition/CueSplitter.swift`
-    4. `Sources/MacDubCore/Composition/BoundaryCrossfader.swift`
-    5. `Sources/MacDubCore/Composition/LoudnessNormalizer.swift`
+    1. `Sources/AmendCore/Composition/AudioTrackInspector.swift`
+    2. `Sources/AmendCore/Composition/SyncInvariantEngine.swift`
+    3. `Sources/AmendCore/Composition/CueSplitter.swift`
+    4. `Sources/AmendCore/Composition/BoundaryCrossfader.swift`
+    5. `Sources/AmendCore/Composition/LoudnessNormalizer.swift`
   - Required test suites to create in M2:
-    1. `Tests/MacDubCoreTests/Suites/AudioRoutingTests.swift`
-    2. `Tests/MacDubCoreTests/Suites/SyncInvariantTests.swift`
+    1. `Tests/AmendCoreTests/Suites/AudioRoutingTests.swift`
+    2. `Tests/AmendCoreTests/Suites/SyncInvariantTests.swift`
 
 ---
 
@@ -122,7 +122,7 @@
 
 ## 3. Detailed Implementation Architecture
 
-### 3.1 Model Extensions (`Sources/MacDubCore/Models/`)
+### 3.1 Model Extensions (`Sources/AmendCore/Models/`)
 
 #### Extensions to `Cue.swift`:
 ```swift
@@ -206,7 +206,7 @@ public struct AudioTrackInfo: Identifiable, Codable, Equatable, Sendable {
 
 ---
 
-### 3.2 `Sources/MacDubCore/Composition/AudioTrackInspector.swift`
+### 3.2 `Sources/AmendCore/Composition/AudioTrackInspector.swift`
 
 ```swift
 import Foundation
@@ -350,7 +350,7 @@ public struct AudioTrackInspector: Sendable {
 
 ---
 
-### 3.3 `Sources/MacDubCore/Composition/SyncInvariantEngine.swift`
+### 3.3 `Sources/AmendCore/Composition/SyncInvariantEngine.swift`
 
 ```swift
 import Foundation
@@ -482,7 +482,7 @@ public struct SyncInvariantEngine: Sendable {
 
 ---
 
-### 3.4 `Sources/MacDubCore/Composition/CueSplitter.swift`
+### 3.4 `Sources/AmendCore/Composition/CueSplitter.swift`
 
 ```swift
 import Foundation
@@ -601,7 +601,7 @@ public struct CueSplitter: Sendable {
 
 ---
 
-### 3.5 `Sources/MacDubCore/Composition/BoundaryCrossfader.swift`
+### 3.5 `Sources/AmendCore/Composition/BoundaryCrossfader.swift`
 
 ```swift
 import Foundation
@@ -746,7 +746,7 @@ public struct BoundaryCrossfader: Sendable {
 
 ---
 
-### 3.6 `Sources/MacDubCore/Composition/LoudnessNormalizer.swift`
+### 3.6 `Sources/AmendCore/Composition/LoudnessNormalizer.swift`
 
 ```swift
 import Foundation
@@ -884,14 +884,14 @@ public struct LoudnessNormalizer: Sendable {
 
 ## 4. Test Suite Implementation Blueprints
 
-### 4.1 `Tests/MacDubCoreTests/Suites/AudioRoutingTests.swift`
+### 4.1 `Tests/AmendCoreTests/Suites/AudioRoutingTests.swift`
 
 ```swift
 import Testing
 import Foundation
 import AVFoundation
 import CoreMedia
-@testable import MacDubCore
+@testable import AmendCore
 
 @Suite("Audio Routing Tests")
 final class AudioRoutingTests {
@@ -996,14 +996,14 @@ final class AudioRoutingTests {
 
 ---
 
-### 4.2 `Tests/MacDubCoreTests/Suites/SyncInvariantTests.swift`
+### 4.2 `Tests/AmendCoreTests/Suites/SyncInvariantTests.swift`
 
 ```swift
 import Testing
 import Foundation
 import CoreMedia
 import AVFoundation
-@testable import MacDubCore
+@testable import AmendCore
 
 @Suite("Sync Invariant Tests")
 final class SyncInvariantTests {
@@ -1148,14 +1148,14 @@ final class SyncInvariantTests {
 ---
 
 ## 6. Conclusion
-Milestone 2 provides the core audio composition guarantees that distinguish macdub from traditional ripple editors:
+Milestone 2 provides the core audio composition guarantees that distinguish amend from traditional ripple editors:
 1. `AudioTrackInspector` delivers ambiguity-safe multi-track detection, advisory badge signaling, and track picker mapping per ADR 0003.
 2. `SyncInvariantEngine` guarantees that video timestamps are strictly immutable and prevents cumulative rational drift across continuous `CMTime` edits.
 3. `CueSplitter` enables zero-gap and zero-overlap cue segmentation at arbitrary timestamps while preserving neighboring cue bounds.
 4. `BoundaryCrossfader` eliminates acoustic clicks with 10–20ms linear and equal-power windowing.
 5. `LoudnessNormalizer` provides level matching and digital peak limiting using Accelerate vectorization.
 
-All interfaces and data models are fully mapped to existing models in `Sources/MacDubCore/Models/` and ready for execution.
+All interfaces and data models are fully mapped to existing models in `Sources/AmendCore/Models/` and ready for execution.
 
 ---
 

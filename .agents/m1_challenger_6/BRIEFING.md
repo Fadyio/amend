@@ -6,7 +6,7 @@ Adversarially verify Milestone 1 implementation, empirical test suites, and secu
 ## 🔒 My Identity
 - Archetype: empirical-challenger
 - Roles: critic, specialist
-- Working directory: /Users/fady/Dev/macdub/.agents/m1_challenger_6
+- Working directory: /Users/fady/Dev/amend/.agents/m1_challenger_6
 - Original parent: 4d531adf-45c7-4a43-8701-f7617acd84e7
 - Milestone: Milestone 1 Verification
 - Instance: 1 of 1
@@ -22,8 +22,8 @@ Adversarially verify Milestone 1 implementation, empirical test suites, and secu
 - Updated: not yet
 
 ## Review Scope
-- **Files to review**: Sources/MacDubCore/Models/, Sources/MacDubCore/Storage/, Tests/MacDubCoreTests/Suites/
-- **Interface contracts**: /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md, /Users/fady/Dev/macdub/.agents/orchestrator_6/PROJECT.md
+- **Files to review**: Sources/AmendCore/Models/, Sources/AmendCore/Storage/, Tests/AmendCoreTests/Suites/
+- **Interface contracts**: /Users/fady/Dev/amend/ORIGINAL_REQUEST.md, /Users/fady/Dev/amend/.agents/orchestrator_6/PROJECT.md
 - **Review criteria**: correctness, empirical test execution, adversarial edge case coverage, security, data integrity
 
 ## Key Decisions Made

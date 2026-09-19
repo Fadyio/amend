@@ -4,10 +4,10 @@
 
 # Teamwork Project Prompt
 
-A native macOS application (macdub) for developer and hackathon screen recordings that enables transcript-based speech editing, narration replacement, and voice cloning while strictly preserving an immutable video timeline with zero synchronization drift.
+A native macOS application (Amend) for developer and hackathon screen recordings that enables transcript-based speech editing, narration replacement, and voice cloning while strictly preserving an immutable video timeline with zero synchronization drift.
 
 Deployment Target: macOS 14.0+, Apple Silicon (arm64)
-Working directory: /Users/fady/Dev/macdub
+Working directory: /Users/fady/Dev/amend
 Integrity mode: development
 
 ## Architecture & Design References
@@ -44,7 +44,7 @@ Implement an audio composition engine where video timestamps belong exclusively 
 ### R3. Ambiguity-Safe Audio Track Import & Project Storage
 Implement media import and project bundle packaging:
 - Automatically inspect all audio tracks in source media. If exactly 1 audio track is found, assign it as Narration with a single-track advisory badge. If >1 audio tracks are found, prompt the user with a Track Picker modal to designate Narration vs Passthrough tracks.
-- When creating a .voicefix Project Bundle, inspect the destination volume's volumeSupportsFileCloning. If cloning is supported and source/destination permit cloning, copy the source media into Project.voicefix/source.<ext> using FileManager.copyItem (APFS copy-on-write). If cloning is not supported, do NOT perform a full multi-gigabyte copy; instead store a security-scoped bookmark to the original file.
+- When creating a .amend Project Bundle, inspect the destination volume's volumeSupportsFileCloning. If cloning is supported and source/destination permit cloning, copy the source media into Project.amend/source.<ext> using FileManager.copyItem (APFS copy-on-write). If cloning is not supported, do NOT perform a full multi-gigabyte copy; instead store a security-scoped bookmark to the original file.
 - Record in project.json whether the source is cloned or externalBookmark. Store project metadata, cached waveform data, thumbnail caches, and synthesized cue WAVs in the bundle. Never store plain text API keys in the bundle.
 
 ### R4. Word-Aligned Transcription & Cue Generation

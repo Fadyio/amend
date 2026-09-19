@@ -1,4 +1,4 @@
-# Progress Log — macdub Orchestration (orchestrator_10)
+# Progress Log — amend Orchestration (orchestrator_10)
 
 Last visited: 2026-09-17T01:33:45Z
 
@@ -8,7 +8,7 @@ Last visited: 2026-09-17T01:33:45Z
 - [/] Phase 2: Parallel E2E Testing Track (Fixtures & 4-Tier Opaque-Box Test Suite)
   - [x] E2E Test Infra (TEST_INFRA.md created)
   - [x] Synthetic Fixtures Setup (Fixture 1 SingleTrack, Fixture 2 MultiTrack, Fixture 3 DurationFitting)
-  - [x] Tier 1 Feature Tests (Tests/MacDubCoreTests/E2E/Tier1FeatureTests.swift passing)
+  - [x] Tier 1 Feature Tests (Tests/AmendCoreTests/E2E/Tier1FeatureTests.swift passing)
   - [ ] Tier 2 Boundary Tests
   - [ ] Tier 3 Pairwise Tests
   - [ ] Tier 4 Real-World Application Tests
@@ -55,4 +55,4 @@ Current iteration: 1 / 32 (Milestone 3 Implementation)
   - m3_explorer_3_gen2 (Coordinates, 60fps Playhead, UI)
 
 ## Retrospective & Notes
-- Worker m3_worker_3 confirmed baseline inspection complete, fixed minor deprecation in TimelineView.swift, verified 100% baseline test passes across M1/M2 suites, and is actively authoring the 7 M3 test suites in Tests/MacDubCoreTests/Suites/.
+- Worker m3_worker_3 confirmed baseline inspection complete, fixed minor deprecation in TimelineView.swift, verified 100% baseline test passes across M1/M2 suites, and is actively authoring the 7 M3 test suites in Tests/AmendCoreTests/Suites/.

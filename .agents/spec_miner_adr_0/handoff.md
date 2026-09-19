@@ -1,7 +1,7 @@
 # Architectural Specification & Domain Invariants Report
 
 **Author**: Architecture & ADR Spec Miner (`spec_miner_adr_0`)  
-**Target Repository**: `/Users/fady/Dev/macdub`  
+**Target Repository**: `/Users/fady/Dev/amend`  
 **Deployment Target**: macOS 14.0+, Apple Silicon (`arm64`), 8GB RAM minimum base  
 **Specification Sources**:
 - `ORIGINAL_REQUEST.md`
@@ -53,9 +53,9 @@ Direct observations extracted from the authoritative repository specification fi
 
 ### 1.5 APFS Clone-First Media Storage & Project Bundles
 - **ADR 0004 (Lines 1–4)**:
-  > "Referencing source media by path risks broken projects when files are renamed or deleted, while naive full copying wastes gigabytes of disk space and slows down project creation. We decided to create self-contained Project Bundles (`.voicefix`) using `FileManager.copyItem`, which leverages APFS copy-on-write cloning when source and destination are on the same APFS volume to achieve instant, zero-additional-disk-space duplicates. When cloning is unsupported (such as cross-volume or non-APFS drives), the bundle falls back gracefully to a security-scoped bookmark."
+  > "Referencing source media by path risks broken projects when files are renamed or deleted, while naive full copying wastes gigabytes of disk space and slows down project creation. We decided to create self-contained Project Bundles (`.amend`) using `FileManager.copyItem`, which leverages APFS copy-on-write cloning when source and destination are on the same APFS volume to achieve instant, zero-additional-disk-space duplicates. When cloning is unsupported (such as cross-volume or non-APFS drives), the bundle falls back gracefully to a security-scoped bookmark."
 - **ORIGINAL_REQUEST.md (Lines 46–49)**:
-  > "When creating a .voicefix Project Bundle, inspect the destination volume's volumeSupportsFileCloning. If cloning is supported and source/destination permit cloning, copy the source media into Project.voicefix/source.<ext> using FileManager.copyItem (APFS copy-on-write). If cloning is not supported, do NOT perform a full multi-gigabyte copy; instead store a security-scoped bookmark to the original file."  
+  > "When creating a .amend Project Bundle, inspect the destination volume's volumeSupportsFileCloning. If cloning is supported and source/destination permit cloning, copy the source media into Project.amend/source.<ext> using FileManager.copyItem (APFS copy-on-write). If cloning is not supported, do NOT perform a full multi-gigabyte copy; instead store a security-scoped bookmark to the original file."  
   > "Record in project.json whether the source is cloned or externalBookmark. Store project metadata, cached waveform data, thumbnail caches, and synthesized cue WAVs in the bundle. Never store plain text API keys in the bundle."
 
 ### 1.6 Ambient Room-Tone Cue Padding
@@ -108,7 +108,7 @@ From these direct observations, we derive the structural architecture and invari
 
 ### Step 2.1: The Invariant Foundation (R1 & R2)
 1. **Observation**: ADR 0001 and R2 state that cues never ripple and video timestamps belong exclusively to the video (`CMTimeRange`).
-2. **Inference**: Traditional NLE or subtitle models treat subtitles as transient overlays or rippling clips. MacDub's core data structure must be a fixed contiguous or disjoint set of immutable slots.
+2. **Inference**: Traditional NLE or subtitle models treat subtitles as transient overlays or rippling clips. Amend's core data structure must be a fixed contiguous or disjoint set of immutable slots.
 3. **Deduction**:
    - `Cue` boundary coordinates `[start, end]` are keyed to video timeline time `CMTime`.
    - Any operation on `Cue[N]` (replacing audio, rewriting text, silence filling) is constrained within `[Cue[N].start, Cue[N].end]`.
@@ -130,7 +130,7 @@ From these direct observations, we derive the structural architecture and invari
 2. **Inference**: APFS provides file cloning via `FileManager.copyItem`, which creates copy-on-write extents in milliseconds. But external drives or non-APFS volumes do not support cloning.
 3. **Deduction**:
    - The app must query destination volume attributes (`URLResourceValues.volumeSupportsFileCloning`).
-   - If cloning is supported on the target volume and media is local to that volume, clone source into `.voicefix/source.<ext>`.
+   - If cloning is supported on the target volume and media is local to that volume, clone source into `.amend/source.<ext>`.
    - If cloning is unsupported (cross-volume or non-APFS), store a `security-scoped bookmark` to avoid copying large files.
    - `project.json` stores an explicit enum: `sourceStorageMode = .cloned(relativePath: "source.mp4")` or `.externalBookmark(bookmarkData: Data, originalPath: String)`.
    - API keys for cloud services must NEVER be written to `project.json`; they must be stored in the macOS Keychain (`kSecClassGenericPassword`).
@@ -201,9 +201,9 @@ From these direct observations, we derive the structural architecture and invari
 | 10 | Media Import | Audio Track Inspector | Enumerates audio tracks in source container and determines routing | `AVAsset` audio tracks | Audio track metadata list (channel count, format, language) | Fails import if 0 audio tracks found | R3, ADR 0003 |
 | 11 | Media Import | Single-Track Warning | Automatically routes single track to Narration and shows advisory badge | Source with 1 audio track | Assigned Narration track + UI advisory badge | None (automatic path) | R3, ADR 0003 |
 | 12 | Media Import | Multi-Track Track Picker | Interactive modal to designate Narration track vs Passthrough tracks | Source with $>1$ audio tracks, user selection | Designated Narration track ID, Passthrough track IDs | Blocks progression until exactly 1 Narration track is selected | R3, ADR 0003 |
-| 13 | Storage | APFS File Cloner | Copy-on-write cloning of source video via `FileManager.copyItem` | Source file URL, destination bundle URL | Cloned video file at `.voicefix/source.<ext>` | Falls back to security-scoped bookmark if cloning fails | R3, ADR 0004 |
+| 13 | Storage | APFS File Cloner | Copy-on-write cloning of source video via `FileManager.copyItem` | Source file URL, destination bundle URL | Cloned video file at `.amend/source.<ext>` | Falls back to security-scoped bookmark if cloning fails | R3, ADR 0004 |
 | 14 | Storage | Security-Scoped Bookmark Fallback | Non-copying bookmark reference for cross-volume / non-APFS storage | Source file URL outside APFS volume | Serialized security-scoped bookmark in `project.json` | Displays missing media dialog if external file moved/deleted | R3, ADR 0004 |
-| 15 | Storage | Project Bundle Serializer | Encapsulates project metadata, cues, track mappings into `.voicefix` package | Project state, waveform cache, cues, room tone | Serialized `project.json` and directory structure | Atomic write failure preserves previous valid state | R3, CONTEXT.md |
+| 15 | Storage | Project Bundle Serializer | Encapsulates project metadata, cues, track mappings into `.amend` package | Project state, waveform cache, cues, room tone | Serialized `project.json` and directory structure | Atomic write failure preserves previous valid state | R3, CONTEXT.md |
 | 16 | Storage | Credential Vault | Stores and retrieves cloud API keys securely via macOS Keychain | Provider ID, API Key string | Secure Keychain item (`kSecClassGenericPassword`) | Returns authentication error if key missing or invalid | R3, ADR 0007 |
 | 17 | Transcription | FluidAudio Parakeet ASR | Offline word-timestamped transcription running on Core ML / ANE | Narration audio track sample buffer | Word tokens with start/end `CMTime` timestamps | Surfaces transcription error; does not corrupt project | R4, ADR 0002 |
 | 18 | Transcription | Silero VAD Engine | Voice Activity Detection for speech segmentation and silence detection | Narration audio track sample buffer | Speech vs non-speech time ranges | Treats entire track as speech if VAD fails | R4, ADR 0002 |
@@ -247,7 +247,7 @@ From these direct observations, we derive the structural architecture and invari
 | 1 | Audio Track Import | Source recording has exactly 1 audio track | Track is automatically mapped to Narration; UI displays single-track advisory badge; track picker modal is bypassed. |
 | 2 | Audio Track Import | Source recording has $> 1$ audio tracks (e.g. mic + system audio) | Track picker modal is presented; user must explicitly select 1 Narration track; unselected tracks become Passthrough Tracks; Track 1 is never assumed to be mic. |
 | 3 | Audio Track Import | Source media has 0 audio tracks | Import fails immediately with `ImportError.noAudioTracksFound`; error message presented to user. |
-| 4 | Project Media Storage | Destination volume supports APFS cloning and source is on same volume | `FileManager.copyItem` executes APFS copy-on-write clone instantly into `.voicefix/source.<ext>`; disk usage is 0 additional bytes; `sourceStorageMode = .cloned`. |
+| 4 | Project Media Storage | Destination volume supports APFS cloning and source is on same volume | `FileManager.copyItem` executes APFS copy-on-write clone instantly into `.amend/source.<ext>`; disk usage is 0 additional bytes; `sourceStorageMode = .cloned`. |
 | 5 | Project Media Storage | Destination volume does NOT support cloning (FAT32, ExFAT, SMB/NFS, cross-volume) | System refrains from performing multi-gigabyte copy; creates security-scoped bookmark to original media; `sourceStorageMode = .externalBookmark`. |
 | 6 | Project Media Storage | Source file moved/renamed after storing security-scoped bookmark | Bookmark resolution attempts resolution with `.withoutUI`; if stale/missing, prompts user to locate media file. |
 | 7 | Ambient Room Tone | Narration track contains no silent segment $\ge 200\text{ ms}$ via Silero VAD | Scans for lowest-energy 200ms RMS window in narration track; if entire track has high floor/clipping, synthesizes low-level comfort noise (-60 LUFS). |
@@ -438,7 +438,7 @@ public protocol LocalModelCoordinating: AnyObject {
 
 ## 7. Conclusion
 
-The architectural specifications for `macdub` establish a strict, deterministic, non-rippling media editing system:
+The architectural specifications for `amend` establish a strict, deterministic, non-rippling media editing system:
 1. **Sync Invariant**: Video timestamps are sovereign. Cues are time-locked slots whose boundaries never move during text or audio modifications.
 2. **Deterministic Fitting**: Asymmetric duration fitting preserves speech naturalness via room-tone padding, gracefully compresses minor excesses ($\le 8\%$), and strictly gates major overflows ($> 8\%$) behind explicit user choice without autonomous loops.
 3. **Storage Efficiency**: APFS copy-on-write cloning ensures instant project bundle creation with zero disk duplication on APFS, falling back gracefully to security-scoped bookmarks elsewhere.
@@ -470,4 +470,4 @@ To independently verify all architectural invariants and specifications, execute
 5. **Security & Keychain Verification**:
    - Inspect: `Tests/SecurityTests.swift`
    - Command: `swift test --filter SecurityTests`
-   - Assertion: API keys round-trip through Keychain; regex scan of `project.json` and `.voicefix` bundle contents confirms zero plaintext API keys.
+   - Assertion: API keys round-trip through Keychain; regex scan of `project.json` and `.amend` bundle contents confirms zero plaintext API keys.

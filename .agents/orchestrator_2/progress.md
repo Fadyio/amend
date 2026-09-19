@@ -1,4 +1,4 @@
-# Progress Log — macdub Orchestration (orchestrator_2)
+# Progress Log — amend Orchestration (orchestrator_2)
 
 Last visited: 2026-09-16T13:31:40Z
 

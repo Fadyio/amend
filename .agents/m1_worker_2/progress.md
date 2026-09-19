@@ -9,14 +9,14 @@
 - [x] Read ORIGINAL_REQUEST.md
 - [x] Read .agents/orchestrator_4/PROJECT.md
 - [x] Inspect existing codebase, Package.swift, .build directory
-- [ ] Complete SPM package resolution & build MacDubCore
+- [ ] Complete SPM package resolution & build AmendCore
 - [ ] Inspect and implement/fix owned files:
   - [ ] Package.swift
-  - [ ] Sources/MacDubCore/Models/*
-  - [ ] Sources/MacDubCore/Storage/*
-  - [ ] Sources/macdub/main.swift
-  - [ ] Tests/MacDubCoreTests/Suites/StorageAPFSTests.swift
-  - [ ] Tests/MacDubCoreTests/Suites/SecuritySuiteTests.swift
+  - [ ] Sources/AmendCore/Models/*
+  - [ ] Sources/AmendCore/Storage/*
+  - [ ] Sources/amend/main.swift
+  - [ ] Tests/AmendCoreTests/Suites/StorageAPFSTests.swift
+  - [ ] Tests/AmendCoreTests/Suites/SecuritySuiteTests.swift
 - [ ] Run `swift build` and verify 0 errors
 - [ ] Run `swift test` and ensure 100% tests pass
 - [ ] Write handoff.md

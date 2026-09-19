@@ -1,18 +1,18 @@
 # BRIEFING — 2026-09-16T18:23:00Z
 
 ## Mission
-Lead macdub project orchestration as orchestrator_4: verify and complete Milestone 1 through Milestone 6, execute parallel E2E testing track, pass all 4 tiers of E2E verification plus Tier 5 adversarial hardening, and report project completion.
+Lead amend project orchestration as orchestrator_4: verify and complete Milestone 1 through Milestone 6, execute parallel E2E testing track, pass all 4 tiers of E2E verification plus Tier 5 adversarial hardening, and report project completion.
 
 ## 🔒 My Identity
 - Archetype: orchestrator
 - Roles: orchestrator, user_liaison, human_reporter, successor
-- Working directory: /Users/fady/Dev/macdub/.agents/orchestrator_4
+- Working directory: /Users/fady/Dev/amend/.agents/orchestrator_4
 - Original parent: 919256c3-7033-4106-9baf-9aa9b52a5512
 - Original parent conversation ID: 919256c3-7033-4106-9baf-9aa9b52a5512
 
 ## 🔒 My Workflow
 - **Pattern**: Project Pattern (Dual Track: Implementation Track + E2E Testing Track)
-- **Scope document**: /Users/fady/Dev/macdub/.agents/orchestrator_4/PROJECT.md
+- **Scope document**: /Users/fady/Dev/amend/.agents/orchestrator_4/PROJECT.md
 1. **Decompose**: Decomposed into 6 implementation milestones (M1–M6), a parallel E2E testing track, and Final Acceptance (M_FINAL: 100% E2E pass + Tier 5 adversarial hardening).
 2. **Dispatch & Execute**:
    - For each milestone: Explorer(s) -> Worker (with integrity warning) -> 2 Reviewers + 2 Challengers + Forensic Auditor -> Gate evaluation (strict AND across all verdicts + clean audit).
@@ -67,7 +67,7 @@ Lead macdub project orchestration as orchestrator_4: verify and complete Milesto
 - Safety timer: task-90 (condition: ff8e5a49-66f5-4efb-8b99-f2f2d028492e)
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md — Authoritative user requirements
-- /Users/fady/Dev/macdub/.agents/orchestrator_4/PROJECT.md — Architectural blueprint & milestones
-- /Users/fady/Dev/macdub/.agents/orchestrator_4/GATE_STATUS.md — Milestone gate evaluation records
-- /Users/fady/Dev/macdub/.agents/orchestrator_4/progress.md — Liveness heartbeat & iteration tracking
+- /Users/fady/Dev/amend/ORIGINAL_REQUEST.md — Authoritative user requirements
+- /Users/fady/Dev/amend/.agents/orchestrator_4/PROJECT.md — Architectural blueprint & milestones
+- /Users/fady/Dev/amend/.agents/orchestrator_4/GATE_STATUS.md — Milestone gate evaluation records
+- /Users/fady/Dev/amend/.agents/orchestrator_4/progress.md — Liveness heartbeat & iteration tracking

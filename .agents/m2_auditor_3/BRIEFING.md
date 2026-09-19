@@ -6,7 +6,7 @@ Forensic integrity verification of Milestone 2 (Audio Routing & Fixed-Slot Compo
 ## 🔒 My Identity
 - Archetype: forensic_auditor
 - Roles: critic, specialist, auditor
-- Working directory: /Users/fady/Dev/macdub/.agents/m2_auditor_3
+- Working directory: /Users/fady/Dev/amend/.agents/m2_auditor_3
 - Original parent: dddb455d-722d-48b2-bdde-0a7e35f53727
 - Target: Milestone 2 (Audio Routing & Fixed-Slot Composition Engine)
 
@@ -22,13 +22,13 @@ Forensic integrity verification of Milestone 2 (Audio Routing & Fixed-Slot Compo
 
 ## Audit Scope
 - **Work product**: Milestone 2 source files and test suites
-  - Sources/MacDubCore/Models/AudioTrackInfo.swift
-  - Sources/MacDubCore/Models/Cue.swift
-  - Sources/MacDubCore/Composition/AudioTrackInspector.swift
-  - Sources/MacDubCore/Composition/SyncInvariantEngine.swift
-  - Sources/MacDubCore/Composition/CueSplitter.swift
-  - Sources/MacDubCore/Composition/BoundaryCrossfader.swift
-  - Sources/MacDubCore/Composition/LoudnessNormalizer.swift
+  - Sources/AmendCore/Models/AudioTrackInfo.swift
+  - Sources/AmendCore/Models/Cue.swift
+  - Sources/AmendCore/Composition/AudioTrackInspector.swift
+  - Sources/AmendCore/Composition/SyncInvariantEngine.swift
+  - Sources/AmendCore/Composition/CueSplitter.swift
+  - Sources/AmendCore/Composition/BoundaryCrossfader.swift
+  - Sources/AmendCore/Composition/LoudnessNormalizer.swift
 - **Profile loaded**: General Project (Integrity Forensics)
 - **Audit type**: forensic integrity check
 
@@ -57,7 +57,7 @@ None.
 - Issued verdict: CLEAN.
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/.agents/m2_auditor_3/DISPATCH.md
-- /Users/fady/Dev/macdub/.agents/m2_auditor_3/BRIEFING.md
-- /Users/fady/Dev/macdub/.agents/m2_auditor_3/progress.md
-- /Users/fady/Dev/macdub/.agents/m2_auditor_3/handoff.md
+- /Users/fady/Dev/amend/.agents/m2_auditor_3/DISPATCH.md
+- /Users/fady/Dev/amend/.agents/m2_auditor_3/BRIEFING.md
+- /Users/fady/Dev/amend/.agents/m2_auditor_3/progress.md
+- /Users/fady/Dev/amend/.agents/m2_auditor_3/handoff.md

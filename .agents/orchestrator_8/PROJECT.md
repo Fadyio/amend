@@ -1,11 +1,11 @@
-# Project: macdub
+# Project: amend
 
 ## Architecture Overview
-macdub is a pure native macOS 14.0+ application for screen recording speech editing, narration replacement, and voice cloning that preserves an immutable video timeline with zero synchronization drift.
+amend is a pure native macOS 14.0+ application for screen recording speech editing, narration replacement, and voice cloning that preserves an immutable video timeline with zero synchronization drift.
 - **Runtime & Stack**: 100% Native Swift, Core Media (`CMTime`), AVFoundation, Core ML (`FluidAudio` with Parakeet ASR and Silero VAD, PocketTTS), and Accelerate. Zero Python, zero FFmpeg, zero localhost microservices.
 - **Target Platform**: macOS 14.0+, Apple Silicon (arm64) with 8GB unified memory budget. Build toolchain: Apple Command Line Tools (`swift build`, `swift test`).
 - **Data Flow**:
-  1. Source media imported -> Audio tracks inspected (1 track -> advisory badge; >1 -> Track Picker modal) -> APFS copy-on-write clone to `.voicefix` bundle or security-scoped bookmark.
+  1. Source media imported -> Audio tracks inspected (1 track -> advisory badge; >1 -> Track Picker modal) -> APFS copy-on-write clone to `.amend` bundle or security-scoped bookmark.
   2. Transcription via Parakeet ASR + Silero VAD (managed by `LocalModelCoordinator`) -> word-timestamped fixed-slot Cues.
   3. Video timeline driven by continuous `CMTime` with SMPTE display ruler (`SwiftTimecode`), async filmstrip (`AVAssetImageGenerator`), and waveform display (`DSWaveformImage`).
   4. Audio editing / synthesis / rewriting operates strictly within immutable slot bounds:
@@ -36,7 +36,7 @@ All features identified during the Phase 0 survey mapped to milestones:
 | 12 | Multi-Track Track Picker | Interactive modal designating Narration vs Passthrough tracks | M2 | R3, ADR 0003 |
 | 13 | APFS File Cloner | Copy-on-write cloning via FileManager.copyItem into bundle | M1 | R3, ADR 0004 |
 | 14 | Security-Scoped Bookmark Fallback | Bookmark reference for cross-volume / non-APFS media | M1 | R3, ADR 0004 |
-| 15 | Project Bundle Serializer | Encapsulate project.json, waveforms, thumbs, cue WAVs in .voicefix | M1 | R3, CONTEXT.md |
+| 15 | Project Bundle Serializer | Encapsulate project.json, waveforms, thumbs, cue WAVs in .amend | M1 | R3, CONTEXT.md |
 | 16 | Keychain Credential Vault | Secure storage of API keys via kSecClassGenericPassword | M1 | R3, R5, AC 123 |
 | 17 | FluidAudio Parakeet ASR | Core ML speech recognition generating word-timestamped tokens | M4 | R4, ADR 0002 |
 | 18 | Silero VAD Engine | Voice Activity Detection for speech and silence segmentation | M4 | R4, ADR 0002 |
@@ -79,7 +79,7 @@ All features identified during the Phase 0 survey mapped to milestones:
 
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| M1 | Core Foundation, Storage & Security | Package.swift, MacDubCore target, Core Data Models (Cue, AudioTrackMapping, ProjectBundle, ProjectMetadata, CMTime+Codable), APFS copyItem cloning vs Bookmark fallback, Project bundle serialization (.voicefix/project.json), Keychain Credential Vault (kSecClassGenericPassword), CredentialLeakScanner | none | DONE |
+| M1 | Core Foundation, Storage & Security | Package.swift, AmendCore target, Core Data Models (Cue, AudioTrackMapping, ProjectBundle, ProjectMetadata, CMTime+Codable), APFS copyItem cloning vs Bookmark fallback, Project bundle serialization (.amend/project.json), Keychain Credential Vault (kSecClassGenericPassword), CredentialLeakScanner | none | DONE |
 | M2 | Audio Routing & Fixed-Slot Composition Engine | AudioTrackInspector (1 track -> advisory, >1 -> modal), Fixed-slot Composition Engine enforcing immutable CMTime boundaries, Cue splitting with zero gap/overlap, Boundary Crossfader (10–20ms), Loudness Normalizer, Passthrough track preservation | M1 | DONE |
 | M3 | Timeline Engine & Visual Presentation | CMTime Master Clock vs SwiftTimecode SMPTE ruler, AVAssetImageGenerator async filmstrip, DSWaveformImage extraction and caching, Interactive Cue track with zoom (pixelsPerSecond), Draggable continuous playhead with frame-accurate video seeking & cue highlighting | M1, M2 | PLANNED |
 | M4 | Speech Transcription & Local Model Lifecycle | LocalModelCoordinator actor enforcing serialized lifecycle and exclusive RAM residency under 8GB budget, FluidAudio Parakeet ASR and Silero VAD integration, word-timestamped cue generation, disk caching of tokens and waveforms | M1, M2 | PLANNED |
@@ -98,13 +98,13 @@ All features identified during the Phase 0 survey mapped to milestones:
 ## Code Layout
 
 ```
-/Users/fady/Dev/macdub/
+/Users/fady/Dev/amend/
 ├── Package.swift
 ├── CONTEXT.md
 ├── ORIGINAL_REQUEST.md
 ├── docs/adr/
 ├── Sources/
-│   ├── MacDubCore/
+│   ├── AmendCore/
 │   │   ├── Models/
 │   │   │   ├── CMTime+Codable.swift
 │   │   │   ├── CueEditState.swift
@@ -158,9 +158,9 @@ All features identified during the Phase 0 survey mapped to milestones:
 │   │       ├── SampleBufferReader.swift
 │   │       ├── SampleBufferWriter.swift
 │   │       └── NarrationAudioRenderer.swift
-│   └── macdub/
+│   └── amend/
 │       ├── App/
-│       │   └── MacDubApp.swift
+│       │   └── AmendApp.swift
 │       ├── ViewModels/
 │       │   └── ProjectViewModel.swift
 │       └── Views/
@@ -172,7 +172,7 @@ All features identified during the Phase 0 survey mapped to milestones:
 │           ├── OverflowGatedModal.swift
 │           └── TextDiffModal.swift
 └── Tests/
-    └── MacDubCoreTests/
+    └── AmendCoreTests/
         ├── Fixtures/
         │   ├── SyntheticFixtureGenerator.swift
         │   ├── Fixture1SingleTrack.swift

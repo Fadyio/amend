@@ -6,7 +6,7 @@ Last visited: 2026-09-17T00:29:40Z
 - [x] Initialized DISPATCH.md, BRIEFING.md, progress.md
 - [ ] Read ORIGINAL_REQUEST.md and PROJECT.md
 - [ ] Read Explorer 1, 2, 3 reports
-- [ ] Inspect existing codebase structure, Package.swift, MacDubCore, macdub app
+- [ ] Inspect existing codebase structure, Package.swift, AmendCore, amend app
 
 ## Phase 2: Design & Implementation Plan [PENDING]
 - [ ] Synthesize architecture specifications

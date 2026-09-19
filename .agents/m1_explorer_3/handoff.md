@@ -20,9 +20,9 @@
   > "16 | Keychain Credential Vault | Secure storage of API keys via kSecClassGenericPassword | M1 | R3, R5, AC 123"
 - **`PROJECT.md:117, 181-182`**:
   > File layout mandates:
-  > `Sources/MacDubCore/Storage/KeychainVault.swift`
-  > `Tests/MacDubCoreTests/Suites/SecuritySuiteTests.swift`
-  > `Tests/MacDubCoreTests/Suites/StorageAPFSTests.swift`
+  > `Sources/AmendCore/Storage/KeychainVault.swift`
+  > `Tests/AmendCoreTests/Suites/SecuritySuiteTests.swift`
+  > `Tests/AmendCoreTests/Suites/StorageAPFSTests.swift`
 - **`spec_miner_fixtures_0/handoff.md:13`**:
   > "Security Suite | macOS Keychain round-trip validation and project bundle AST credential leak scanner. | Service keys (ElevenLabs, Resemble, Gemini), project bundle directory URL. | Keychain CRUD success, zero plaintext key matches in bundle JSON. | Keychain OSStatus error or regex match of API key in project.json fails test."
 - **`spec_miner_fixtures_0/handoff.md:50-51`**:
@@ -58,8 +58,8 @@
    - Gemini (`ServiceKey.gemini`)
    Defining a typed, case-iterable enum `ServiceKey: String, CaseIterable, Sendable, Codable` eliminates stringly-typed bugs and allows automated iteration in test suites.
 3. *From Keychain API Concurrency & Test Isolation*:
-   - Default service identifier: `"com.macdub.credentials"`.
-   - `KeychainVault` must support an injectable `serviceIdentifier: String` parameter in its initializer. This ensures unit tests can run against an isolated domain (e.g. `"com.macdub.credentials.tests"`) and clean up completely in `tearDown()` without wiping real user credentials.
+   - Default service identifier: `"com.fady.amend.credentials"`.
+   - `KeychainVault` must support an injectable `serviceIdentifier: String` parameter in its initializer. This ensures unit tests can run against an isolated domain (e.g. `"com.fady.amend.credentials.tests"`) and clean up completely in `tearDown()` without wiping real user credentials.
    - A `CredentialVaultProtocol` abstraction allows `MockCredentialVault` in-memory substitution for CI, preview, and isolated component testing.
 4. *From SecItem Error & Duplicate Handling Logic*:
    - When saving an existing key, calling `SecItemAdd` will return `errSecDuplicateItem` (-25299). Rather than failing, `save(key:for:)` catches this status and immediately calls `SecItemUpdate` with the existing query keys (`kSecClass`, `kSecAttrService`, `kSecAttrAccount`) and new attributes (`[kSecValueData: keyData]`).
@@ -68,7 +68,7 @@
    - `has(keyFor:)` executes `SecItemCopyMatching` without `kSecReturnData: true`, checking for `errSecSuccess`.
 
 ### 2.2 Project Bundle AST & Credential Leak Scanner Logic
-1. *From R3, AC 123, and Edge Case 18*: Project bundles (`.voicefix`) contain `project.json`, audio WAVs, thumbnail images, and waveform cache files. A project bundle must be completely self-contained and shareable without exposing the creator's API keys or personal home directory paths.
+1. *From R3, AC 123, and Edge Case 18*: Project bundles (`.amend`) contain `project.json`, audio WAVs, thumbnail images, and waveform cache files. A project bundle must be completely self-contained and shareable without exposing the creator's API keys or personal home directory paths.
 2. *From Defense-in-Depth Principle*: Relying solely on developers "remembering" not to serialize credentials is insufficient. An automated scanner (`CredentialLeakScanner`) must verify bundle contents:
    - **AST Traversal**: Recursively walk `project.json` JSON structure. Any key containing `api_key`, `secret`, `token`, `password`, `auth`, `bearer` with non-trivial values must trigger a violation.
    - **Pattern Matching**: Regex scan text/json files against known provider formats:
@@ -78,7 +78,7 @@
      - Generic Tokens: `(?i)bearer\s+[a-zA-Z0-9_\-\.]{20,}`
    - **Known Secret Cross-Check**: Accept a list of active secrets from Keychain and assert that none appear anywhere in bundle files.
    - **Absolute Path Check**: Detect `/Users/[^/]+/` or `/home/[^/]+/` in `project.json`. Bundle paths must be relative, while foreign media must use security-scoped bookmarks.
-3. *From Worker Implementation Efficiency*: The scanner should be implemented in `Sources/MacDubCore/Storage/CredentialLeakScanner.swift` and tested in `Tests/MacDubCoreTests/Suites/SecuritySuiteTests.swift`.
+3. *From Worker Implementation Efficiency*: The scanner should be implemented in `Sources/AmendCore/Storage/CredentialLeakScanner.swift` and tested in `Tests/AmendCoreTests/Suites/SecuritySuiteTests.swift`.
 
 ### 2.3 Milestone 1 Unit Test Suite Design Logic
 1. *From PROJECT.md and spec_miner_fixtures_0*: Milestone 1 introduces two core test suites:
@@ -95,7 +95,7 @@
 ### 3.1 Component 1: Keychain Credential Vault (`KeychainVault.swift`)
 
 #### Source Path
-`Sources/MacDubCore/Storage/KeychainVault.swift`
+`Sources/AmendCore/Storage/KeychainVault.swift`
 
 #### Protocol & Types
 ```swift
@@ -145,7 +145,7 @@ public final class KeychainVault: CredentialVaultProtocol, @unchecked Sendable {
     public let serviceIdentifier: String
     private let accessGroup: String?
 
-    public init(serviceIdentifier: String = "com.macdub.credentials", accessGroup: String? = nil) {
+    public init(serviceIdentifier: String = "com.fady.amend.credentials", accessGroup: String? = nil) {
         self.serviceIdentifier = serviceIdentifier
         self.accessGroup = accessGroup
     }
@@ -299,7 +299,7 @@ public final class MockCredentialVault: CredentialVaultProtocol, @unchecked Send
 ### 3.2 Component 2: Project Bundle AST / Credential Leak Scanner (`CredentialLeakScanner.swift`)
 
 #### Source Path
-`Sources/MacDubCore/Storage/CredentialLeakScanner.swift`
+`Sources/AmendCore/Storage/CredentialLeakScanner.swift`
 
 #### Types & Implementation
 ```swift
@@ -459,7 +459,7 @@ public final class CredentialLeakScanner: CredentialLeakScanning {
 ### 3.3 Component 3: Milestone 1 Unit Test Suites
 
 #### Suite 1: `StorageAPFSTests.swift`
-**Location**: `Tests/MacDubCoreTests/Suites/StorageAPFSTests.swift`
+**Location**: `Tests/AmendCoreTests/Suites/StorageAPFSTests.swift`
 
 **Test Cases**:
 1. `test_apfs_cloning_detected_on_apfs_volume`:
@@ -492,11 +492,11 @@ public final class CredentialLeakScanner: CredentialLeakScanning {
      `project.json`, `waveforms/`, `thumbnails/`, `audio/`.
 
 #### Suite 2: `SecuritySuiteTests.swift`
-**Location**: `Tests/MacDubCoreTests/Suites/SecuritySuiteTests.swift`
+**Location**: `Tests/AmendCoreTests/Suites/SecuritySuiteTests.swift`
 
 **Test Cases**:
 1. `test_keychain_crud_all_supported_services`:
-   - Uses test service identifier `"com.macdub.tests.credentials"`.
+   - Uses test service identifier `"com.fady.amend.tests.credentials"`.
    - Iterates through `ServiceKey.allCases` (`.elevenLabs`, `.resemble`, `.gemini`).
    - For each:
      - `vault.save(key: "secret_val", for: service)`
@@ -525,7 +525,7 @@ public final class CredentialLeakScanner: CredentialLeakScanning {
    - Asserts violation reported with `.providerPatternMatch`.
 8. `test_credential_leak_scanner_detects_known_secret_in_any_bundle_file`:
    - Adds custom secret `"arbitrary_secret_token_12345"` to `knownSecrets`.
-   - Injects string into `debug.log` in `.voicefix` bundle.
+   - Injects string into `debug.log` in `.amend` bundle.
    - Asserts violation reported with `.knownSecretMatch`.
 9. `test_credential_leak_scanner_detects_user_absolute_paths`:
    - Injects `"/Users/fady/Movies/test.mov"` into `project.json`.
@@ -538,9 +538,9 @@ public final class CredentialLeakScanner: CredentialLeakScanning {
    - On macOS developer machines, `SecItemAdd` with `kSecClassGenericPassword` works immediately without GUI prompts.
    - On headless CI runners (e.g. GitHub Actions macOS runners), the login keychain might be locked by default unless `security unlock-keychain` is invoked. Providing `MockCredentialVault` ensures unit tests can run anywhere without requiring OS keychain unlocks if desired.
 2. **APFS Cloning Across Partitions**:
-   - `FileManager.copyItem` on APFS is an instant copy-on-write operation only when source and destination are on the same APFS volume container. If a source file is on an external drive or network share, `volumeSupportsFileCloning` returns `false`, and macdub must fall back to a security-scoped bookmark without copying the multi-gigabyte file.
+   - `FileManager.copyItem` on APFS is an instant copy-on-write operation only when source and destination are on the same APFS volume container. If a source file is on an external drive or network share, `volumeSupportsFileCloning` returns `false`, and amend must fall back to a security-scoped bookmark without copying the multi-gigabyte file.
 3. **CoreMedia Codable Retroactivity**:
-   - Because `CMTime` is an Apple C-struct, marking it `@retroactive Codable` is standard in Swift 6. This extension should reside in `MacDubCore/Models/CMTime+Codable.swift` to make it accessible to all core models.
+   - Because `CMTime` is an Apple C-struct, marking it `@retroactive Codable` is standard in Swift 6. This extension should reside in `AmendCore/Models/CMTime+Codable.swift` to make it accessible to all core models.
 
 ---
 
@@ -551,7 +551,7 @@ The Security Credential Vault (`KeychainVault`), Project Bundle AST / Credential
 
 ## 6. Verification Method
 1. Inspect the handoff report at:
-   `/Users/fady/Dev/macdub/.agents/m1_explorer_3/handoff.md`
+   `/Users/fady/Dev/amend/.agents/m1_explorer_3/handoff.md`
 2. Validate Keychain CRUD and leak scanner behavior with:
    ```bash
    swift test --filter SecuritySuiteTests
@@ -560,4 +560,4 @@ The Security Credential Vault (`KeychainVault`), Project Bundle AST / Credential
    ```bash
    swift test --filter StorageAPFSTests
    ```
-4. Verify that zero plaintext API keys leak into any `.voicefix` project bundle.
+4. Verify that zero plaintext API keys leak into any `.amend` project bundle.

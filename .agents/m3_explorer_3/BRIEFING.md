@@ -6,7 +6,7 @@ Investigate and architect the Interactive Cue Track, Zoom Engine (pixelsPerSecon
 ## 🔒 My Identity
 - Archetype: explorer
 - Roles: timeline presentation, cue tracking, coordinate systems, UI binding architect
-- Working directory: /Users/fady/Dev/macdub/.agents/m3_explorer_3
+- Working directory: /Users/fady/Dev/amend/.agents/m3_explorer_3
 - Original parent: dddb455d-722d-48b2-bdde-0a7e35f53727
 - Milestone: M3 (Timeline Engine & Visual Presentation)
 
@@ -24,13 +24,13 @@ Investigate and architect the Interactive Cue Track, Zoom Engine (pixelsPerSecon
 ## Investigation State
 - **Explored paths**: ORIGINAL_REQUEST.md, PROJECT.md, DISPATCH.md
 - **Key findings**: M1 and M2 completed. M3 requires interactive cue track with zoom, draggable continuous playhead, active cue highlighting at 60fps, ProjectViewModel binding.
-- **Unexplored areas**: Existing code in `Sources/MacDubCore/Timeline/`, `Sources/macdub/`, `Sources/MacDubCore/Models/`, `docs/adr/0001-fixed-sync-invariant.md`.
+- **Unexplored areas**: Existing code in `Sources/AmendCore/Timeline/`, `Sources/amend/`, `Sources/AmendCore/Models/`, `docs/adr/0001-fixed-sync-invariant.md`.
 
 ## Key Decisions Made
 - Scoping analysis into 4 key technical pillars: 1) Coordinate mapping & zoom math, 2) Interactive cue track & selection/seeking, 3) 60fps active cue tracking & playhead scrubbing performance, 4) ProjectViewModel architecture and state binding.
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/.agents/m3_explorer_3/DISPATCH.md — Assignment instructions
-- /Users/fady/Dev/macdub/.agents/m3_explorer_3/BRIEFING.md — Persistent working memory
-- /Users/fady/Dev/macdub/.agents/m3_explorer_3/progress.md — Liveness heartbeat and progress
-- /Users/fady/Dev/macdub/.agents/m3_explorer_3/handoff.md — 5-component handoff report (target)
+- /Users/fady/Dev/amend/.agents/m3_explorer_3/DISPATCH.md — Assignment instructions
+- /Users/fady/Dev/amend/.agents/m3_explorer_3/BRIEFING.md — Persistent working memory
+- /Users/fady/Dev/amend/.agents/m3_explorer_3/progress.md — Liveness heartbeat and progress
+- /Users/fady/Dev/amend/.agents/m3_explorer_3/handoff.md — 5-component handoff report (target)

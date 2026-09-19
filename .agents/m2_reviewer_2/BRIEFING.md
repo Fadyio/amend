@@ -1,12 +1,12 @@
 # BRIEFING — 2026-09-16T19:39:36Z
 
 ## Mission
-Independently review and adversarial-stress-test Milestone 2 (Audio Routing & Fixed-Slot Composition Engine) implementation in macdub.
+Independently review and adversarial-stress-test Milestone 2 (Audio Routing & Fixed-Slot Composition Engine) implementation in amend.
 
 ## 🔒 My Identity
 - Archetype: reviewer_and_adversarial_critic
 - Roles: reviewer, critic
-- Working directory: /Users/fady/Dev/macdub/.agents/m2_reviewer_2
+- Working directory: /Users/fady/Dev/amend/.agents/m2_reviewer_2
 - Original parent: 6d0f15a4-fc57-4559-a103-9d3b296d77df
 - Milestone: Milestone 2 (Audio Routing & Fixed-Slot Composition Engine)
 - Instance: 2 of 2
@@ -22,8 +22,8 @@ Independently review and adversarial-stress-test Milestone 2 (Audio Routing & Fi
 - Updated: 2026-09-16T19:39:36Z
 
 ## Review Scope
-- **Files to review**: Sources/MacDubCore/Models/AudioTrackInfo.swift, Sources/MacDubCore/Models/Cue.swift, Sources/MacDubCore/Composition/AudioTrackInspector.swift, Sources/MacDubCore/Composition/SyncInvariantEngine.swift, Sources/MacDubCore/Composition/CueSplitter.swift, Sources/MacDubCore/Composition/BoundaryCrossfader.swift, Sources/MacDubCore/Composition/LoudnessNormalizer.swift, Tests/MacDubCoreTests/Suites/AudioRoutingTests.swift, Tests/MacDubCoreTests/Suites/SyncInvariantTests.swift, Tests/MacDubCoreTests/Suites/CueSplitterTests.swift, Tests/MacDubCoreTests/Suites/BoundaryCrossfaderTests.swift, Tests/MacDubCoreTests/Suites/LoudnessNormalizerTests.swift
-- **Interface contracts**: /Users/fady/Dev/macdub/.agents/orchestrator_7/PROJECT.md, ORIGINAL_REQUEST.md
+- **Files to review**: Sources/AmendCore/Models/AudioTrackInfo.swift, Sources/AmendCore/Models/Cue.swift, Sources/AmendCore/Composition/AudioTrackInspector.swift, Sources/AmendCore/Composition/SyncInvariantEngine.swift, Sources/AmendCore/Composition/CueSplitter.swift, Sources/AmendCore/Composition/BoundaryCrossfader.swift, Sources/AmendCore/Composition/LoudnessNormalizer.swift, Tests/AmendCoreTests/Suites/AudioRoutingTests.swift, Tests/AmendCoreTests/Suites/SyncInvariantTests.swift, Tests/AmendCoreTests/Suites/CueSplitterTests.swift, Tests/AmendCoreTests/Suites/BoundaryCrossfaderTests.swift, Tests/AmendCoreTests/Suites/LoudnessNormalizerTests.swift
+- **Interface contracts**: /Users/fady/Dev/amend/.agents/orchestrator_7/PROJECT.md, ORIGINAL_REQUEST.md
 - **Review criteria**: correctness, architecture, robustness, thread-safety (Sendable), numerical precision (CMTime rational operations), error handling, test coverage, adversarial challenge
 
 ## Review Checklist

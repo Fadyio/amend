@@ -6,13 +6,13 @@ Investigate and architect Milestone 3 (Timeline Engine & Visual Presentation) co
 ## 🔒 My Identity
 - Archetype: explorer
 - Roles: investigation, synthesis
-- Working directory: /Users/fady/Dev/macdub/.agents/m3_explorer_3_gen2
+- Working directory: /Users/fady/Dev/amend/.agents/m3_explorer_3_gen2
 - Original parent: b34c3ff6-40fb-40eb-9abe-6faa574a682f
 - Milestone: Milestone 3 (Timeline Engine & Visual Presentation)
 
 ## 🔒 Key Constraints
 - Read-only investigation — do NOT implement source code
-- Write only to /Users/fady/Dev/macdub/.agents/m3_explorer_3_gen2/
+- Write only to /Users/fady/Dev/amend/.agents/m3_explorer_3_gen2/
 - Provide concrete SwiftUI architecture, state flows, math transforms, 60fps rendering strategy, and test plan
 - Message parent orchestrator (b34c3ff6-40fb-40eb-9abe-6faa574a682f) upon completion
 
@@ -23,7 +23,7 @@ Investigate and architect Milestone 3 (Timeline Engine & Visual Presentation) co
 ## Investigation State
 - **Explored paths**:
   - `ORIGINAL_REQUEST.md`, `PROJECT.md` (orchestrator_9), ADR 0001, `Package.swift`
-  - `Sources/MacDubCore/Models/Cue.swift`, `CueEditState.swift`, `Tests/MacDubCoreTests/`
+  - `Sources/AmendCore/Models/Cue.swift`, `CueEditState.swift`, `Tests/AmendCoreTests/`
 - **Key findings**:
   - Exact forward/inverse transforms: `timeToX` and `xToTime` with preferred timescale 60000.
   - Perceptual logarithmic zoom scaling: $p(u) = 10.0 \times 10^{2u}$.
@@ -37,7 +37,7 @@ Investigate and architect Milestone 3 (Timeline Engine & Visual Presentation) co
 - Structured complete handoff in `handoff.md` with concrete Swift implementations, architecture diagrams, and Swift Testing suites (`TimelineCoordinateTests`, `CueBinarySearchTests`).
 
 ## Artifact Index
-- `/Users/fady/Dev/macdub/.agents/m3_explorer_3_gen2/DISPATCH.md` — Dispatch prompt
-- `/Users/fady/Dev/macdub/.agents/m3_explorer_3_gen2/BRIEFING.md` — Persistent working memory
-- `/Users/fady/Dev/macdub/.agents/m3_explorer_3_gen2/progress.md` — Progress and liveness heartbeat
-- `/Users/fady/Dev/macdub/.agents/m3_explorer_3_gen2/handoff.md` — Comprehensive 5-component handoff report
+- `/Users/fady/Dev/amend/.agents/m3_explorer_3_gen2/DISPATCH.md` — Dispatch prompt
+- `/Users/fady/Dev/amend/.agents/m3_explorer_3_gen2/BRIEFING.md` — Persistent working memory
+- `/Users/fady/Dev/amend/.agents/m3_explorer_3_gen2/progress.md` — Progress and liveness heartbeat
+- `/Users/fady/Dev/amend/.agents/m3_explorer_3_gen2/handoff.md` — Comprehensive 5-component handoff report

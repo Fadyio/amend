@@ -3,8 +3,8 @@
 Last visited: 2026-09-17T01:32:30Z
 
 ## Current Status
-- Inspected all existing implementations in `Sources/MacDubCore/Timeline/` (6 files) and `Sources/macdub/` (8 files).
-- Fixed deprecation warning in `Sources/macdub/Views/TimelineView.swift` (`onChange(of:perform:)` updated to macOS 14 closure).
+- Inspected all existing implementations in `Sources/AmendCore/Timeline/` (6 files) and `Sources/amend/` (8 files).
+- Fixed deprecation warning in `Sources/amend/Views/TimelineView.swift` (`onChange(of:perform:)` updated to macOS 14 closure).
 - Ran baseline test suites across M1 and M2 targets:
   - `SecuritySuiteTests`: 10/10 passed (0.167s)
   - `StorageAPFSTests`: 7/7 passed (0.013s)
@@ -13,14 +13,14 @@ Last visited: 2026-09-17T01:32:30Z
   - `BoundaryCrossfaderTests`: 5/5 passed (0.016s)
   - `CueSplitterTests`: 7/7 passed (0.010s)
   - `LoudnessNormalizerTests`: 6/6 passed (0.079s)
-- Proceeding with creating all Milestone 3 comprehensive test suites in `Tests/MacDubCoreTests/Suites/`.
+- Proceeding with creating all Milestone 3 comprehensive test suites in `Tests/AmendCoreTests/Suites/`.
 
 ## Steps
 - [x] Step 1: Initialize briefing and progress tracking
 - [x] Step 2: Read ORIGINAL_REQUEST.md, PROJECT.md, and explorer handoffs
-- [x] Step 3: Inspect existing implementations in Sources/MacDubCore/Timeline/ and Sources/macdub/
+- [x] Step 3: Inspect existing implementations in Sources/AmendCore/Timeline/ and Sources/amend/
 - [x] Step 4: Run existing build and baseline tests to establish baseline
-- [ ] Step 5: Implement test suites in Tests/MacDubCoreTests/Suites/
+- [ ] Step 5: Implement test suites in Tests/AmendCoreTests/Suites/
   - [ ] TimelineCoordinateTests.swift
   - [ ] CueBinarySearchTests.swift
   - [ ] PlayheadSnapperTests.swift

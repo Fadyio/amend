@@ -16,7 +16,7 @@ Command:
 swift build
 ```
 Exit code: `0`.
-Result: Targets `MacDubCore` and `macdub` built successfully in 9.40 seconds using Apple Command Line Tools on macOS 14+ (arm64). Warnings were limited to upstream watchOS 4 deprecation in `swift-timecode`.
+Result: Targets `AmendCore` and `amend` built successfully in 9.40 seconds using Apple Command Line Tools on macOS 14+ (arm64). Warnings were limited to upstream watchOS 4 deprecation in `swift-timecode`.
 
 ### Test Verification
 Command:
@@ -56,19 +56,19 @@ Verbatim Test Run:
 ### CLI Executable Verification
 Command:
 ```bash
-swift run macdub
+swift run amend
 ```
 Exit code: `0`.
 Output:
-`macdub: Developer screen recording speech editor and narration engine.`
+`amend: Developer screen recording speech editor and narration engine.`
 
 ### Source Inspection
-- `Sources/MacDubCore/Models/CMTime+Codable.swift`: Lines 12–27 encode/decode `value: Int64`, `timescale: Int32`, `flags: UInt32`, `epoch: Int64`. No `Double` or `Float` conversion is present.
-- `Sources/MacDubCore/Storage/APFSCloner.swift`: Lines 29–36 query `URLResourceValues.volumeSupportsFileCloning`, lines 38–46 verify matching `volumeIdentifier` across URLs via `existingURL` ancestor resolution, and lines 52–64 call `FileManager.default.copyItem`.
-- `Sources/MacDubCore/Storage/BookmarkManager.swift`: Lines 18–37 implement `.withSecurityScope` creation with graceful fallback to standard bookmarks for CLI testing. Lines 68–76 wrap access in `startAccessingSecurityScopedResource` and `defer { stopAccessingSecurityScopedResource() }`.
-- `Sources/MacDubCore/Storage/KeychainVault.swift`: Lines 60, 74, 97, 123, 139 configure queries with `kSecClass as String: kSecClassGenericPassword`. Lines 71–93 implement `SecItemUpdate` upon `errSecDuplicateItem`.
-- `Sources/MacDubCore/Storage/CredentialLeakScanner.swift`: Lines 38–53 define compiled regexes for ElevenLabs (`sk_...`, 32-hex), Gemini (`AIza...`), Resemble, Bearer tokens, suspicious JSON keys (`api_key`, `secret`, `token`, etc.), and user home directories (`/(?:Users|home)/...`).
-- `Sources/MacDubCore/Storage/ProjectBundleSerializer.swift`: Line 109 executes `try data.write(to: bundle.projectJSONURL, options: .atomic)`. Lines 117–127 implement automatic detection and refresh of stale bookmarks.
+- `Sources/AmendCore/Models/CMTime+Codable.swift`: Lines 12–27 encode/decode `value: Int64`, `timescale: Int32`, `flags: UInt32`, `epoch: Int64`. No `Double` or `Float` conversion is present.
+- `Sources/AmendCore/Storage/APFSCloner.swift`: Lines 29–36 query `URLResourceValues.volumeSupportsFileCloning`, lines 38–46 verify matching `volumeIdentifier` across URLs via `existingURL` ancestor resolution, and lines 52–64 call `FileManager.default.copyItem`.
+- `Sources/AmendCore/Storage/BookmarkManager.swift`: Lines 18–37 implement `.withSecurityScope` creation with graceful fallback to standard bookmarks for CLI testing. Lines 68–76 wrap access in `startAccessingSecurityScopedResource` and `defer { stopAccessingSecurityScopedResource() }`.
+- `Sources/AmendCore/Storage/KeychainVault.swift`: Lines 60, 74, 97, 123, 139 configure queries with `kSecClass as String: kSecClassGenericPassword`. Lines 71–93 implement `SecItemUpdate` upon `errSecDuplicateItem`.
+- `Sources/AmendCore/Storage/CredentialLeakScanner.swift`: Lines 38–53 define compiled regexes for ElevenLabs (`sk_...`, 32-hex), Gemini (`AIza...`), Resemble, Bearer tokens, suspicious JSON keys (`api_key`, `secret`, `token`, etc.), and user home directories (`/(?:Users|home)/...`).
+- `Sources/AmendCore/Storage/ProjectBundleSerializer.swift`: Line 109 executes `try data.write(to: bundle.projectJSONURL, options: .atomic)`. Lines 117–127 implement automatic detection and refresh of stale bookmarks.
 
 ---
 
@@ -88,7 +88,7 @@ Output:
    - `APFSCloner.canClone` verifies that destination supports cloning AND source and destination share the same volume identifier.
    - When supported, `FileManager.default.copyItem` achieves instant copy-on-write clones.
    - When unsupported (cross-volume or non-APFS destination), `ProjectBundleSerializer` falls back to `BookmarkManager.createBookmark`, avoiding multi-gigabyte disk duplication.
-   - Project bundle structure adheres to `.voicefix` package layout (`audio/cues`, `waveforms`, `thumbnails`, `project.json`).
+   - Project bundle structure adheres to `.amend` package layout (`audio/cues`, `waveforms`, `thumbnails`, `project.json`).
 
 4. **Security & Credential Protection (R3, R5, AC 123)**:
    - API keys are exclusively persisted to the macOS Keychain using `kSecClassGenericPassword`.
@@ -123,10 +123,10 @@ The work product for Milestone 1 is sound, conformant to specifications, well-te
 
 To independently verify:
 ```bash
-cd /Users/fady/Dev/macdub
+cd /Users/fady/Dev/amend
 swift build
 swift test
-swift run macdub
+swift run amend
 ```
 
 ### Invalidation Conditions

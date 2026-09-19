@@ -1,18 +1,18 @@
 # BRIEFING — 2026-09-16T19:59:45Z
 
 ## Mission
-Orchestrate the development and verification of macdub (native macOS 14+ screen recording speech editing, narration replacement, and voice cloning app) through all milestones (M1–M6, E2E Testing, and Final Verification).
+Orchestrate the development and verification of amend (native macOS 14+ screen recording speech editing, narration replacement, and voice cloning app) through all milestones (M1–M6, E2E Testing, and Final Verification).
 
 ## 🔒 My Identity
 - Archetype: Project Orchestrator
 - Roles: orchestrator, user_liaison, human_reporter, successor
-- Working directory: /Users/fady/Dev/macdub/.agents/orchestrator_5
+- Working directory: /Users/fady/Dev/amend/.agents/orchestrator_5
 - Original parent: top-level (Sentinel)
 - Original parent conversation ID: 919256c3-7033-4106-9baf-9aa9b52a5512
 
 ## 🔒 My Workflow
 - **Pattern**: Project Pattern (Dual Track: Implementation Track + Parallel E2E Testing Track)
-- **Scope document**: /Users/fady/Dev/macdub/.agents/orchestrator_5/PROJECT.md
+- **Scope document**: /Users/fady/Dev/amend/.agents/orchestrator_5/PROJECT.md
 1. **Decompose**: Decomposed into 6 implementation milestones (M1–M6), 1 parallel E2E testing track, and 1 final milestone (M_FINAL: 100% E2E pass + Tier 5 adversarial hardening).
 2. **Dispatch & Execute**:
    - For each milestone: assess scope; run iteration loop: 3 Explorers (or Spec Miners) -> 1 Worker (with mandatory integrity warning) -> 2 Reviewers -> 2 Challengers -> 1 Forensic Auditor -> Gate evaluation.
@@ -72,11 +72,11 @@ Orchestrate the development and verification of macdub (native macOS 14+ screen 
 - Safety timer: none
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md — Authoritative user requirements
-- /Users/fady/Dev/macdub/.agents/orchestrator_5/PROJECT.md — Global architecture, feature inventory, milestones, contracts
-- /Users/fady/Dev/macdub/.agents/orchestrator_5/GATE_STATUS.md — Structured gate verdicts
-- /Users/fady/Dev/macdub/.agents/orchestrator_5/progress.md — Liveness & workflow progress
-- /Users/fady/Dev/macdub/.agents/orchestrator_5/BRIEFING.md — Working memory & identity
-- /Users/fady/Dev/macdub/.agents/m1_worker_3/handoff.md — M1 worker completion report
-- /Users/fady/Dev/macdub/.agents/m1_reviewer_1/handoff.md — M1 reviewer 1 report (APPROVE)
-- /Users/fady/Dev/macdub/.agents/m1_reviewer_2/handoff.md — M1 reviewer 2 report (APPROVE)
+- /Users/fady/Dev/amend/ORIGINAL_REQUEST.md — Authoritative user requirements
+- /Users/fady/Dev/amend/.agents/orchestrator_5/PROJECT.md — Global architecture, feature inventory, milestones, contracts
+- /Users/fady/Dev/amend/.agents/orchestrator_5/GATE_STATUS.md — Structured gate verdicts
+- /Users/fady/Dev/amend/.agents/orchestrator_5/progress.md — Liveness & workflow progress
+- /Users/fady/Dev/amend/.agents/orchestrator_5/BRIEFING.md — Working memory & identity
+- /Users/fady/Dev/amend/.agents/m1_worker_3/handoff.md — M1 worker completion report
+- /Users/fady/Dev/amend/.agents/m1_reviewer_1/handoff.md — M1 reviewer 1 report (APPROVE)
+- /Users/fady/Dev/amend/.agents/m1_reviewer_2/handoff.md — M1 reviewer 2 report (APPROVE)

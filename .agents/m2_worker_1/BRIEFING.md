@@ -6,7 +6,7 @@ Implement Milestone 2 (Audio Routing & Fixed-Slot Composition Engine) and polish
 ## 🔒 My Identity
 - Archetype: implementer
 - Roles: implementer, qa, specialist
-- Working directory: /Users/fady/Dev/macdub/.agents/m2_worker_1
+- Working directory: /Users/fady/Dev/amend/.agents/m2_worker_1
 - Original parent: 4d531adf-45c7-4a43-8701-f7617acd84e7
 - Milestone: Milestone 2 (Audio Routing & Fixed-Slot Composition Engine)
 
@@ -32,8 +32,8 @@ Implement Milestone 2 (Audio Routing & Fixed-Slot Composition Engine) and polish
   7. LoudnessNormalizer (RMS/LUFS estimation via vDSP, peak ceiling protection e.g. 0.95 / -0.45 dBFS)
   8. AudioRoutingTests and SyncInvariantTests
 - **Success criteria**: All tests pass, zero regressions, strict CMTime invariant compliance, genuine audio DSP implementation.
-- **Interface contracts**: /Users/fady/Dev/macdub/.agents/orchestrator_6/PROJECT.md
-- **Code layout**: /Users/fady/Dev/macdub/.agents/orchestrator_6/PROJECT.md § Code Layout
+- **Interface contracts**: /Users/fady/Dev/amend/.agents/orchestrator_6/PROJECT.md
+- **Code layout**: /Users/fady/Dev/amend/.agents/orchestrator_6/PROJECT.md § Code Layout
 
 ## Key Decisions Made
 - [TBD]

@@ -1,26 +1,26 @@
 # Dispatch: Milestone 2 Implementation Worker (m2_worker_2)
 
 ## Mission
-Implement Milestone 2: Audio Routing & Fixed-Slot Composition Engine for macdub according to ORIGINAL_REQUEST.md, PROJECT.md, and m2_explorer_1/handoff.md.
+Implement Milestone 2: Audio Routing & Fixed-Slot Composition Engine for amend according to ORIGINAL_REQUEST.md, PROJECT.md, and m2_explorer_1/handoff.md.
 
 ## Documents to Read First
-1. /Users/fady/Dev/macdub/ORIGINAL_REQUEST.md
-2. /Users/fady/Dev/macdub/.agents/orchestrator_7/PROJECT.md
-3. /Users/fady/Dev/macdub/.agents/m2_explorer_1/handoff.md
+1. /Users/fady/Dev/amend/ORIGINAL_REQUEST.md
+2. /Users/fady/Dev/amend/.agents/orchestrator_7/PROJECT.md
+3. /Users/fady/Dev/amend/.agents/m2_explorer_1/handoff.md
 
 ## Exclusive Write Ownership
-- Sources/MacDubCore/Composition/AudioTrackInspector.swift
-- Sources/MacDubCore/Composition/SyncInvariantEngine.swift
-- Sources/MacDubCore/Composition/CueSplitter.swift
-- Sources/MacDubCore/Composition/BoundaryCrossfader.swift
-- Sources/MacDubCore/Composition/LoudnessNormalizer.swift
-- Sources/MacDubCore/Models/AudioTrackInfo.swift
-- Sources/MacDubCore/Models/Cue.swift (extensions if needed)
-- Tests/MacDubCoreTests/Suites/AudioRoutingTests.swift
-- Tests/MacDubCoreTests/Suites/SyncInvariantTests.swift
-- Tests/MacDubCoreTests/Suites/CueSplitterTests.swift
-- Tests/MacDubCoreTests/Suites/BoundaryCrossfaderTests.swift
-- Tests/MacDubCoreTests/Suites/LoudnessNormalizerTests.swift
+- Sources/AmendCore/Composition/AudioTrackInspector.swift
+- Sources/AmendCore/Composition/SyncInvariantEngine.swift
+- Sources/AmendCore/Composition/CueSplitter.swift
+- Sources/AmendCore/Composition/BoundaryCrossfader.swift
+- Sources/AmendCore/Composition/LoudnessNormalizer.swift
+- Sources/AmendCore/Models/AudioTrackInfo.swift
+- Sources/AmendCore/Models/Cue.swift (extensions if needed)
+- Tests/AmendCoreTests/Suites/AudioRoutingTests.swift
+- Tests/AmendCoreTests/Suites/SyncInvariantTests.swift
+- Tests/AmendCoreTests/Suites/CueSplitterTests.swift
+- Tests/AmendCoreTests/Suites/BoundaryCrossfaderTests.swift
+- Tests/AmendCoreTests/Suites/LoudnessNormalizerTests.swift
 
 ## Verification Required
 - Run `swift build` and verify clean build with zero warnings or errors.

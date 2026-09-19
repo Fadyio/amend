@@ -1,15 +1,15 @@
 ## 2026-09-16T12:39:50Z
 
-You are a Verification & Fixtures Spec Miner subagent for macdub.
-Your assigned working directory is: /Users/fady/Dev/macdub/.agents/spec_miner_fixtures_0
-You must maintain progress.md in your working directory and output your final report to /Users/fady/Dev/macdub/.agents/spec_miner_fixtures_0/handoff.md.
+You are a Verification & Fixtures Spec Miner subagent for amend.
+Your assigned working directory is: /Users/fady/Dev/amend/.agents/spec_miner_fixtures_0
+You must maintain progress.md in your working directory and output your final report to /Users/fady/Dev/amend/.agents/spec_miner_fixtures_0/handoff.md.
 
 Read the authoritative user request at:
-/Users/fady/Dev/macdub/ORIGINAL_REQUEST.md
+/Users/fady/Dev/amend/ORIGINAL_REQUEST.md
 
 Read test-related architectural documentation:
-- /Users/fady/Dev/macdub/docs/adr/0007-deterministic-avfoundation-verification-fixtures.md
-- Any existing tests in /Users/fady/Dev/macdub/Tests or similar directories.
+- /Users/fady/Dev/amend/docs/adr/0007-deterministic-avfoundation-verification-fixtures.md
+- Any existing tests in /Users/fady/Dev/amend/Tests or similar directories.
 
 Your mission:
 Extract and catalog all verification requirements, test fixtures, and test suite specifications:
@@ -27,4 +27,4 @@ Extract and catalog all verification requirements, test fixtures, and test suite
 
 Scope boundary:
 You are READ-ONLY. Do NOT modify any source code files. Write only to your working directory.
-When finished, write /Users/fady/Dev/macdub/.agents/spec_miner_fixtures_0/handoff.md and send a completion message to the caller.
+When finished, write /Users/fady/Dev/amend/.agents/spec_miner_fixtures_0/handoff.md and send a completion message to the caller.

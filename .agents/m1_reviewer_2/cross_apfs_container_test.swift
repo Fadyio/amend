@@ -1,11 +1,11 @@
 import Foundation
 import CoreMedia
-import MacDubCore
+import AmendCore
 
-print("=== MACDUB CROSS-APFS CONTAINER STRESS TEST ===")
+print("=== AMEND CROSS-APFS CONTAINER STRESS TEST ===")
 
-let mountPoint = URL(fileURLWithPath: "/Volumes/MacDubTestAPFS")
-let apfsTempDir = FileManager.default.temporaryDirectory.appendingPathComponent("MacDubAPFSSource2_\(UUID().uuidString)")
+let mountPoint = URL(fileURLWithPath: "/Volumes/AmendTestAPFS")
+let apfsTempDir = FileManager.default.temporaryDirectory.appendingPathComponent("AmendAPFSSource2_\(UUID().uuidString)")
 try FileManager.default.createDirectory(at: apfsTempDir, withIntermediateDirectories: true)
 defer {
     try? FileManager.default.removeItem(at: apfsTempDir)

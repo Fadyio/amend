@@ -1,12 +1,12 @@
 # BRIEFING — 2026-09-16T16:55:00Z
 
 ## Mission
-Review and adversarial stress-test Milestone 1 (Core Foundation, Storage & Security) of macdub.
+Review and adversarial stress-test Milestone 1 (Core Foundation, Storage & Security) of amend.
 
 ## 🔒 My Identity
 - Archetype: reviewer_critic
 - Roles: reviewer, critic
-- Working directory: /Users/fady/Dev/macdub/.agents/m1_reviewer_2
+- Working directory: /Users/fady/Dev/amend/.agents/m1_reviewer_2
 - Original parent: f4d33157-8c85-4175-941d-68dd087b5235
 - Milestone: Milestone 1 (Core Foundation, Storage & Security)
 - Instance: 1 of 1
@@ -24,11 +24,11 @@ Review and adversarial stress-test Milestone 1 (Core Foundation, Storage & Secur
 ## Review Scope
 - **Files to review**:
   - Package.swift
-  - Sources/MacDubCore/Models/*
-  - Sources/MacDubCore/Storage/*
-  - Sources/macdub/main.swift
-  - Tests/MacDubCoreTests/Suites/StorageAPFSTests.swift
-  - Tests/MacDubCoreTests/Suites/SecuritySuiteTests.swift
+  - Sources/AmendCore/Models/*
+  - Sources/AmendCore/Storage/*
+  - Sources/amend/main.swift
+  - Tests/AmendCoreTests/Suites/StorageAPFSTests.swift
+  - Tests/AmendCoreTests/Suites/SecuritySuiteTests.swift
 - **Interface contracts**: PROJECT.md, ORIGINAL_REQUEST.md, ADR 0004
 - **Review criteria**: Correctness, integrity, security, invariant preservation, interface conformance
 
@@ -53,5 +53,5 @@ Review and adversarial stress-test Milestone 1 (Core Foundation, Storage & Secur
 - Approved Milestone 1
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/.agents/m1_reviewer_2/handoff.md — final review and challenge report
-- /Users/fady/Dev/macdub/.agents/m1_reviewer_2/progress.md — liveness heartbeat
+- /Users/fady/Dev/amend/.agents/m1_reviewer_2/handoff.md — final review and challenge report
+- /Users/fady/Dev/amend/.agents/m1_reviewer_2/progress.md — liveness heartbeat

@@ -1,4 +1,4 @@
-# MacDub
+# Amend
 
 A native macOS application for developer demo recordings that enables transcript-based speech editing and voice replacement while strictly locking all cue timings to the underlying video.
 
@@ -33,5 +33,5 @@ An audio track from the source recording that is passed through untouched withou
 _Avoid_: Secondary track, unedited track, system track (when referring to passthrough behavior)
 
 **Project Bundle**:
-A directory package (`.voicefix`) referencing the source video and containing project metadata, cached waveforms, thumbnails, and generated cue audio.
+A directory package (`.amend`) referencing the source video and containing project metadata, cached waveforms, thumbnails, and generated cue audio.
 _Avoid_: Project file, workspace folder, session, catalog

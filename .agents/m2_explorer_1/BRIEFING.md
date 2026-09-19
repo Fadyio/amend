@@ -6,7 +6,7 @@ Explore architecture and formulate implementation plan for Milestone 2: Audio Ro
 ## 🔒 My Identity
 - Archetype: explorer
 - Roles: investigator, architect, synthesizer
-- Working directory: /Users/fady/Dev/macdub/.agents/m2_explorer_1
+- Working directory: /Users/fady/Dev/amend/.agents/m2_explorer_1
 - Original parent: 4d531adf-45c7-4a43-8701-f7617acd84e7
 - Milestone: M2 - Audio Routing & Fixed-Slot Composition Engine
 
@@ -20,7 +20,7 @@ Explore architecture and formulate implementation plan for Milestone 2: Audio Ro
 - Updated: 2026-09-16T18:12:00Z
 
 ## Investigation State
-- **Explored paths**: ORIGINAL_REQUEST.md, PROJECT.md, Sources/MacDubCore/Models/, Tests/MacDubCoreTests/, docs/adr/ (0001, 0003, 0005, 0006, 0007, 0008).
+- **Explored paths**: ORIGINAL_REQUEST.md, PROJECT.md, Sources/AmendCore/Models/, Tests/AmendCoreTests/, docs/adr/ (0001, 0003, 0005, 0006, 0007, 0008).
 - **Key findings**: Complete mathematical, API, and algorithmic specifications defined for AudioTrackInspector, SyncInvariantEngine, CueSplitter, BoundaryCrossfader, LoudnessNormalizer, along with AudioRoutingTests and SyncInvariantTests. Full report written to handoff.md.
 - **Unexplored areas**: None within Milestone 2 scope.
 
@@ -32,7 +32,7 @@ Explore architecture and formulate implementation plan for Milestone 2: Audio Ro
 - Integrated Accelerate vDSP for RMS calculation, K-weighted LUFS estimation, and peak ceiling clamping.
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/.agents/m2_explorer_1/DISPATCH.md — Received task dispatches
-- /Users/fady/Dev/macdub/.agents/m2_explorer_1/BRIEFING.md — Working memory & identity
-- /Users/fady/Dev/macdub/.agents/m2_explorer_1/progress.md — Liveness heartbeat
-- /Users/fady/Dev/macdub/.agents/m2_explorer_1/handoff.md — Final 5-component report
+- /Users/fady/Dev/amend/.agents/m2_explorer_1/DISPATCH.md — Received task dispatches
+- /Users/fady/Dev/amend/.agents/m2_explorer_1/BRIEFING.md — Working memory & identity
+- /Users/fady/Dev/amend/.agents/m2_explorer_1/progress.md — Liveness heartbeat
+- /Users/fady/Dev/amend/.agents/m2_explorer_1/handoff.md — Final 5-component report

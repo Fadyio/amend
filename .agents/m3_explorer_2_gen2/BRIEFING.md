@@ -6,15 +6,15 @@ Investigate, design, and architect the Video Filmstrip Generator and Audio Wavef
 ## 🔒 My Identity
 - Archetype: Teamwork explorer
 - Roles: Exploration, Architecture, Synthesis
-- Working directory: /Users/fady/Dev/macdub/.agents/m3_explorer_2_gen2
+- Working directory: /Users/fady/Dev/amend/.agents/m3_explorer_2_gen2
 - Original parent: b34c3ff6-40fb-40eb-9abe-6faa574a682f
 - Milestone: Milestone 3 (Timeline Engine & Visual Presentation)
 
 ## 🔒 Key Constraints
 - Read-only investigation — do NOT implement
-- Adhere strictly to 8GB unified memory budget constraints (< 50MB RAM ceiling for filmstrip/waveform) and APFS project bundle architecture (.voicefix)
+- Adhere strictly to 8GB unified memory budget constraints (< 50MB RAM ceiling for filmstrip/waveform) and APFS project bundle architecture (.amend)
 - Ground all designs in AVAssetImageGenerator / AVAssetReader / Accelerate vDSP / DSWaveformImage / Swift concurrency realities
-- Deliver 5-component handoff report to /Users/fady/Dev/macdub/.agents/m3_explorer_2_gen2/handoff.md
+- Deliver 5-component handoff report to /Users/fady/Dev/amend/.agents/m3_explorer_2_gen2/handoff.md
 
 ## Current Parent
 - Conversation ID: b34c3ff6-40fb-40eb-9abe-6faa574a682f
@@ -23,10 +23,10 @@ Investigate, design, and architect the Video Filmstrip Generator and Audio Wavef
 ## Investigation State
 - **Explored paths**:
   - `Package.swift`: verified DSWaveformImage (14.5.0), swift-timecode (3.1.4), FluidAudio (0.9.1).
-  - `Sources/MacDubCore/Storage/ProjectBundleSerializer.swift`: verified `audio/cues`, `waveforms`, `thumbnails` directories scaffolding and bundle structure.
-  - `Sources/MacDubCore/Models/ProjectBundle.swift`: verified `waveformsDirectoryURL` and `thumbnailsDirectoryURL` accessors.
+  - `Sources/AmendCore/Storage/ProjectBundleSerializer.swift`: verified `audio/cues`, `waveforms`, `thumbnails` directories scaffolding and bundle structure.
+  - `Sources/AmendCore/Models/ProjectBundle.swift`: verified `waveformsDirectoryURL` and `thumbnailsDirectoryURL` accessors.
   - `.build/checkouts/DSWaveformImage/Sources/DSWaveformImage/WaveformAnalyzer.swift`: inspected full AVAssetReader + vDSP processing pipeline (vDSP_vflt16, vDSP_vabs, vDSP_vdbcon, vDSP_vclip, vDSP_desamp).
-  - `Tests/MacDubCoreTests/Fixtures/SyntheticFixtureGenerator.swift` & `Fixture1SingleTrack.swift`: verified deterministic synthetic movie/audio test fixtures.
+  - `Tests/AmendCoreTests/Fixtures/SyntheticFixtureGenerator.swift` & `Fixture1SingleTrack.swift`: verified deterministic synthetic movie/audio test fixtures.
   - Tested build & execution (`swift test --filter StorageAPFSTests`, `AudioRoutingTests` passed in ~0.18s and ~0.02s).
 - **Key findings**:
   - `AVAssetImageGenerator.maximumSize` must be strictly configured to target retina bounds (e.g. 214x120), otherwise raw 4K frames decode at ~33MB each, instantly breaching the 50MB RAM limit.
@@ -37,11 +37,11 @@ Investigate, design, and architect the Video Filmstrip Generator and Audio Wavef
 - **Unexplored areas**: None within Milestone 3 filmstrip & waveform scope.
 
 ## Key Decisions Made
-- Architected `FilmstripGenerating` protocol and `FilmstripGenerator` actor with 3-tier caching (NSCache 25MB + JPEG on disk in `.voicefix/thumbnails/` + AVAssetImageGenerator with adaptive tolerance and max 3 concurrent tasks).
-- Architected `WaveformExtracting` actor and `MultiScaleWaveform` with SIMD Accelerate vDSP peak extraction (min, max, RMS), 3-level pyramid, and mapped binary storage in `.voicefix/waveforms/`.
+- Architected `FilmstripGenerating` protocol and `FilmstripGenerator` actor with 3-tier caching (NSCache 25MB + JPEG on disk in `.amend/thumbnails/` + AVAssetImageGenerator with adaptive tolerance and max 3 concurrent tasks).
+- Architected `WaveformExtracting` actor and `MultiScaleWaveform` with SIMD Accelerate vDSP peak extraction (min, max, RMS), 3-level pyramid, and mapped binary storage in `.amend/waveforms/`.
 
 ## Artifact Index
-- /Users/fady/Dev/macdub/.agents/m3_explorer_2_gen2/DISPATCH.md — Task assignment
-- /Users/fady/Dev/macdub/.agents/m3_explorer_2_gen2/progress.md — Liveness heartbeat
-- /Users/fady/Dev/macdub/.agents/m3_explorer_2_gen2/BRIEFING.md — Situational awareness
-- /Users/fady/Dev/macdub/.agents/m3_explorer_2_gen2/handoff.md — Handoff report (in progress)
+- /Users/fady/Dev/amend/.agents/m3_explorer_2_gen2/DISPATCH.md — Task assignment
+- /Users/fady/Dev/amend/.agents/m3_explorer_2_gen2/progress.md — Liveness heartbeat
+- /Users/fady/Dev/amend/.agents/m3_explorer_2_gen2/BRIEFING.md — Situational awareness
+- /Users/fady/Dev/amend/.agents/m3_explorer_2_gen2/handoff.md — Handoff report (in progress)

@@ -6,7 +6,7 @@ Empirically stress-test and adversarially challenge Milestone 2's DSP components
 ## 🔒 My Identity
 - Archetype: empirical_challenger
 - Roles: critic, specialist
-- Working directory: /Users/fady/Dev/macdub/.agents/m2_challenger_4
+- Working directory: /Users/fady/Dev/amend/.agents/m2_challenger_4
 - Original parent: dddb455d-722d-48b2-bdde-0a7e35f53727
 - Milestone: Milestone 2 DSP & Audio Math
 - Instance: 1 of 1
@@ -15,7 +15,7 @@ Empirically stress-test and adversarially challenge Milestone 2's DSP components
 - Review-only — do NOT modify implementation code
 - Empirically challenge BoundaryCrossfader and LoudnessNormalizer with adversarial inputs
 - Must run verification code directly (no unverified claims)
-- Deliver handoff report at /Users/fady/Dev/macdub/.agents/m2_challenger_4/handoff.md with explicit verdict APPROVE or REJECT
+- Deliver handoff report at /Users/fady/Dev/amend/.agents/m2_challenger_4/handoff.md with explicit verdict APPROVE or REJECT
 - Send message to parent upon completion
 
 ## Current Parent
@@ -24,11 +24,11 @@ Empirically stress-test and adversarially challenge Milestone 2's DSP components
 
 ## Review Scope
 - **Files to review**:
-  - `Sources/MacDubCore/Composition/BoundaryCrossfader.swift`
-  - `Sources/MacDubCore/Composition/LoudnessNormalizer.swift`
-  - `Tests/MacDubCoreTests/Suites/BoundaryCrossfaderTests.swift`
-  - `Tests/MacDubCoreTests/Suites/LoudnessNormalizerTests.swift`
-  - `Tests/MacDubCoreTests/Suites/DSPAdversarialTests.swift`
+  - `Sources/AmendCore/Composition/BoundaryCrossfader.swift`
+  - `Sources/AmendCore/Composition/LoudnessNormalizer.swift`
+  - `Tests/AmendCoreTests/Suites/BoundaryCrossfaderTests.swift`
+  - `Tests/AmendCoreTests/Suites/LoudnessNormalizerTests.swift`
+  - `Tests/AmendCoreTests/Suites/DSPAdversarialTests.swift`
 - **Interface contracts**:
   - `ORIGINAL_REQUEST.md` (R2: "Audio replacements apply loudness normalization and 10–20 ms boundary crossfades.")
   - `docs/adr/0005-ambient-room-tone-cue-padding.md`
@@ -58,7 +58,7 @@ Empirically stress-test and adversarially challenge Milestone 2's DSP components
 - None
 
 ## Key Decisions Made
-- Implemented 27-test empirical adversarial suite in `Tests/MacDubCoreTests/Suites/DSPAdversarialTests.swift`.
+- Implemented 27-test empirical adversarial suite in `Tests/AmendCoreTests/Suites/DSPAdversarialTests.swift`.
 - Compiled and executed the test suite directly via `swiftpm-testing-helper`, bypassing workspace build locks.
 - Confirmed 100% pass rate (27/27 adversarial tests, 63/63 M2 tests total).
 - Formulated final verdict: APPROVE.
